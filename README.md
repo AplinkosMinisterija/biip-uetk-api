@@ -1,10 +1,10 @@
-# BĮIP Tools
+# BĮIP UETK API
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/AplinkosMinisterija/biip-uetk-api/badge)](https://securityscorecards.dev/viewer/?platform=github.com&org={AplinkosMinisterija}&repo={biip-uetk-api})
 [![License](https://img.shields.io/github/license/AplinkosMinisterija/biip-uetk-api)](https://github.com/AplinkosMinisterija/biip-uetk-api/blob/main/LICENSE)
 [![GitHub issues](https://img.shields.io/github/issues/AplinkosMinisterija/biip-uetk-api)](https://github.com/AplinkosMinisterija/biip-uetk-api/issues)
 [![GitHub stars](https://img.shields.io/github/stars/AplinkosMinisterija/biip-uetk-api)](https://github.com/AplinkosMinisterija/biip-uetk-api/stargazers)
 
-This repository contains the source code and documentation for the BĮIP Tools, developed by the Aplinkos
+This repository contains the source code and documentation for the BĮIP UETK API, developed by the Aplinkos
 Ministerija.
 ## Table of Contents
 
@@ -20,11 +20,11 @@ Ministerija.
 
 ## About the Project
 
-The BĮIP Tools is designed to provide helpful tools and functionalities for other BĮIP projects as an API based project.
+The BĮIP UETK API is designed to provide information and functionalities related to activities of different water bodies located in Lithuania. It aims to support the management of water bodies.
 
 ## Getting Started
 
-To get started with the BĮIP Tools, follow the instructions below.
+To get started with the BĮIP UETK API, follow the instructions below.
 
 ### Installation
 
