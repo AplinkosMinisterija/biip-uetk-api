@@ -33,7 +33,7 @@ RUN yarn install --immutable --immutable-cache --inline-builds --production \
 
 # Copy built artifacts from builder stage
 COPY --from=builder /app/dist/ ./dist/
-COPY --from=builder /app/database/ ./dist/database/
+COPY --from=builder /app/database/ ./database/
 
 # Set default environment variables
 ENV NODE_ENV=production
