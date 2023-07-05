@@ -34,7 +34,7 @@ export default class SeedService extends moleculer.Service {
 
   async started(): Promise<void> {
     this.broker
-      .waitForServices(['auth', 'users', 'tenants', 'tenants.users'])
+      .waitForServices(['auth', 'users', 'tenants', 'tenantUsers'])
       .then(async () => {
         await this.broker.call('seed.real', {}, { timeout: 120 * 1000 });
 
