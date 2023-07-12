@@ -34,6 +34,8 @@ type FormStatusChanged = { statusChanged: boolean };
 export interface Form extends BaseModelInterface {
   status: string;
   geom: GeomFeatureCollection;
+  type: string;
+  objectType: string;
 }
 
 export const FormStatus = {
@@ -374,15 +376,26 @@ export default class FormsService extends moleculer.Service {
     return invalid;
   }
 
+
   @Method
   async parseGeomField(
-    ctx: Context<{
-      id?: number;
-      geom?: GeomFeatureCollection;
-      geomBufferSize?: number;
-    }>
+    ctx: Context<{ id?: number; type?: string; geom: GeomFeatureCollection }>
   ) {
     const { geom, id } = ctx.params;
+
+    const errMessage = 'No geometry was passed';
+    let form: Form;
+    let type: string = ctx.params.type || FormType.NEW;
+    if (id) {
+      form = await this.broker.call('forms.resolve', { id });
+      type = form.type;
+    }
+
+    if (type === FormType.NEW) {
+      if (!form?.geom && !geom?.features?.length) {
+        throw new moleculer.Errors.ValidationError(errMessage);
+      }
+    }
 
     if (geom?.features?.length) {
       const adapter = await this.getAdapter(ctx);
@@ -395,13 +408,6 @@ export default class FormsService extends moleculer.Service {
       } catch (err) {
         throw new moleculer.Errors.ValidationError(err.message);
       }
-    } else if (id) {
-      const form: Form = await ctx.call('forms.resolve', { id });
-      if (!form.geom) {
-        throw new moleculer.Errors.ValidationError('No geometry');
-      }
-    } else {
-      throw new moleculer.Errors.ValidationError('Invalid geometry');
     }
 
     return ctx;
