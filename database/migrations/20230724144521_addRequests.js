@@ -10,8 +10,6 @@ exports.up = function (knex) {
       table.increments('id');
       table.integer('tenantId').unsigned();
       table.jsonb('cadastralIds');
-      table.string('purpose', 255);
-      table.string('delivery', 255);
       table
         .enu(
           'status',
@@ -19,6 +17,10 @@ exports.up = function (knex) {
           { useNative: true, enumName: 'request_status' }
         )
         .defaultTo('CREATED');
+      table.string('purpose', 255);
+      table.string('delivery', 255);
+      table.string('notifyEmail', 255);
+      table.string('generatedFile', 255);
       table.timestamp('respondedAt');
       commonFields(table);
     })

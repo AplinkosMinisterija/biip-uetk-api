@@ -158,6 +158,16 @@ const populatePermissions = (field: string) => {
         populate: populatePermissions('validate'),
       },
 
+      generatedFile: 'string',
+
+      notifyEmail: {
+        type: 'string',
+        onCreate: ({ ctx, value }: FieldHookCallback) => {
+          const { user } = ctx?.meta;
+          return value || user?.email;
+        },
+      },
+
       ...TENANT_FIELD,
 
       ...COMMON_FIELDS,
