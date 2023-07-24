@@ -1,0 +1,18 @@
+<table class="table-center">
+  <% if (!!locals.vandensPavirsiausBeSaluPlotas) { %>
+  <tr>
+    <td>Vandens paviršiaus be salų plotas:</td>
+    <td><%= locals.vandensPavirsiausBeSaluPlotas %> ha</td>
+  </tr>
+  <% }; if (!!locals.krantoLinijosIlgis) { %>
+  <tr>
+    <td>Kranto linijos ilgis:</td>
+    <td><%= locals.krantoLinijosIlgis %> km</td>
+  </tr>
+  <% }; if (!!locals.baseinoPlotas) { %>
+  <tr>
+    <td>Baseino plotas:</td>
+    <td><%= locals.baseinoPlotas %> km<sup>2</sup></td>
+  </tr>
+  <% }; %>
+</table>

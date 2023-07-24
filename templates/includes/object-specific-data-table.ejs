@@ -1,0 +1,48 @@
+<table class="table-center">
+  <% if (!!locals.upesIlgis) { %>
+  <tr>
+    <td>Upės ilgis:</td>
+    <td><%= locals.upesIlgis %> km</td>
+  </tr>
+  <% }; if (!!locals.kanaloIlgis) { %>
+  <tr>
+    <td>Kanalo ilgis:</td>
+    <td><%= locals.kanaloIlgis %> km</td>
+  </tr>
+  <% }; if (!!locals.baseinoPlotas) { %>
+  <tr>
+    <td>Baseino plotas:</td>
+    <td><%= locals.baseinoPlotas %> km<sup>2</sup></td>
+  </tr>
+  <% }; if (!!locals.coordinatesX) { %>
+  <tr>
+    <td>Žiočių koordinatė X (LKS94):</td>
+    <td><%= locals.coordinatesX %></td>
+  </tr>
+  <% }; if (!!locals.coordinatesY) { %>
+  <tr>
+    <td>Žiočių koordinatė Y (LKS94):</td>
+    <td><%= locals.coordinatesY %></td>
+  </tr>
+  <% }; if (!!locals.atstumasIkiKitosUpes) { %>
+  <tr>
+    <td>Atstumas iki kitos upės žiočių:</td>
+    <td><%= locals.atstumasIkiKitosUpes %> km</td>
+  </tr>
+  <% }; if (!!locals.itekejimoIKitaUpeKrantas) { %>
+  <tr>
+    <td>Įtekėjimo į kitą upę krantas:</td>
+    <td><%= locals.itekejimoIKitaUpeKrantas %></td>
+  </tr>
+  <% }; if (!!locals.itekejimoEiliskumas) { %>
+  <tr>
+    <td>Įtekėjimo eiliškumas:</td>
+    <td><%= locals.itekejimoEiliskumas %></td>
+  </tr>
+  <% }; if (!!locals.daugiametisDebitas) { %>
+  <tr>
+    <td>Vidutinis daugiametis vandens debitas žiotyse:</td>
+    <td><%= locals.daugiametisDebitas %>  m<sup>3</sup>/s</td>
+  </tr>
+  <% }; %>
+</table>

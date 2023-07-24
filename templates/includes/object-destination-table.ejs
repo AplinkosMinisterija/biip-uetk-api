@@ -1,0 +1,19 @@
+<table class="table-center">
+  <% locals.items?.forEach(function(item, index) { %>
+  <tr>
+    <td colspan="2" class="text-left"><%= id %>.<%= index + 1 %></td>
+  </tr>
+  <tr>
+    <td>Pavadinimas:</td>
+    <td><%= item.title %></td>
+  </tr>
+  <tr>
+    <td>Identifikavimo kodas:</td>
+    <td><%= item.id %></td>
+  </tr>
+  <tr>
+    <td>Kategorija:</td>
+    <td><%= item.category %></td>
+  </tr>
+  <% }); %>
+</table>

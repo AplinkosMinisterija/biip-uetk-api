@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <%- include('styles'); %>
+  </head>
+  <body>
+    <div style="width: 620px">
+      <div class="flex flex-col items-center">
+        <p class="font-bold text-2xl">APLINKOS APSAUGOS AGENTŪRA</p>
+        <p>
+          Biudžetinė įstaiga, A. Juozapavičiaus g. 9, LT-09311 Vilnius, tel.
+          +370 682 92653, el.p. aaa@gamta.lt, https://aaa.lrv.lt.
+        </p>
+        <p>
+          Duomenys kaupiami ir saugojami Juridinių asmenų registre, kodas
+          188784898
+        </p>
+      </div>
+      <hr />
+      <div class="flex flex-col items-center">
+        <p>LIETUVOS RESPUBLIKOS UPIŲ, EŽERŲ IR TVENKINIŲ KADASTRO IŠRAŠAS</p>
+        <p>Išrašo unikalus numeris <b><%= id %></b>, suformavimo data <b><%= locals.date %></b></p>
+      </div>
+      <% objects.forEach(function(item, index) { %>
+        <hr />
+        <%= index %>
+        <% if (item.type === 'river') { %>
+          <%- include('objects/upe', { item: item }); %>
+        <% } else if  (item.type === 'pond') { %>
+          <%- include('objects/tvenkinys'); %>
+        <% } else if  (item.type === 'pondLake') { %>
+          <%- include('objects/patvenktas-ezeras'); %>
+        <% } 
+      }); %>
+
+<hr />
+<hr />
+<hr />
+<hr />
+
+      <!-- Start type -->
+      <div class="text-3xl font-bold text-center">Tarpinis/Teritorinis VT</div>
+      <%- include('objects/tarpinis-teritorinis-vt'); %>
+
+      <hr />
+
+      <div class="text-3xl font-bold text-center">Tvenkinys</div>
+      <%- include('objects/tvenkinys'); %>
+
+      <hr />
+
+      <div class="text-3xl font-bold text-center">Upė</div>
+      <%- include('objects/upe', {item: {}}); %>
+
+      <hr />
+
+      <div class="text-3xl font-bold text-center">Patvenktas ežeras</div>
+      <%- include('objects/patvenktas-ezeras'); %>
+
+      <hr />
+
+      <div class="text-3xl font-bold text-center">Natūralus ežeras</div>
+      <%- include('objects/naturalus-ezeras'); %>
+
+      <hr />
+
+      <div class="text-3xl font-bold text-center">Kanalas</div>
+      <%- include('objects/kanalas'); %>
+
+      <hr />
+
+      <div class="text-3xl font-bold text-center">Dirbtinis VT</div>
+      <%- include('objects/dirbtinis-vt'); %>
+      <!-- End type -->
+
+      <div class="page-break"></div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+<table class="table-center">
+  <% if (!!locals.id) { %>
+  <tr>
+    <td>Identifikavimo kodas:</td>
+    <td><%= locals.id %></td>
+  </tr>
+  <% }; if (!!locals.title) { %>
+  <tr>
+    <td>Pavadinimas:</td>
+    <td><%= locals.title %></td>
+  </tr>
+  <% }; if (!!locals.category) { %>
+  <tr>
+    <td>Kategorija:</td>
+    <td class="font-bold"><%= locals.category %></td>
+  </tr>
+  <% }; if (!!locals.date) { %>
+  <tr>
+    <td>Įregistravimo data:</td>
+    <td><%= locals.date %></td>
+  </tr>
+  <% }; %>
+</table>

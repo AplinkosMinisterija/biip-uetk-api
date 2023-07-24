@@ -1,0 +1,58 @@
+<table class="table-center">
+  <% if (!!locals.coordinatesX) { %>
+  <tr>
+    <td>Centro koordinatė X (LKS94):</td>
+    <td><%= locals.coordinatesX %></td>
+  </tr>
+  <% }; if (!!locals.coordinatesY) { %>
+  <tr>
+    <td>Centro koordinatė Y (LKS94):</td>
+    <td><%= locals.coordinatesY %></td>
+  </tr>
+  <% }; if (!!locals.ezeroKvadratoNumeris) { %>
+  <tr>
+    <td>Ežero kvadrato numeris:</td>
+    <td><%= locals.ezeroKvadratoNumeris %></td>
+  </tr>
+  <% }; if (!!locals.ezeroNumerisKvadrate) { %>
+  <tr>
+    <td>Ežero numeris kvadrate:</td>
+    <td><%= locals.ezeroNumerisKvadrate %></td>
+  </tr>
+  <% }; if (!!locals.upesBaseinoRajonas) { %>
+  <tr>
+    <td>Upės baseino rajonas:</td>
+    <td><%= locals.upesBaseinoRajonas %></td>
+  </tr>
+  <% }; if (!!locals.upesBaseinas) { %>
+  <tr>
+    <td>Upės baseinas:</td>
+    <td><%= locals.upesBaseinas %></td>
+  </tr>
+  <% }; if (!!locals.upesPabaseinis) { %>
+  <tr>
+    <td>Upės pabaseinis:</td>
+    <td><%= locals.upesPabaseinis %></td>
+  </tr>
+  <% }; if (!!locals.municipalities?.length) { %>
+  <tr>
+    <td>Savivaldybė (-ės):</td>
+    <td><%= municipalities.join(", "); %></td>
+  </tr>
+  <% }; if (!!locals.patvenktosUpesPavadinimas) { %>
+  <tr>
+    <td>Patvenktos upės pavadinimas:</td>
+    <td><%= patvenktosUpesPavadinimas %></td>
+  </tr>
+  <% }; if (!!locals.patvenktosUpesID) { %>
+  <tr>
+    <td>Patvenktos upės identifikavimo kodas:</td>
+    <td><%= patvenktosUpesID %></td>
+  </tr>
+  <% }; if (!!locals.atstumasNuoPatvenktosUpesZiociu) { %>
+  <tr>
+    <td>Atstumas nuo patvenktos upės žiočių:</td>
+    <td><%= atstumasNuoPatvenktosUpesZiociu %> km</td>
+  </tr>
+  <% }; %>
+</table>

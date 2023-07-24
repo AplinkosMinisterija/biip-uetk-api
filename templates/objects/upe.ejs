@@ -1,0 +1,44 @@
+<div>
+  <p class="font-bold">1. Kadastro objektas:</p>
+  <%- include('includes/object-table', {
+    id: item.id,
+    title: item.title,
+    category: 'Upė', 
+    date: moment(item.date).format(dateFormat)
+    }); %>
+</div>
+<hr />
+<div>
+  <p class="font-bold">2. Kadastro objekto vietos aprašymas:</p>
+  <%- include('includes/object-location-table', {
+    upesBaseinoRajonas: 'Pavadinimas (ID)',
+    upesBaseinas: 'Pavadinimas (ID)',
+    upesPabaseinis: 'Pavadinimas (ID)',
+    municipalities: ['Vilniaus m. sav.', 'Kauno m. sav'],
+  }); %>
+</div>
+<hr />
+<div>
+  <p class="font-bold">3. Specifiniai kadastro objekto duomenys:</p>
+  <%- include('includes/object-specific-data-table', {
+    upesIlgis: item.ilgis,
+    baseinoPlotas: item.baseinoPlotas,
+    coordinatesX: item.coordinateX,
+    coordinatesY: item.coordinateY,
+    atstumasIkiKitosUpes: '1',
+    itekejimoIKitaUpeKrantas: ' ',
+    itekejimoEiliskumas: ' ',
+    daugiametisDebitas: '0.1',
+  }); %>
+</div>
+<hr />
+<div>
+  <p class="font-bold">4. Vandens telkiniai, į kuriuos įteka kadastro objektas:</p>
+  <%- include('includes/object-destination-table', {
+    id: 4,
+    items: [
+      { title: 'Pavadinimas', id: 1, category: 'Kategorija' },
+      { title: 'Pavadinimas', id: 2, category: 'Kategorija' },
+    ]
+  }); %>
+</div>
