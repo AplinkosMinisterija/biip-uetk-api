@@ -2,7 +2,7 @@
 
 import _ from 'lodash';
 const DbService = require('@moleculer/database').Service;
-import config from '../knexfile';
+import { config } from '../knexfile';
 import filtersMixin from 'moleculer-knex-filters';
 
 export default function (opts: any = {}) {
@@ -31,8 +31,7 @@ export default function (opts: any = {}) {
   const schema = {
     mixins: [DbService(opts), filtersMixin()],
 
-    async started() {
-    },
+    async started() {},
 
     actions: {
       ...removeRestActions,

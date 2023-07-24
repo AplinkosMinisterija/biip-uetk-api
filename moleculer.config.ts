@@ -6,7 +6,7 @@ import {
   ServiceBroker,
 } from 'moleculer';
 import { knex } from 'knex';
-import config from './knexfile';
+import { config } from './knexfile';
 
 /**
  * Moleculer ServiceBroker configuration file

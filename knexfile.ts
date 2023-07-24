@@ -1,19 +1,22 @@
 const { knexSnakeCaseMappers } = require('objection');
-const path = require("path")
+const path = require('path');
 
 if (!process.env.DB_CONNECTION) {
   throw new Error('No DB_CONNECTION env variable!');
 }
 
-const config = {
-  client: "pg",
+export const config = {
+  client: 'pg',
   connection: process.env.DB_CONNECTION,
   migrations: {
     tableName: 'migrations',
-    directory: path.resolve('./database/migrations')
+    directory: path.resolve('./database/migrations'),
   },
   ...knexSnakeCaseMappers(),
 };
 
-export default config
-module.exports = config
+export const gisConfig = {
+  client: 'pg',
+  connection: process.env.GIS_DB_CONNECTION,
+  ...knexSnakeCaseMappers(),
+};

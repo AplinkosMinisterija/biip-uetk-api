@@ -1,23 +1,22 @@
 <table class="table-center">
-  <% if (!!locals.id) { %>
   <tr>
     <td>Identifikavimo kodas:</td>
-    <td><%= locals.id %></td>
+    <td><%= locals.item?.kadastroId %></td>
   </tr>
-  <% }; if (!!locals.title) { %>
   <tr>
     <td>Pavadinimas:</td>
-    <td><%= locals.title %></td>
+    <td><%= locals.item?.pavadinimas %></td>
   </tr>
-  <% }; if (!!locals.category) { %>
   <tr>
     <td>Kategorija:</td>
-    <td class="font-bold"><%= locals.category %></td>
+    <td class="font-bold"><%= locals.item?.kategorija %></td>
   </tr>
-  <% }; if (!!locals.date) { %>
   <tr>
     <td>Įregistravimo data:</td>
-    <td><%= locals.date %></td>
+    <% if (!!locals.item?.registravimoData) { %>
+      <td><%= moment(locals.item?.registravimoData).format(dateFormat) %></td>
+    <% } else { %>
+      <td>-</td>
+    <% }; %>
   </tr>
-  <% }; %>
 </table>

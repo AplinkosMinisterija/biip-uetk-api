@@ -28,6 +28,7 @@ import { Tenant } from './tenants.service';
 import { RequestHistoryType } from './requests.histories.service';
 import { getTemplateHtml } from '../utils';
 import moment from 'moment';
+import { getLakesAndPonds } from '../utils/db.queries';
 
 type RequestStatusChanged = { statusChanged: boolean };
 
@@ -249,45 +250,16 @@ export default class RequestsService extends moleculer.Service {
     auth: AuthType.PUBLIC,
   })
   async testHtml(ctx: Context<{}, { $responseType: string }>) {
-    const result = await fetch(
-      'https://dev.qgis.biip.lt/qgisserver/uetk_public?SERVICE=WFS&REQUEST=GetFeature&OUTPUTFORMAT=application/json&TYPENAME=Up%C4%97s&MAXFEATURES=5'
-    ).then((data) => data.json());
-
-    const items = result.features.map((f: any) => ({
-      type: 'river',
-      data: f.properties,
-    }));
-
-    const objects = [
-      {
-        type: 'river',
-        title: 'Nemunas',
-        id: '123123',
-        date: '2023-01-12 12:00',
-        ilgis: 12,
-        baseinoPlotas: 4,
-        coordinateX: 54.0001,
-        coordinateY: 27.0112,
-      },
-      // {type: 'canal'},
-      // {type: 'earthDam'},
-      // {type: 'fishPass'},
-      // {type: 'hydroPowerPlant'},
-      // {type: 'isolatedWaterBody'},
-      // {type: 'naturalLake'},
-      { type: 'pond' },
-      { type: 'pondLake' },
-      // {type: 'waterExcessCulvert'},
-    ];
-
-    console.log(items);
+    const objects = await getLakesAndPonds();
 
     ctx.meta.$responseType = 'text/html';
     return getTemplateHtml('request.ejs', {
       id: 123123,
       date: '2023-01-05',
-      items,
       objects,
+      roundNumber: (number: string, digits: number = 2) => {
+        return parseFloat(number).toFixed(digits);
+      },
       moment,
       dateFormat: 'YYYY-MM-DD',
     });

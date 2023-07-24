@@ -24,54 +24,52 @@
       </div>
       <% objects.forEach(function(item, index) { %>
         <hr />
-        <%= index %>
-        <% if (item.type === 'river') { %>
-          <%- include('objects/upe', { item: item }); %>
-        <% } else if  (item.type === 'pond') { %>
-          <%- include('objects/tvenkinys'); %>
-        <% } else if  (item.type === 'pondLake') { %>
-          <%- include('objects/patvenktas-ezeras'); %>
+        <% if (item.kategorijaId <= 7) { %>
+          <div>
+            <p class="font-bold">1. Kadastro objektas:</p>
+            <%- include('includes/object-table', { item: item }); %>
+          </div>
+          <hr />
+        <% } %>
+
+        <!-- kategorijos:
+          3	Natūralus ežeras
+          4	Patvenktas ežeras 
+          5	Tvenkinys
+          6	Nepratekamas dirbtinis paviršinis vandens telkinys
+          7	Tarpinis vandens telkinys
+        -->
+        <% if (item.kategorijaId === 1) { %>
+        <% } else if  (item.kategorijaId === 2) { %>
+        <% } else if  (item.kategorijaId === 3) { %>
+          <%- include('objects/naturalus-ezeras', { item: item }); %>
+        <% } else if  (item.kategorijaId === 4) { %>
+          <%- include('objects/patvenktas-ezeras', { item: item }); %>
+        <% } else if  (item.kategorijaId === 5) { %>
+          <%- include('objects/tvenkinys', { item: item }); %>
+        <% } else if  (item.kategorijaId === 6) { %>
+          <%- include('objects/dirbtinis-vt', { item: item }); %>
+        <% } else if  (item.kategorijaId === 7) { %>
+          <%- include('objects/tarpinis-teritorinis-vt', { item: item }); %>
         <% } 
       }); %>
 
-<hr />
-<hr />
-<hr />
-<hr />
+      <hr />
+      <hr />
+      <hr />
+      <hr />
 
       <!-- Start type -->
-      <div class="text-3xl font-bold text-center">Tarpinis/Teritorinis VT</div>
-      <%- include('objects/tarpinis-teritorinis-vt'); %>
-
-      <hr />
-
-      <div class="text-3xl font-bold text-center">Tvenkinys</div>
-      <%- include('objects/tvenkinys'); %>
-
-      <hr />
-
       <div class="text-3xl font-bold text-center">Upė</div>
       <%- include('objects/upe', {item: {}}); %>
 
       <hr />
 
-      <div class="text-3xl font-bold text-center">Patvenktas ežeras</div>
-      <%- include('objects/patvenktas-ezeras'); %>
-
-      <hr />
-
-      <div class="text-3xl font-bold text-center">Natūralus ežeras</div>
-      <%- include('objects/naturalus-ezeras'); %>
-
-      <hr />
 
       <div class="text-3xl font-bold text-center">Kanalas</div>
       <%- include('objects/kanalas'); %>
 
       <hr />
-
-      <div class="text-3xl font-bold text-center">Dirbtinis VT</div>
-      <%- include('objects/dirbtinis-vt'); %>
       <!-- End type -->
 
       <div class="page-break"></div>
