@@ -1,0 +1,24 @@
+<table class="table-center">
+  <% locals.items?.forEach(function(item, index) { %>
+  <tr>
+    <td class="text-left" colspan="2"><%= id %>.<%= index + 1 %></td>
+  </tr>
+  <tr>
+    <td>Pavadinimas:</td>
+    <td><%= item.pavadinimas || '-' %></td>
+  </tr>
+  <tr>
+    <td>Koordinatė X (LKS94):</td>
+    <td><%= item.coordinatesX || '-' %></td>
+  </tr>
+  <tr>
+    <td>Koordinatė Y (LKS94):</td>
+    <td><%= item.coordinatesY || '-' %></td>
+  </tr>
+  <tr>
+    <td>Šaltinis:</td>
+    <td><b><%= item.saltinis || '-' %></b></td>
+  </tr>
+  <% }); %>
+</table>
+

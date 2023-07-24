@@ -15,3 +15,51 @@
     krantoLinijosIlgis: item.krantoLinijosIlgisKm,
   }); %>
 </div>
+
+<% if (!!fullData) { %>
+<hr />
+<div>
+  <p class="font-bold">4. Hidrografinio tinklo duomenys:
+    <% if (!item?.patvenktosUpes?.length) { %>
+      įrašų nėra
+    <% }; %>
+  </p>
+
+  <% if (!!item?.patvenktosUpes?.length) { %>
+  <%- include('includes/extra/hidrografiniai', { // TODO: missing data
+    id: 4,
+    items: item.patvenktosUpes
+  }); %>
+  <% }; %>
+</div>
+<hr />
+<div>
+  <p class="font-bold">5. Vandens matavimo stotys:
+    <% if (!item?.matavimoStotys?.length) { %>
+      įrašų nėra
+    <% }; %>
+  </p>
+
+  <% if (!!item?.matavimoStotys?.length) { %>
+  <%- include('includes/extra/matavimo-stotys', { // TODO: missing data
+    id: 5,
+    items: item.matavimoStotys
+  }); %>
+  <% }; %>
+</div>
+<hr />
+<div>
+  <p class="font-bold">6. Vandens tyrimo vietos:
+    <% if (!item?.tyrimoVietos?.length) { %>
+      įrašų nėra
+    <% }; %>
+  </p>
+
+  <% if (!!item?.tyrimoVietos?.length) { %>
+  <%- include('includes/extra/tyrimo-vietos', { // TODO: missing data
+    id: 6,
+    items: item.tyrimoVietos
+  }); %>
+  <% }; %>
+</div>
+<% }; %>

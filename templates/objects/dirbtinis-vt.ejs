@@ -15,6 +15,32 @@
   <%- include('includes/object-morphometric-data-table', { 
     vandensPavirsiausBeSaluPlotas: item.vandensPavirsiausPlotasHe,
     krantoLinijosIlgis: item.krantoLinijosIlgisKm,
-    baseinoPlotas: item.baseinoPlotasKvKm
+    baseinoPlotas: item.baseinoPlotasKvKm,
+    ilgis: fullData && 0.1, // TODO: missing data
+    vidutinisPlotis: fullData && 0.1,
+    vvlAltitude: fullData && 0.1,
+    vvlGylisMax: fullData && 0.1,
+    vvlGylisVid: fullData && 0.1,
+    vvlTuris: fullData && 0.1,
+    naudingasTuris: fullData && 0.1
   }); %>
 </div>
+
+
+<% if (!!fullData) { %>
+<hr />
+<div>
+  <p class="font-bold">4. Vandens tyrimo vietos:
+    <% if (!item?.tyrimoVietos?.length) { %>
+      įrašų nėra
+    <% }; %>
+  </p>
+
+  <% if (!!item?.tyrimoVietos?.length) { %>
+  <%- include('includes/extra/tyrimo-vietos', { // TODO: missing data
+    id: 4,
+    items: item.tyrimoVietos
+  }); %>
+  <% }; %>
+</div>
+<% }; %>

@@ -257,14 +257,44 @@ export default class RequestsService extends moleculer.Service {
     // 7	Tarpinis vandens telkinys
 
     const items = await Promise.all(
-      [3,4,5,6,7].map((id) =>
-        getLakesAndPonds({ kategorijaId: id, limit: 3 })
-      )
+      [7].map((id) => getLakesAndPonds({ kategorijaId: id, limit: 3 }))
     );
 
-    const objects = items.reduce(
-      (acc: any[], item: any) => [...acc, ...item],
-      []
+    function addMockData(items: any[]) {
+      // TODO: mock data
+      const matavimoStotis = {
+        pavadinimas: 'Pavadinimas',
+        coordinatesX: '6014800.69',
+        coordinatesY: '577470.43',
+        nulineAltitude: 0.01,
+        stebejimuPradzia: '2023-03-01',
+        saltinis: 'Saltinis',
+      };
+
+      const tyrimoVieta = {
+        pavadinimas: 'Pavadinimas',
+        coordinatesX: '6014800.69',
+        coordinatesY: '577470.43',
+        saltinis: 'Saltinis',
+      };
+
+      const getMockDataItems = (item: any) => {
+        let data = [];
+        for (let i = 0; i < Math.floor(Math.random() * 3); i++) {
+          data.push(item);
+        }
+        return data;
+      };
+
+      return items.map((item) => ({
+        ...item,
+        matavimoStotys: getMockDataItems(matavimoStotis),
+        tyrimoVietos: getMockDataItems(tyrimoVieta),
+      }));
+    }
+
+    const objects = addMockData(
+      items.reduce((acc: any[], item: any) => [...acc, ...item], [])
     );
 
     ctx.meta.$responseType = 'text/html';
@@ -273,12 +303,12 @@ export default class RequestsService extends moleculer.Service {
       date: '2023-01-05',
       objects,
       roundNumber: (number: string, digits: number = 2) => {
-        if (!number) return
+        if (!number) return;
         return parseFloat(number).toFixed(digits);
       },
       moment,
       dateFormat: 'YYYY-MM-DD',
-      fullData: false,
+      fullData: true,
     });
   }
 
