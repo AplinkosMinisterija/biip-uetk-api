@@ -24,6 +24,26 @@
     <td>Baseino plotas:</td>
     <td><%= roundNumber(locals.baseinoPlotas) || '-' %> km<sup>2</sup></td>
   </tr>
+  <% }; if (!!locals.nplAukstis) { %>
+  <tr>
+    <td>Normaliojo patvankos lygio (NPL) aukštis (BAS 77):</td>
+    <td><%= roundNumber(locals.nplAukstis) || '-' %> m</td>
+  </tr>
+  <% }; if (!!locals.nplGylisMax) { %>
+  <tr>
+    <td>Maksimalus vandens gylis esant NPL:</td>
+    <td><%= roundNumber(locals.nplGylisMax) || '-' %> m</td>
+  </tr>
+  <% }; if (!!locals.nplGylisVid) { %>
+  <tr>
+    <td>Vidutinis vandens gylis esant NPL:</td>
+    <td><%= roundNumber(locals.nplGylisVid) || '-' %> m</td>
+  </tr>
+  <% }; if (!!locals.nplTuris) { %>
+  <tr>
+    <td>Vandens tūris esant NPL:</td>
+    <td><%= roundNumber(locals.nplTuris) || '-' %> tūkst. m<sup>3</sup></td>
+  </tr>
   <% }; if (!!locals.vvlAukstis) { %>
   <tr>
     <td>Vidutinio vandens lygio (VVL) altitudė (BAS 77):</td>
