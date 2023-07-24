@@ -11,6 +11,7 @@ exports.up = function (knex) {
       table.integer('tenantId').unsigned();
       table.jsonb('cadastralIds');
       table.string('purpose', 255);
+      table.string('delivery', 255);
       table
         .enu(
           'status',

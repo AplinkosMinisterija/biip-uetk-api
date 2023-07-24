@@ -93,6 +93,10 @@ const populatePermissions = (field: string) => {
         type: 'string',
       },
 
+      delivery: {
+        type: 'string',
+      },
+
       objects: {
         type: 'array',
         columnName: 'cadastralIds',
