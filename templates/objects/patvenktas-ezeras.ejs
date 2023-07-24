@@ -5,10 +5,10 @@
     coordinatesY: item.objektoY,
     ezeroNumerisKvadrate: ' ',
     ezeroKvadratoNumeris: ' ',
-    upesBaseinoRajonas: item.baseinoRajPavadinimas + ' (ID)', // TODO: missing data
-    upesBaseinas: item.baseinoPavadinimas + ' (ID)', // TODO: missing data
-    upesPabaseinis: item.pabaseinioPavadinimas + ' (ID)', // TODO: missing data
-    municipalities: ['Vilniaus m. sav.', 'Kauno m. sav'], // TODO: missing data
+    upesBaseinoRajonas: item.baseinoRajPavadinimas || ' ',
+    upesBaseinas: item.baseinoPavadinimas || ' ',
+    upesPabaseinis: item.pabaseinioPavadinimas || ' ',
+    municipalities: item.savivaldybes,
     patvenktosUpesPavadinimas: item.patvenktosUpes || '', // TODO: missing data
     patvenktosUpesID: item.patvenktosUpes || '', // TODO: missing data
     atstumasNuoPatvenktosUpesZiociu: item.patvenktosUpes, // TODO: missing data
@@ -18,9 +18,9 @@
 <div>
   <p class="font-bold">3. Morfometriniai kadastro objekto duomenys:</p>
 
-  <%- include('includes/object-morphometric-data-table', { // TODO: missing data
-    krantoLinijosIlgis: '0.1',
-    vandensPavirsiausBeSaluPlotas: '0.1',
-    baseinoPlotas: '0.1'
+  <%- include('includes/object-morphometric-data-table', {
+    vandensPavirsiausBeSaluPlotas: item.vandensPavirsiausPlotasHe,
+    krantoLinijosIlgis: item.krantoLinijosIlgisKm,
+    baseinoPlotas: item.baseinoPlotasKvKm
   }); %>
 </div>

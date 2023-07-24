@@ -2,12 +2,12 @@
   <% if (!!locals.coordinatesX) { %>
   <tr>
     <td>Centro koordinatė X (LKS94):</td>
-    <td><%= roundNumber(locals.coordinatesX, 2) %></td>
+    <td><%= roundNumber(locals.coordinatesX) %></td>
   </tr>
   <% }; if (!!locals.coordinatesY) { %>
   <tr>
     <td>Centro koordinatė Y (LKS94):</td>
-    <td><%= roundNumber(locals.coordinatesY, 2) %></td>
+    <td><%= roundNumber(locals.coordinatesY) %></td>
   </tr>
   <% }; if (!!locals.ezeroKvadratoNumeris) { %>
   <tr>
@@ -34,12 +34,12 @@
     <td>Upės pabaseinis:</td>
     <td><%= locals.upesPabaseinis %></td>
   </tr>
-  <% }; if (!!locals.municipalities?.length) { %>
+  <% }; %>
   <tr>
     <td>Savivaldybė (-ės):</td>
-    <td><%= municipalities.join(", "); %></td>
+    <td><%= municipalities?.map(i => i.sav_pavadinimas).join(", "); %></td>
   </tr>
-  <% }; if (!!locals.patvenktosUpesPavadinimas) { %>
+  <% if (!!locals.patvenktosUpesPavadinimas) { %>
   <tr>
     <td>Patvenktos upės pavadinimas:</td>
     <td><%= patvenktosUpesPavadinimas %></td>

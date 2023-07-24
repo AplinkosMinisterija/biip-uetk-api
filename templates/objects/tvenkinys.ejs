@@ -3,10 +3,10 @@
   <%- include('includes/object-location-table', {
     coordinatesX: item.objektoX,
     coordinatesY: item.objektoY,
-    upesBaseinoRajonas: item.baseinoRajPavadinimas + ' (ID)', // TODO: missing data
-    upesBaseinas: item.baseinoPavadinimas + ' (ID)', // TODO: missing data
-    upesPabaseinis: item.pabaseinioPavadinimas + ' (ID)', // TODO: missing data
-    municipalities: ['Vilniaus m. sav.', 'Kauno m. sav'], // TODO: missing data
+    upesBaseinoRajonas: item.baseinoRajPavadinimas || ' ',
+    upesBaseinas: item.baseinoPavadinimas || ' ',
+    upesPabaseinis: item.pabaseinioPavadinimas || ' ',
+    municipalities: item.savivaldybes || ' ',
     patvenktosUpesPavadinimas: item.patvenktosUpes || '', // TODO: missing data
     patvenktosUpesID: item.patvenktosUpes || '', // TODO: missing data
     atstumasNuoPatvenktosUpesZiociu: item.patvenktosUpes, // TODO: missing data
@@ -17,8 +17,33 @@
   <p class="font-bold">3. Morfometriniai kadastro objekto duomenys:</p>
 
   <%- include('includes/object-morphometric-data-table', {
-    krantoLinijosIlgis: '0.1',
-    vandensPavirsiausBeSaluPlotas: '0.1',
-    baseinoPlotas: '0.1'
+    vandensPavirsiausBeSaluPlotas: item.vandensPavirsiausPlotasHe,
+    krantoLinijosIlgis: item.krantoLinijosIlgisKm,
+    baseinoPlotas: item.baseinoPlotasKvKm,
+    ilgis: fullData && 0.1, // TODO: missing data
+    vidutinisPlotis: fullData && 0.1,
+    nplAukstis: fullData && 0.1,
+    nplGylisMax: fullData && 0.1,
+    nplGylisVid: fullData && 0.1,
+    nplTuris: fullData && 0.1,
+    naudingasTuris: fullData && 0.1
   }); %>
+
 </div>
+<% if (!!fullData) { %>
+<hr />
+<div>
+  <p class="font-bold">4. Hidrografinio tinklo duomenys:
+    <% if (!item?.patvenktosUpes?.length) { %>
+      įrašų nėra
+    <% }; %>
+  </p>
+
+  <% if (!!item?.patvenktosUpes?.length) { %>
+  <%- include('includes/extra/hidrografiniai', { // TODO: missing data
+    id: 4,
+    items: item.patvenktosUpes
+  }); %>
+  <% }; %>
+</div>
+<% }; %>

@@ -2,17 +2,52 @@
   <% if (!!locals.vandensPavirsiausBeSaluPlotas) { %>
   <tr>
     <td>Vandens paviršiaus be salų plotas:</td>
-    <td><%= locals.vandensPavirsiausBeSaluPlotas %> ha</td>
+    <td><%= roundNumber(locals.vandensPavirsiausBeSaluPlotas) || '-' %> ha</td>
+  </tr>
+  <% }; if (!!locals.ilgis) { %>
+  <tr>
+    <td>Ilgis:</td>
+    <td><%= roundNumber(locals.ilgis) || '-' %> km</td>
+  </tr>
+  <% }; if (!!locals.vidutinisPlotis) { %>
+  <tr>
+    <td>Vidutinis plotis:</td>
+    <td><%= roundNumber(locals.vidutinisPlotis) || '-' %> km</td>
   </tr>
   <% }; if (!!locals.krantoLinijosIlgis) { %>
   <tr>
     <td>Kranto linijos ilgis:</td>
-    <td><%= locals.krantoLinijosIlgis %> km</td>
+    <td><%= roundNumber(locals.krantoLinijosIlgis) || '-' %> km</td>
   </tr>
   <% }; if (!!locals.baseinoPlotas) { %>
   <tr>
     <td>Baseino plotas:</td>
-    <td><%= locals.baseinoPlotas %> km<sup>2</sup></td>
+    <td><%= roundNumber(locals.baseinoPlotas) || '-' %> km<sup>2</sup></td>
+  </tr>
+  <% }; if (!!locals.nplAukstis) { %>
+  <tr>
+    <td>Normaliojo patvankos lygio (NPL) aukštis (BAS 77):</td>
+    <td><%= roundNumber(locals.nplAukstis) || '-' %> m</td>
+  </tr>
+  <% }; if (!!locals.nplGylisMax) { %>
+  <tr>
+    <td>Maksimalus vandens gylis esant NPL:</td>
+    <td><%= roundNumber(locals.nplGylisMax) || '-' %> m</td>
+  </tr>
+  <% }; if (!!locals.nplGylisVid) { %>
+  <tr>
+    <td>Vidutinis vandens gylis esant NPL:</td>
+    <td><%= roundNumber(locals.nplGylisVid) || '-' %> m</td>
+  </tr>
+  <% }; if (!!locals.nplTuris) { %>
+  <tr>
+    <td>Vandens tūris esant NPL:</td>
+    <td><%= roundNumber(locals.nplTuris) || '-' %> tūkst. m<sup>3</sup></td>
+  </tr>
+  <% }; if (!!locals.naudingasTuris) { %>
+  <tr>
+    <td>Naudingas vandens tūris:</td>
+    <td><%= roundNumber(locals.naudingasTuris) || '-' %> tūkst. m<sup>3</sup></td>
   </tr>
   <% }; %>
 </table>

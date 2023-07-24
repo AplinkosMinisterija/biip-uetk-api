@@ -250,22 +250,35 @@ export default class RequestsService extends moleculer.Service {
     auth: AuthType.PUBLIC,
   })
   async testHtml(ctx: Context<{}, { $responseType: string }>) {
-    const obj3: any[] = await getLakesAndPonds({ kategorijaId: 3, limit: 3 });
-    const obj4: any[] = await getLakesAndPonds({ kategorijaId: 4, limit: 3 });
-    const obj5: any[] = await getLakesAndPonds({ kategorijaId: 5, limit: 3 });
-    const obj6: any[] = await getLakesAndPonds({ kategorijaId: 6, limit: 3 });
-    const obj7: any[] = await getLakesAndPonds({ kategorijaId: 7, limit: 3 });
+    // 3	Natūralus ežeras
+    // 4	Patvenktas ežeras
+    // 5	Tvenkinys
+    // 6	Nepratekamas dirbtinis paviršinis vandens telkinys
+    // 7	Tarpinis vandens telkinys
+
+    const items = await Promise.all(
+      [3,4,5,6,7].map((id) =>
+        getLakesAndPonds({ kategorijaId: id, limit: 3 })
+      )
+    );
+
+    const objects = items.reduce(
+      (acc: any[], item: any) => [...acc, ...item],
+      []
+    );
 
     ctx.meta.$responseType = 'text/html';
     return getTemplateHtml('request.ejs', {
       id: 123123,
       date: '2023-01-05',
-      objects: [...obj3, ...obj4, ...obj5, ...obj6, ...obj7],
+      objects,
       roundNumber: (number: string, digits: number = 2) => {
+        if (!number) return
         return parseFloat(number).toFixed(digits);
       },
       moment,
       dateFormat: 'YYYY-MM-DD',
+      fullData: false,
     });
   }
 
