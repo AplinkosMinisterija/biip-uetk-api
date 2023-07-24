@@ -10,7 +10,7 @@
         <p class="font-bold text-2xl">APLINKOS APSAUGOS AGENTŪRA</p>
         <p>
           Biudžetinė įstaiga, A. Juozapavičiaus g. 9, LT-09311 Vilnius, tel.
-          +370 682 92653, el.p. aaa@gamta.lt, https://aaa.lrv.lt.
+          <a href="tel:+37068292653">+370 682 92653</a>, el.p. <a href="mailto:aaa@gamta.lt">aaa@gamta.lt</a>, <a href="https://aaa.lrv.lt">https://aaa.lrv.lt</a>.
         </p>
         <p>
           Duomenys kaupiami ir saugojami Juridinių asmenų registre, kodas
@@ -23,14 +23,15 @@
         <p>Išrašo unikalus numeris <b><%= id %></b>, suformavimo data <b><%= locals.date %></b></p>
       </div>
       <% objects.forEach(function(item, index) { %>
+        <div class="mb-32"></div>
         <hr />
-        <% if (item.kategorijaId <= 7) { %>
-          <div>
-            <p class="font-bold">1. Kadastro objektas:</p>
-            <%- include('includes/object-table', { item: item }); %>
-          </div>
-          <hr />
-        <% } %>
+        
+        <div>
+          <p class="font-bold">1. Kadastro objektas:</p>
+          <%- include('includes/object-table', { item: item }); %>
+        </div>
+        
+        <hr />
 
         <!-- kategorijos:
           3	Natūralus ežeras

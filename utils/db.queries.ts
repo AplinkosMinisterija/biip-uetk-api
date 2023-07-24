@@ -10,8 +10,20 @@ const getGisAdapter = () => {
   return knexAdapter;
 };
 
-export async function getLakesAndPonds() {
+export async function getLakesAndPonds(filter?: {
+  kategorijaId?: number;
+  limit?: number;
+}) {
   const adapter = getGisAdapter();
-  const query = adapter.select('*').limit(50).from('uetk.israsaiEzeraiTvenkiniai');
+  const query = adapter.select('*').from('uetk.israsaiEzeraiTvenkiniai');
+
+  if (filter?.kategorijaId) {
+    query.where('kategorijaId', filter.kategorijaId);
+  }
+
+  if (filter?.limit) {
+    query.limit(filter.limit);
+  }
+
   return query;
 }
