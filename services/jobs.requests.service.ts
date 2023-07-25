@@ -3,10 +3,11 @@
 import moleculer, { Context } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
 import BullMqMixin from '../mixins/bullmq.mixin';
-import { Request } from './requests.service';
 import { User } from './users.service';
 import { Tenant } from './tenants.service';
-import { getLakesAndPondsQuery, toMD5Hash } from '../utils';
+import { getLakesAndPondsQuery, toMD5Hash, toReadableStream } from '../utils';
+import { FILE_TYPES } from '../types';
+import { Request } from './requests.service';
 
 @Service({
   name: 'jobs.requests',
@@ -36,10 +37,10 @@ export default class JobsRequestsService extends moleculer.Service {
     const { id } = ctx.params;
     const { job } = ctx.locals;
 
-    // const request: Request = await ctx.call('requests.resolve', {
-    //   id,
-    //   populate: 'createdBy,tenant',
-    // });
+    const request: Request = await ctx.call('requests.resolve', {
+      id,
+      populate: 'createdBy,tenant',
+    });
 
     const childrenValues = await job.getChildrenValues();
 
@@ -58,31 +59,35 @@ export default class JobsRequestsService extends moleculer.Service {
       item.screenshot = screenshotsByHash[item.hash] || '';
     });
 
-    // const folder = this.getFolderName(
-    //   request.createdBy as any as User,
-    //   request.tenant as Tenant
-    // );
+    const pdf = await ctx.call('tools.makePdf', {
+      url: 'https://maps.biip.lt/uetk',
+    });
 
-    // const result: any = await ctx.call(
-    //   'minio.uploadFile',
-    //   {
-    //     payload: pdf,
-    //     folder,
-    //     isPrivate: true,
-    //     types: FILE_TYPES,
-    //   },
-    //   {
-    //     meta: {
-    //       mimetype: 'application/pdf',
-    //       filename: `israsas-${request.id}.pdf`,
-    //     },
-    //   }
-    // );
+    const folder = this.getFolderName(
+      request?.createdBy as any as User,
+      request?.tenant as Tenant
+    );
 
-    // await ctx.call('requests.saveGeneratedPdf', {
-    //   id,
-    //   url: result.url,
-    // });
+    const result: any = await ctx.call(
+    'minio.uploadFile',
+      {
+        payload: toReadableStream(pdf),
+        folder,
+        isPrivate: true,
+        types: FILE_TYPES,
+      },
+      {
+        meta: {
+          mimetype: 'application/pdf',
+          filename: `israsas-${request.id}.pdf`,
+        },
+      }
+    );
+
+    await ctx.call('requests.saveGeneratedPdf', {
+      id,
+      url: result.url,
+    });
 
     return { job: job.id, objects };
   }

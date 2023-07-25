@@ -101,8 +101,21 @@ const populatePermissions = (field: string) => {
 
       objects: {
         type: 'array',
-        columnName: 'cadastralIds',
-        items: 'number',
+        onCreate: ({ value }: FieldHookCallback) => value || [],
+        items: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'number',
+              required: true,
+            },
+            type: {
+              type: 'string',
+              required: true,
+              enum: ['CADASTRAL_ID', 'CATEGORY_ID'],
+            },
+          },
+        },
         required: true,
       },
 
@@ -243,6 +256,21 @@ export default class RequestsService extends moleculer.Service {
       page: ctx.params.page,
       pageSize: ctx.params.pageSize,
       populate: 'createdBy',
+    });
+  }
+
+  @Action({
+    params: {
+      id: 'number',
+      url: 'string',
+    },
+  })
+  saveGeneratedPdf(ctx: Context<{ id: number; url: string }>) {
+    const { id, url: generatedFile } = ctx.params;
+
+    return this.updateEntity(ctx, {
+      id,
+      generatedFile,
     });
   }
 
