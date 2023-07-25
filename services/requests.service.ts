@@ -28,7 +28,7 @@ import { Tenant } from './tenants.service';
 import { RequestHistoryType } from './requests.histories.service';
 import { getTemplateHtml } from '../utils';
 import moment from 'moment';
-import { getLakesAndPonds } from '../utils/db.queries';
+import { getLakesAndPondsQuery } from '../utils';
 
 type RequestStatusChanged = { statusChanged: boolean };
 
@@ -37,6 +37,7 @@ export interface Request extends BaseModelInterface {
   geom: GeomFeatureCollection;
   type: string;
   objectType: string;
+  tenant: number | Tenant;
 }
 
 export const RequestStatus = {
@@ -257,7 +258,7 @@ export default class RequestsService extends moleculer.Service {
     // 7	Tarpinis vandens telkinys
 
     const items = await Promise.all(
-      [7].map((id) => getLakesAndPonds({ kategorijaId: id, limit: 3 }))
+      [7].map((id) => getLakesAndPondsQuery({ kategorijaId: id, limit: 3 }))
     );
 
     function addMockData(items: any[]) {

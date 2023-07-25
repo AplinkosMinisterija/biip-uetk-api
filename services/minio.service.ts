@@ -15,6 +15,7 @@ import {
   throwUnableToUploadError,
   throwUnsupportedMimetypeError,
 } from '../types';
+import moment from 'moment';
 
 export const BUCKET_NAME = () => process.env.MINIO_BUCKET || 'uetk';
 
@@ -67,9 +68,13 @@ export default class MinioService extends Moleculer.Service {
       },
       name: {
         type: 'string',
-        default: getPublicFileName(50),
+        optional: true,
       },
       isPrivate: {
+        type: 'boolean',
+        default: false,
+      },
+      presign: {
         type: 'boolean',
         default: false,
       },
@@ -83,13 +88,23 @@ export default class MinioService extends Moleculer.Service {
         folder: string;
         types: string[];
         name: string;
+        presign?: boolean;
         isPrivate?: boolean;
       },
       UserAuthMeta & MultipartMeta & { protected?: boolean }
     >
   ) {
     const { mimetype, filename } = ctx.meta;
-    const { folder, payload, types, isPrivate, name } = ctx.params;
+    const {
+      folder,
+      payload,
+      types,
+      isPrivate,
+      name: defaultName,
+      presign,
+    } = ctx.params;
+    const name = defaultName || getPublicFileName(50);
+
     if (!types.includes(mimetype)) {
       throwUnsupportedMimetypeError();
     }
@@ -124,13 +139,24 @@ export default class MinioService extends Moleculer.Service {
       bucketName,
     });
 
-    return {
+    const response: any = {
       success: true,
       url,
       size,
       filename,
       path: `${bucketName}/${objectFileName}`,
     };
+
+    if (presign) {
+      const presignedUrl: string = await this.getPresignedUrl(
+        ctx,
+        objectFileName,
+        bucketName
+      );
+      response.presignedUrl = presignedUrl;
+    }
+
+    return response;
   }
 
   @Action({
@@ -181,7 +207,6 @@ export default class MinioService extends Moleculer.Service {
     params: {
       objectName: 'string',
       bucketName: {
-        optional: true,
         type: 'string',
         default: BUCKET_NAME(),
       },
@@ -190,24 +215,34 @@ export default class MinioService extends Moleculer.Service {
   async fileStat(ctx: Context<{ bucketName: string; objectName: string }>) {
     const { bucketName, objectName } = ctx.params;
 
+    const response: any = {
+      exists: false,
+    };
     try {
       const data: any = await ctx.call('minio.statObject', {
         bucketName,
         objectName,
       });
 
-      const exists = data?.size > 0;
+      response.exists = data?.size > 0;
 
-      return {
-        exists,
-        publicUrl: exists && this.getObjectUrl(objectName, false, bucketName),
-        privateUrl: exists && this.getObjectUrl(objectName, true, bucketName),
-      };
+      if (response.exists) {
+        const presignedUrl: string = await this.getPresignedUrl(
+          ctx,
+          objectName,
+          bucketName
+        );
+
+        response.publicUrl = this.getObjectUrl(objectName, false, bucketName);
+        response.privateUrl = this.getObjectUrl(objectName, true, bucketName);
+        response.presignedUrl = presignedUrl;
+        response.lastModified = moment(data.lastModified).format();
+      }
+
+      return response;
     } catch (err) {}
 
-    return {
-      exists: false,
-    };
+    return response;
   }
 
   @Action({
@@ -295,6 +330,22 @@ export default class MinioService extends Moleculer.Service {
     }
 
     return `${hostUrl}/${bucketName}/${objectName}`;
+  }
+
+  @Method
+  getPresignedUrl(
+    ctx: Context,
+    objectName: string,
+    bucketName: string = BUCKET_NAME()
+  ): Promise<string> {
+    return ctx.call('minio.presignedUrl', {
+      bucketName,
+      objectName,
+      httpMethod: 'GET',
+      expires: 60 * 60 * 24 * 7, // 1 week
+      reqParams: {},
+      requestDate: moment().format(),
+    });
   }
 
   created() {

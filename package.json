@@ -46,6 +46,7 @@
     "@types/mkdirp": "^1.0.2",
     "@types/node": "^20.3.3",
     "biip-auth-nodejs": "github:DadPatch/biip-auth-nodejs",
+    "bullmq": "^4.6.0",
     "dotenv": "^16.0.0",
     "ejs": "^3.1.9",
     "ioredis": "^4.28.5",

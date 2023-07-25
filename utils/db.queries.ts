@@ -10,7 +10,7 @@ const getGisAdapter = () => {
   return knexAdapter;
 };
 
-export async function getLakesAndPonds(filter?: {
+export async function getLakesAndPondsQuery(filter?: {
   kategorijaId?: number;
   limit?: number;
 }) {
