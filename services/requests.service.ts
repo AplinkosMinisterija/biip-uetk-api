@@ -193,6 +193,8 @@ const populatePermissions = (field: string) => {
         },
       },
 
+      data: 'object',
+
       ...TENANT_FIELD,
 
       ...COMMON_FIELDS,
