@@ -31,7 +31,7 @@ exports.up = function (knex) {
       table.integer('requestId').unsigned().notNullable();
       table.enu(
         'type',
-        ['CREATED', 'UPDATED', 'REJECTED', 'RETURNED', 'APPROVED'],
+        ['CREATED', 'UPDATED', 'REJECTED', 'RETURNED', 'APPROVED', 'FILE_GENERATED'],
         { useNative: true, enumName: 'request_history_type' }
       );
       table.text('comment');

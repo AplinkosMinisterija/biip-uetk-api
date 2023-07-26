@@ -17,7 +17,7 @@ import {
   EntityChangedParams,
   TENANT_FIELD,
 } from '../types';
-import { User, UserType } from './users.service';
+import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
 import _ from 'lodash';
 import {
   GeomFeatureCollection,
@@ -29,6 +29,11 @@ import { RequestHistoryType } from './requests.histories.service';
 import { getTemplateHtml } from '../utils';
 import moment from 'moment';
 import { getLakesAndPondsQuery } from '../utils';
+import {
+  emailCanBeSent,
+  notifyOnFileGenerated,
+  notifyOnRequestUpdate,
+} from '../utils/mails';
 
 type RequestStatusChanged = { statusChanged: boolean };
 
@@ -37,6 +42,7 @@ export interface Request extends BaseModelInterface {
   geom: GeomFeatureCollection;
   type: string;
   objectType: string;
+  generatedFile: string;
   tenant: number | Tenant;
 }
 
@@ -454,6 +460,36 @@ export default class RequestsService extends moleculer.Service {
     return ctx;
   }
 
+  @Method
+  async sendNotificationOnStatusChange(request: Request) {
+    // TODO: send email for admins using settings.
+    if (
+      !emailCanBeSent() ||
+      [
+        RequestStatus.CREATED,
+        RequestStatus.SUBMITTED,
+        RequestStatus.APPROVED,
+      ].includes(request.status)
+    ) {
+      // Do not send when approved - when file will be generated email will be sent
+      return;
+    }
+
+    const user: User = await this.broker.call('users.resolve', {
+      id: request.createdBy,
+      scope: USERS_DEFAULT_SCOPES,
+    });
+
+    if (!user?.email) return;
+
+    notifyOnRequestUpdate(
+      user.email,
+      request.status,
+      request.id,
+      user.type === UserType.ADMIN
+    );
+  }
+
   @Event()
   async 'requests.updated'(ctx: Context<EntityChangedParams<Request>>) {
     const { oldData: prevRequest, data: request } = ctx.params;
@@ -472,6 +508,32 @@ export default class RequestsService extends moleculer.Service {
         comment,
         type: typesByStatus[request.status],
       });
+
+      await this.sendNotificationOnStatusChange(request);
+
+      if (
+        prevRequest?.generatedFile !== request.generatedFile &&
+        !!request.generatedFile
+      ) {
+        await this.createRequestHistory(
+          request.id,
+          null,
+          RequestHistoryType.FILE_GENERATED
+        );
+
+        if (emailCanBeSent()) {
+          const user: User = await ctx.call('users.resolve', {
+            id: request.createdBy,
+            scope: USERS_DEFAULT_SCOPES,
+          });
+
+          notifyOnFileGenerated(
+            user.email,
+            request.id,
+            user.type === UserType.ADMIN
+          );
+        }
+      }
     }
   }
 
@@ -483,5 +545,7 @@ export default class RequestsService extends moleculer.Service {
       request: request.id,
       type: RequestHistoryType.CREATED,
     });
+
+    await this.sendNotificationOnStatusChange(request);
   }
 }

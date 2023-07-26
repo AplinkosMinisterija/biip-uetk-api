@@ -19,7 +19,7 @@ import {
   TENANT_FIELD,
   ALL_FILE_TYPES,
 } from '../types';
-import { User, UserType } from './users.service';
+import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
 import _ from 'lodash';
 import {
   GeomFeatureCollection,
@@ -28,12 +28,16 @@ import {
 } from '../modules/geometry';
 import { Tenant } from './tenants.service';
 import { FormHistoryTypes } from './forms.histories.service';
+import { emailCanBeSent, notifyOnFormUpdate } from '../utils/mails';
+import { getObjectByCadastralId } from '../utils';
 
 type FormStatusChanged = { statusChanged: boolean };
 
 export interface Form extends BaseModelInterface {
   status: string;
   geom: GeomFeatureCollection;
+  objectName: string;
+  cadastralId: string | number;
   type: string;
   objectType: string;
 }
@@ -52,7 +56,7 @@ const FormProviderType = {
   MANAGER: 'MANAGER',
 };
 
-const FormType = {
+export const FormType = {
   NEW: 'NEW',
   EDIT: 'EDIT',
   REMOVE: 'REMOVE',
@@ -187,6 +191,22 @@ const populatePermissions = (field: string) => {
           const { user, statusChanged } = ctx?.meta;
           if (user?.type !== UserType.ADMIN || !statusChanged) return;
           return new Date();
+        },
+      },
+
+      object: {
+        type: 'object',
+        virtual: true,
+        populate: function (
+          ctx: Context<{}, UserAuthMeta>,
+          _values: any,
+          forms: Form[]
+        ) {
+          return Promise.all(
+            forms.map(async (form) =>
+              this.getObjectFromCadastralId(form.cadastralId, form.objectName)
+            )
+          );
         },
       },
 
@@ -376,7 +396,6 @@ export default class FormsService extends moleculer.Service {
     return invalid;
   }
 
-
   @Method
   async parseGeomField(
     ctx: Context<{ id?: number; type?: string; geom: GeomFeatureCollection }>
@@ -448,6 +467,46 @@ export default class FormsService extends moleculer.Service {
     return `uploads/forms/${tenantPath}/${userPath}`;
   }
 
+  @Method
+  async getObjectFromCadastralId(id?: number | string, name?: string) {
+    const objects = await getObjectByCadastralId(id, { name });
+    if (!objects?.length) return;
+
+    return objects[0];
+  }
+
+  @Method
+  async sendNotificationOnStatusChange(form: Form) {
+    // TODO: send email for admins.
+    if (
+      !emailCanBeSent() ||
+      [FormStatus.CREATED, FormStatus.SUBMITTED].includes(form.status)
+    ) {
+      return;
+    }
+
+    const user: User = await this.broker.call('users.resolve', {
+      id: form.createdBy,
+      scope: USERS_DEFAULT_SCOPES,
+    });
+
+    const object = await this.getObjectFromCadastralId(
+      form.cadastralId,
+      form.objectName
+    );
+
+    if (!user?.email || !object?.name) return;
+
+    notifyOnFormUpdate(
+      user.email,
+      form.status,
+      form.id,
+      form.type,
+      object.name,
+      object.id,
+      user.type === UserType.ADMIN
+    );
+  }
 
   @Event()
   async 'forms.updated'(ctx: Context<EntityChangedParams<Form>>) {
@@ -467,6 +526,8 @@ export default class FormsService extends moleculer.Service {
         comment,
         type: typesByStatus[form.status],
       });
+
+      await this.sendNotificationOnStatusChange(form);
     }
   }
 
@@ -478,5 +539,7 @@ export default class FormsService extends moleculer.Service {
       form: form.id,
       type: FormHistoryTypes.CREATED,
     });
+
+    await this.sendNotificationOnStatusChange(form);
   }
 }

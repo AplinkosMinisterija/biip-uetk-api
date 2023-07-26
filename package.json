@@ -67,6 +67,7 @@
     "objection": "^3.0.1",
     "pg": "^8.10.0",
     "pg-hstore": "^2.3.4",
+    "postmark": "^3.0.18",
     "redlock": "^4.2.0",
     "typescript": "^4.5.5"
   },
