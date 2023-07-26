@@ -20,7 +20,7 @@
       <hr />
       <div class="flex flex-col items-center">
         <p>LIETUVOS RESPUBLIKOS UPIŲ, EŽERŲ IR TVENKINIŲ KADASTRO IŠRAŠAS</p>
-        <p>Išrašo unikalus numeris <b><%= id %></b>, suformavimo data <b><%= locals.date %></b></p>
+        <p>Išrašo unikalus numeris <b><%= id %></b>, suformavimo data <b><%= moment(locals.date).format(dateFormat) %></b></p>
       </div>
       <% objects.forEach(function(item, index) { %>
         <div class="mb-32"></div>
@@ -45,8 +45,14 @@
           <%- include('objects/dirbtinis-vt', { item: item }); %>
         <% } else if  (item.kategorijaId === 7) { %>
           <%- include('objects/tarpinis-teritorinis-vt', { item: item }); %>
-        <% } 
-      }); %>
+        <% } %>
+
+        <% if (item.screenshot) { %>
+          <img src="<%= item.screenshot %>" class="w-full my-4" />
+        <% } %>
+        
+        <div class="page-break"></div>
+      <% }); %>
 
       <hr />
       <hr />

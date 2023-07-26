@@ -26,7 +26,7 @@ import {
 } from '../modules/geometry';
 import { Tenant } from './tenants.service';
 import { RequestHistoryType } from './requests.histories.service';
-import { getTemplateHtml } from '../utils';
+import { getTemplateHtml, roundNumber } from '../utils';
 import moment from 'moment';
 import { getLakesAndPondsQuery } from '../utils';
 import {
@@ -40,7 +40,8 @@ type RequestStatusChanged = { statusChanged: boolean };
 export interface Request extends BaseModelInterface {
   status: string;
   geom: GeomFeatureCollection;
-  type: string;
+  purpose: string;
+  objects: any[];
   objectType: string;
   generatedFile: string;
   tenant: number | Tenant;
@@ -111,10 +112,13 @@ const populatePermissions = (field: string) => {
         items: {
           type: 'object',
           properties: {
-            id: {
-              type: 'number',
-              required: true,
-            },
+            id: [
+              {
+                type: 'number',
+                required: true,
+              },
+              { type: 'string', required: true },
+            ],
             type: {
               type: 'string',
               required: true,
@@ -281,6 +285,26 @@ export default class RequestsService extends moleculer.Service {
   }
 
   @Action({
+    params: {
+      id: {
+        type: 'number',
+        convert: true,
+      },
+    },
+    rest: 'POST /:id/generate',
+    timeout: 0,
+  })
+  async generatePdf(ctx: Context<{ id: number }>) {
+    const flow: any = await ctx.call('jobs.requests.initiatePdfGenerate', {
+      id: ctx.params.id,
+    });
+
+    return {
+      generating: !!flow?.job?.id,
+    };
+  }
+
+  @Action({
     rest: 'GET /test-html',
     auth: AuthType.PUBLIC,
   })
@@ -305,14 +329,7 @@ export default class RequestsService extends moleculer.Service {
       id: 123123,
       date: '2023-01-05',
       objects,
-      roundNumber: (number: string, digits: number = 2) => {
-        if (!number) return;
-        let numberParsed = parseFloat(number);
-
-        if (Number.isNaN(numberParsed)) return;
-
-        return numberParsed.toFixed(digits);
-      },
+      roundNumber,
       moment,
       dateFormat: 'YYYY-MM-DD',
       fullData: true,
@@ -487,10 +504,14 @@ export default class RequestsService extends moleculer.Service {
         prevRequest?.generatedFile !== request.generatedFile &&
         !!request.generatedFile
       ) {
-        await this.createRequestHistory(
-          request.id,
-          null,
-          RequestHistoryType.FILE_GENERATED
+        await ctx.call(
+          'requests.histories.create',
+          {
+            request: request.id,
+            comment,
+            type: RequestHistoryType.FILE_GENERATED,
+          },
+          { meta: null }
         );
 
         if (emailCanBeSent()) {

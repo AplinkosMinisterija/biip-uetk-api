@@ -12,6 +12,7 @@ const getGisAdapter = () => {
 
 export async function getLakesAndPondsQuery(filter?: {
   kategorijaId?: number;
+  cadastralIds?: number[] | string[];
   limit?: number;
 }) {
   const adapter = getGisAdapter();
@@ -19,6 +20,10 @@ export async function getLakesAndPondsQuery(filter?: {
 
   if (filter?.kategorijaId) {
     query.where('kategorijaId', filter.kategorijaId);
+  }
+
+  if (filter?.cadastralIds?.length) {
+    query.whereIn('kadastroId', filter.cadastralIds);
   }
 
   if (filter?.limit) {

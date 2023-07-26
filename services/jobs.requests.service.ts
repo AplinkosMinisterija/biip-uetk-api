@@ -5,9 +5,25 @@ import { Action, Method, Service } from 'moleculer-decorators';
 import BullMqMixin from '../mixins/bullmq.mixin';
 import { User } from './users.service';
 import { Tenant } from './tenants.service';
-import { getLakesAndPondsQuery, toMD5Hash, toReadableStream } from '../utils';
-import { FILE_TYPES } from '../types';
+import {
+  getLakesAndPondsQuery,
+  getTemplateHtml,
+  roundNumber,
+  toMD5Hash,
+  toReadableStream,
+} from '../utils';
+import { FILE_TYPES, throwNotFoundError } from '../types';
 import { Request } from './requests.service';
+import { AuthType } from './api.service';
+import moment from 'moment';
+
+function getSecret(request: Request) {
+  return toMD5Hash(
+    `id=${request.id}&date=${moment(request.createdAt).format(
+      'YYYYMMDDHHmmss'
+    )}`
+  );
+}
 
 @Service({
   name: 'jobs.requests',
@@ -52,15 +68,19 @@ export default class JobsRequestsService extends moleculer.Service {
       {}
     );
 
-    const objects: any[] = await this.getRequestData();
+    const screenshotsHash = toMD5Hash(
+      `id=${id}&date=${moment().format('YYYYMMDDHHmmsss')}`
+    );
+    const redisKey = `screenshots.${screenshotsHash}`;
 
-    // set screenshots for objects
-    objects.forEach((item) => {
-      item.screenshot = screenshotsByHash[item.hash] || '';
-    });
+    await this.broker.cacher.set(redisKey, screenshotsByHash);
+
+    const objects: any[] = await this.getRequestData(id);
+
+    const secret = getSecret(request);
 
     const pdf = await ctx.call('tools.makePdf', {
-      url: 'https://maps.biip.lt/uetk',
+      url: `${process.env.SERVER_HOST}/jobs/requests/${id}/html?secret=${secret}&skey=${screenshotsHash}`,
     });
 
     const folder = this.getFolderName(
@@ -69,7 +89,7 @@ export default class JobsRequestsService extends moleculer.Service {
     );
 
     const result: any = await ctx.call(
-    'minio.uploadFile',
+      'minio.uploadFile',
       {
         payload: toReadableStream(pdf),
         folder,
@@ -103,7 +123,7 @@ export default class JobsRequestsService extends moleculer.Service {
 
     const { id } = ctx.params;
 
-    const objects: any[] = await this.getRequestData();
+    const objects: any[] = await this.getRequestData(id);
 
     const params = new URLSearchParams();
 
@@ -114,18 +134,20 @@ export default class JobsRequestsService extends moleculer.Service {
 
     // add all objects
     objects.forEach((item) => {
-      params.set('item', `${item.id}`);
+      params.set('cadastralId', `${item.kadastroId}`);
       data.push({
         url: getUrl(params),
         hash: item.hash,
       });
     });
 
-    const childrenJobs = data.map((item) => ({
-      params: item,
-      name: 'jobs',
-      action: 'saveScreenshot',
-    }));
+    // const childrenJobs = data.map((item) => ({
+    //   params: item,
+    //   name: 'jobs',
+    //   action: 'saveScreenshot',
+    // }));
+
+    const childrenJobs: any[] = [];
 
     return this.flow(
       ctx,
@@ -138,6 +160,55 @@ export default class JobsRequestsService extends moleculer.Service {
     );
   }
 
+  @Action({
+    params: {
+      id: {
+        type: 'number',
+        convert: true,
+      },
+      secret: 'string',
+      skey: 'string',
+    },
+    rest: 'GET /:id/html',
+    auth: AuthType.PUBLIC,
+  })
+  async getRequestHtml(
+    ctx: Context<
+      { id: number; secret: string; skey: string },
+      { $responseType: string }
+    >
+  ) {
+    const { id, secret, skey: screenshotsRedisKey } = ctx.params;
+
+    const request: Request = await ctx.call('requests.resolve', { id });
+
+    const secretToApprove = getSecret(request);
+    if (!request?.id || !secret || secret !== secretToApprove) {
+      return throwNotFoundError('Invalid secret!')
+    }
+
+    const objects: any[] = await this.getRequestData(id);
+
+    const screenshotsByHash = await this.broker.cacher.get(
+      `screenshots.${screenshotsRedisKey}`
+    );
+
+    ctx.meta.$responseType = 'text/html';
+
+    return getTemplateHtml('request.ejs', {
+      id,
+      date: request.createdAt,
+      objects: objects.map((o) => ({
+        ...o,
+        screenshot: screenshotsByHash?.[o.hash] || '',
+      })),
+      roundNumber,
+      moment,
+      dateFormat: 'YYYY-MM-DD',
+      fullData: false,
+    });
+  }
+
   @Method
   getFolderName(user?: User, tenant?: Tenant) {
     const tenantPath = tenant?.id || 'private';
@@ -147,11 +218,21 @@ export default class JobsRequestsService extends moleculer.Service {
   }
 
   @Method
-  async getRequestData() {
-    const objects = await getLakesAndPondsQuery({ limit: 5 });
-    return objects.map((item) => ({
+  async getRequestData(id: number) {
+    const request: Request = await this.broker.call('requests.resolve', { id });
+
+    const cadastralIds = request.objects
+      .filter((i) => i.type === 'CADASTRAL_ID')
+      .map((i) => i.id);
+
+    const lakesAndPonds = await getLakesAndPondsQuery({ cadastralIds });
+
+    const objects = [...lakesAndPonds].map((item) => ({
       ...item,
-      hash: toMD5Hash(`item=${item.id}`),
+      screenshot: '',
+      hash: toMD5Hash(`cadastralId=${item.kadastroId}`),
     }));
+
+    return objects;
   }
 }
