@@ -3,8 +3,8 @@ import { FormStatus, FormType } from '../services/forms.service';
 import { RequestStatus } from '../services/requests.service';
 
 let client: ServerClient;
-if (process.env.POSTMARK_API_KEY) {
-  client = new ServerClient(process.env.POSTMARK_API_KEY);
+if (process.env.POSTMARK_KEY) {
+  client = new ServerClient(process.env.POSTMARK_KEY);
 }
 
 const sender = 'noreply@biip.lt';
