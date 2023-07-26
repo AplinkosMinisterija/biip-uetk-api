@@ -16,13 +16,13 @@
     vandensPavirsiausBeSaluPlotas: item.vandensPavirsiausPlotasHe,
     krantoLinijosIlgis: item.krantoLinijosIlgisKm,
     baseinoPlotas: item.baseinoPlotasKvKm,
-    ilgis: fullData && 0.1, // TODO: missing data
-    vidutinisPlotis: fullData && 0.1,
-    vvlAltitude: fullData && 0.1,
-    vvlGylisMax: fullData && 0.1,
-    vvlGylisVid: fullData && 0.1,
-    vvlTuris: fullData && 0.1,
-    naudingasTuris: fullData && 0.1
+    ilgis: fullData ? item.ilgisKm || ' ' : '', 
+    vidutinisPlotis: fullData ? item.vidPlotisKm || ' ' : '',
+    vvlAukstis: fullData && 0.1 ,// TODO: missing data
+    vvlGylisMax: fullData ? item.maxGylis || ' ' : '',
+    vvlGylisVid: fullData ? item.vidGylis || ' ' : '',
+    vvlTuris: fullData ? item.vandTuris || ' ' : '',
+    naudingasTuris: fullData ? item.naudVandTuris || ' ' : ''
   }); %>
 </div>
 
@@ -31,15 +31,15 @@
 <hr />
 <div>
   <p class="font-bold">4. Vandens tyrimo vietos:
-    <% if (!item?.tyrimoVietos?.length) { %>
+    <% if (!item?.vandensTyrimuVietos?.length) { %>
       įrašų nėra
     <% }; %>
   </p>
 
-  <% if (!!item?.tyrimoVietos?.length) { %>
-  <%- include('includes/extra/tyrimo-vietos', { // TODO: missing data
+  <% if (!!item?.vandensTyrimuVietos?.length) { %>
+  <%- include('includes/extra/tyrimo-vietos', {
     id: 4,
-    items: item.tyrimoVietos
+    items: item.vandensTyrimuVietos
   }); %>
   <% }; %>
 </div>

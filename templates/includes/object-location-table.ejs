@@ -52,7 +52,7 @@
   <% }; if (!!locals.atstumasNuoPatvenktosUpesZiociu) { %>
   <tr>
     <td>Atstumas nuo patvenktos upės žiočių:</td>
-    <td><%= atstumasNuoPatvenktosUpesZiociu %> km</td>
+    <td><%= roundNumber(atstumasNuoPatvenktosUpesZiociu) || '-' %> km</td>
   </tr>
   <% }; %>
 </table>

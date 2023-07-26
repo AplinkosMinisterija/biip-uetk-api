@@ -6,15 +6,15 @@
   </tr>
   <tr>
     <td>Pavadinimas:</td>
-    <td><%= item.patvenktos_upes_pavadinimas %></td>
+    <td><%= item.upes_pavadinimas %></td>
   </tr>
   <tr>
     <td>Identifikavimo kodas:</td>
-    <td><%= item.patvenktos_upes_kodas %></td>
+    <td><%= item.upes_kodas %></td>
   </tr>
   <tr>
     <td>Atstumas nuo žiočių:</td>
-    <td><%= roundNumber(item.atstumas_nuo_ziociu) %> km</td>
+    <td><%= roundNumber(item.atstumas_nuo_ziociu) || '-' %> km</td>
   </tr>
   <% }); %>
 </table>

@@ -5,19 +5,19 @@
   </tr>
   <tr>
     <td>Pavadinimas:</td>
-    <td><%= item.pavadinimas || '-' %></td>
+    <td><%= item.pavadinimas || '' %></td>
   </tr>
   <tr>
     <td>Koordinatė X (LKS94):</td>
-    <td><%= item.coordinatesX || '-' %></td>
+    <td><%= roundNumber(item.objekto_x) || '' %></td>
   </tr>
   <tr>
     <td>Koordinatė Y (LKS94):</td>
-    <td><%= item.coordinatesY || '-' %></td>
+    <td><%= roundNumber(item.objekto_y) || '' %></td>
   </tr>
   <tr>
     <td>Šaltinis:</td>
-    <td><b><%= item.saltinis || '-' %></b></td>
+    <td><b><%= item.saltinis || '' %></b></td>
   </tr>
   <% }); %>
 </table>

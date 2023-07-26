@@ -9,11 +9,11 @@
   </tr>
   <tr>
     <td>Koordinatė X (LKS94):</td>
-    <td><%= item.coordinatesX %></td>
+    <td><%= roundNumber(item.objekto_x) || '' %></td>
   </tr>
   <tr>
     <td>Koordinatė Y (LKS94):</td>
-    <td><%= item.coordinatesY %></td>
+    <td><%= roundNumber(item.objekto_y) || '' %></td>
   </tr>
   <tr>
     <td>Stoties atskaitos nulinė altitudė:</td>
@@ -21,7 +21,7 @@
   </tr>
   <tr>
     <td>Hidrometrinių stebėjimų laikotarpio pradžia:</td>
-    <td><%= item.stebejimuPradzia ? moment(item.stebejimuPradzia).format(dateFormat) : '-' %></td>
+    <td><%= item.stebejimu_pradzia ? moment(item.stebejimu_pradzia).format(dateFormat) : '' %></td>
   </tr>
   <tr>
     <td>Šaltinis:</td>

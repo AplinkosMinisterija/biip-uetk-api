@@ -20,45 +20,45 @@
 <hr />
 <div>
   <p class="font-bold">4. Hidrografinio tinklo duomenys:
-    <% if (!item?.patvenktosUpes?.length) { %>
+    <% if (!item?.hidrografinisTinklas?.length) { %>
       įrašų nėra
     <% }; %>
   </p>
 
-  <% if (!!item?.patvenktosUpes?.length) { %>
-  <%- include('includes/extra/hidrografiniai', { // TODO: missing data
+  <% if (!!item?.hidrografinisTinklas?.length) { %>
+  <%- include('includes/extra/hidrografiniai', {
     id: 4,
-    items: item.patvenktosUpes
+    items: item.hidrografinisTinklas
   }); %>
   <% }; %>
 </div>
 <hr />
 <div>
   <p class="font-bold">5. Vandens matavimo stotys:
-    <% if (!item?.matavimoStotys?.length) { %>
+    <% if (!item?.vandensMatavimoStotys?.length) { %>
       įrašų nėra
     <% }; %>
   </p>
 
-  <% if (!!item?.matavimoStotys?.length) { %>
-  <%- include('includes/extra/matavimo-stotys', { // TODO: missing data
+  <% if (!!item?.vandensMatavimoStotys?.length) { %>
+  <%- include('includes/extra/matavimo-stotys', {
     id: 5,
-    items: item.matavimoStotys
+    items: item.vandensMatavimoStotys
   }); %>
   <% }; %>
 </div>
 <hr />
 <div>
   <p class="font-bold">6. Vandens tyrimo vietos:
-    <% if (!item?.tyrimoVietos?.length) { %>
+    <% if (!item?.vandensTyrimuVietos?.length) { %>
       įrašų nėra
     <% }; %>
   </p>
 
-  <% if (!!item?.tyrimoVietos?.length) { %>
-  <%- include('includes/extra/tyrimo-vietos', { // TODO: missing data
+  <% if (!!item?.vandensTyrimuVietos?.length) { %>
+  <%- include('includes/extra/tyrimo-vietos', {
     id: 6,
-    items: item.tyrimoVietos
+    items: item.vandensTyrimuVietos
   }); %>
   <% }; %>
 </div>
