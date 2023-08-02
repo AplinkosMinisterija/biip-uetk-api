@@ -13,4 +13,5 @@ jobs:
       packages: write
     with:
       environment: Development
+      enable-sentry: true
       docker-image: ghcr.io/AplinkosMinisterija/biip-uetk-api

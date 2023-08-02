@@ -41,6 +41,7 @@
     "@faker-js/faker": "^6.0.0-alpha.7",
     "@moleculer/database": "github:ambrazasp/moleculerjs-database",
     "@types/ejs": "^3.1.2",
+    "@sentry/node": "^7.61.0",
     "@types/jest": "^27.4.0",
     "@types/mime-types": "^2.1.1",
     "@types/mkdirp": "^1.0.2",
