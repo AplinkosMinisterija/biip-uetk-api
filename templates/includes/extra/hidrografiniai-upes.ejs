@@ -1,0 +1,28 @@
+<table class="table-center">
+  <% locals.items?.forEach(function(item, index) { %>
+  <tr>
+    <td class="text-left" colspan="2"><%= id %>.<%= index + 1 %></td>
+  </tr>
+  <tr>
+    <td>Pavadinimas:</td>
+    <td><%= item.pavadinimas %></td>
+  </tr>
+  <tr>
+    <td>Identifikavimo kodas:</td>
+    <td><%= item.kodas %></td>
+  </tr>
+  <tr>
+    <td>Kategorija:</td>
+    <td><%= item.kategorija %></td>
+  </tr>
+  <tr>
+    <td>Atstumas nuo upės žiočių:</td>
+    <td><%= roundNumber(item.atstumas_nuo_upes_ziociu) || '-' %> km</td>
+  </tr>
+  <tr>
+    <td>Įtekėjimo krantas:</td>
+    <td><%= item.itekejimo_vyr_upes_krantas %></td>
+  </tr>
+  <% }); %>
+</table>
+

@@ -23,17 +23,69 @@
 
 <hr />
 <div>
+  <% var telkiniai = [...(item?.vyrUpes || []), ...(item?.vyrEzeraiTvenkiniai || [])] %>
+
   <p class="font-bold">4. Vandens telkiniai, į kuriuos įteka kadastro objektas:
-    <% if (!item?.vyrUpes?.length) { %>
+    <% if (!telkiniai?.length) { %>
       įrašų nėra
     <% }; %>
   </p>
 
-  <% if (!!item?.vyrUpes?.length) { %>
+  <% if (!!telkiniai?.length) { %>
   <%- include('includes/extra/telkiniai-i-kuriuos-iteka', {
     id: 4,
-    items: item.vyrUpes
+    items: telkiniai
   }); %>
   <% }; %>
 </div>
 
+<% if (!!fullData) { %>
+  <hr />
+  <div>
+    <p class="font-bold">5. Hidrografinio tinklo duomenys:
+      <% if (!item?.hidrografinisTinklas?.length) { %>
+        įrašų nėra
+      <% }; %>
+    </p>
+  
+    <% if (!!item?.hidrografinisTinklas?.length) { %>
+    <%- include('includes/extra/hidrografiniai-upes', {
+      id: 5,
+      items: item.hidrografinisTinklas
+    }); %>
+    <% }; %>
+  </div>
+  <hr />
+  <div>
+    <p class="font-bold">6. Vandens matavimo stotys:
+      <% if (!item?.vandensMatavimoStotys?.length) { %>
+        įrašų nėra
+      <% }; %>
+    </p>
+  
+    <% if (!!item?.vandensMatavimoStotys?.length) { %>
+    <%- include('includes/extra/matavimo-stotys-upes', {
+      id: 6,
+      items: item.vandensMatavimoStotys
+    }); %>
+    <% }; %>
+  </div>
+  
+  <hr />
+  <div>
+    <p class="font-bold">7. Vandens tyrimo vietos:
+      <% if (!item?.vandensTyrimuVietos?.length) { %>
+        įrašų nėra
+      <% }; %>
+    </p>
+  
+    <% if (!!item?.vandensTyrimuVietos?.length) { %>
+    <%- include('includes/extra/tyrimo-vietos', {
+      id: 7,
+      items: item.vandensTyrimuVietos,
+      showDistance: true
+    }); %>
+    <% }; %>
+  </div>
+  <% }; %>
+  
