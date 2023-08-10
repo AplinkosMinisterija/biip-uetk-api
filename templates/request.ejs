@@ -34,7 +34,9 @@
         <hr />
 
         <% if (item.kategorijaId === 1) { %>
+          <%- include('objects/upe', { item: item }); %>
         <% } else if  (item.kategorijaId === 2) { %>
+          <%- include('objects/kanalas', { item: item }); %>
         <% } else if  (item.kategorijaId === 3) { %>
           <%- include('objects/naturalus-ezeras', { item: item }); %>
         <% } else if  (item.kategorijaId === 4) { %>
@@ -54,25 +56,6 @@
         <div class="page-break"></div>
       <% }); %>
 
-      <hr />
-      <hr />
-      <hr />
-      <hr />
-
-      <!-- Start type -->
-      <div class="text-3xl font-bold text-center">Upė</div>
-      <%- include('objects/upe', {item: {}}); %>
-
-      <hr />
-
-
-      <div class="text-3xl font-bold text-center">Kanalas</div>
-      <%- include('objects/kanalas'); %>
-
-      <hr />
-      <!-- End type -->
-
-      <div class="page-break"></div>
     </div>
   </body>
 </html>

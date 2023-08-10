@@ -11,9 +11,9 @@
     "test": "jest --coverage --passWithNoTests",
     "lint": "eslint --ext .js,.ts .",
     "lint:sarif": "set SARIF_ESLINT_EMBED=true && yarn run lint --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif",
-    "dc:up": "docker-compose -p uetk-backend up --build -d",
-    "dc:logs": "docker-compose -p uetk-backend logs -f",
-    "dc:down": "docker-compose -p uetk-backend down"
+    "dc:up": "docker-compose -p biip-uetk-api up --build -d",
+    "dc:logs": "docker-compose -p biip-uetk-api logs -f",
+    "dc:down": "docker-compose -p biip-uetk-api down"
   },
   "keywords": [
     "microservices",

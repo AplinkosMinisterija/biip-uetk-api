@@ -241,9 +241,12 @@ const brokerConfig: BrokerOptions = {
 	stopped: async (broker: ServiceBroker): Promise<void> => {},
 	 */
 
-  created: async (broker: ServiceBroker): Promise<void> => {
+  async started(broker: ServiceBroker): Promise<void> {
     try {
       await knex(config).migrate.latest();
+      broker.waitForServices(['seed']).then(async () => {
+        await broker.call('seed.run');
+      });
     } catch (err) {
       broker.logger.fatal(err);
     }

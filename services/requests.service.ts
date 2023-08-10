@@ -26,7 +26,7 @@ import {
 } from '../modules/geometry';
 import { Tenant } from './tenants.service';
 import { RequestHistoryType } from './requests.histories.service';
-import { getTemplateHtml, roundNumber } from '../utils';
+import { getRiversQuery, getTemplateHtml, roundNumber } from '../utils';
 import moment from 'moment';
 import { getLakesAndPondsQuery } from '../utils';
 import {
@@ -311,15 +311,18 @@ export default class RequestsService extends moleculer.Service {
     auth: AuthType.PUBLIC,
   })
   async testHtml(ctx: Context<{}, { $responseType: string }>) {
+    // 1	Upė
+    // 2	Kanalas
     // 3	Natūralus ežeras
     // 4	Patvenktas ežeras
     // 5	Tvenkinys
     // 6	Nepratekamas dirbtinis paviršinis vandens telkinys
     // 7	Tarpinis vandens telkinys
 
-    const items = await Promise.all(
-      [7].map((id) => getLakesAndPondsQuery({ kategorijaId: id, limit: 3 }))
-    );
+    const items = await Promise.all([
+      // ...[7].map((id) => getLakesAndPondsQuery({ kategorijaId: id, limit: 3 })),
+      ...[2].map((id) => getRiversQuery({ kategorijaId: id, limit: 3 })),
+    ]);
 
     const objects = items.reduce(
       (acc: any[], item: any) => [...acc, ...item],

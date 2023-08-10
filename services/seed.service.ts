@@ -32,15 +32,12 @@ export default class SeedService extends moleculer.Service {
     return true;
   }
 
-  async started(): Promise<void> {
-    this.broker
+  @Action()
+  run() {
+    return this.broker
       .waitForServices(['auth', 'users', 'tenants', 'tenantUsers'])
       .then(async () => {
         await this.broker.call('seed.real', {}, { timeout: 120 * 1000 });
-
-        if (process.env.NODE_ENV !== 'production') {
-          await this.broker.call('seed.fake', {}, { timeout: 120 * 1000 });
-        }
       });
   }
 }
