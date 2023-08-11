@@ -321,7 +321,7 @@ export default class RequestsService extends moleculer.Service {
 
     const items = await Promise.all([
       // ...[7].map((id) => getLakesAndPondsQuery({ kategorijaId: id, limit: 3 })),
-      ...[2].map((id) => getRiversQuery({ kategorijaId: id, limit: 10 })),
+      ...[1].map((id) => getRiversQuery({ kategorijaId: id, limit: 10 })),
     ]);
 
     const objects = items.reduce(

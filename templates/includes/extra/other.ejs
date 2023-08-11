@@ -1,0 +1,12 @@
+<div>
+  <p>
+    <span class="font-bold"><%= locals.id %>. Kita informacija:
+      <% if (!locals?.text) { %>
+        įrašų nėra
+      <% } %>
+    </span>
+    <% if (!!locals?.text) { %>
+      <%= locals.text %>
+    <% } %>
+  </p>
+</div>
