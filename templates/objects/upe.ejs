@@ -88,5 +88,24 @@
     }); %>
     <% }; %>
   </div>
+  
+  <hr />
+  <div>
+    <p class="font-bold">8. Hidrotechnikos statiniai:
+      <% if (!item?.zemiuUztvankos?.length) { %>
+        įrašų nėra
+      <% }; %>
+    </p>
+  
+    <% if (!!item?.zemiuUztvankos?.length) { %>
+    <%- include('includes/hidrotechnikos-statiniai', {
+      id: 8,
+      zemiuUztvankos: item.zemiuUztvankos,
+      vandensPertekliausPralaidos: item.vandensPertekliausPralaidos,
+      hidroelektrines: item.hidroelektrines,
+      zuvuPralaidos: item.zuvuPralaidos,
+    }); %>
+    <% }; %>
+  </div>
   <% }; %>
   

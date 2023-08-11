@@ -87,5 +87,30 @@
     }); %>
     <% }; %>
   </div>
+  
+  <hr />
+  <div>
+    <% var hidrotechnikosStatiniaiCount = 
+      (item?.zemiuUztvankos?.length || 0) +
+      (item?.vandensPertekliausPralaidos?.length || 0) +
+      (item?.hidroelektrines?.length || 0) +
+      (item?.zuvuPralaidos?.length || 0)
+      %>
+    <p class="font-bold">8. Hidrotechnikos statiniai:
+      <% if (!hidrotechnikosStatiniaiCount) { %>
+        įrašų nėra
+      <% }; %>
+    </p>
+  
+    <% if (!!hidrotechnikosStatiniaiCount) { %>
+    <%- include('includes/hidrotechnikos-statiniai', {
+      id: 8,
+      zemiuUztvankos: item.zemiuUztvankos,
+      vandensPertekliausPralaidos: item.vandensPertekliausPralaidos,
+      hidroelektrines: item.hidroelektrines,
+      zuvuPralaidos: item.zuvuPralaidos,
+    }); %>
+    <% }; %>
+  </div>
   <% }; %>
   
