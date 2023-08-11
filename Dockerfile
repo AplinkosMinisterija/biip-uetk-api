@@ -43,6 +43,13 @@ ENV VERSION=${VERSION}
 ARG ENVIRONMENT
 ENV ENVIRONMENT=${ENVIRONMENT}
 
+# Docker build args and environment variables
+ARG VERSION
+ENV VERSION=${VERSION}
+
+ARG ENVIRONMENT
+ENV ENVIRONMENT=${ENVIRONMENT}
+
 # Set default environment variables
 ENV NODE_ENV=production
 ENV TZ=Etc/GMT
