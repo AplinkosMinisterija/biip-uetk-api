@@ -313,15 +313,15 @@ export default class RequestsService extends moleculer.Service {
   async testHtml(ctx: Context<{}, { $responseType: string }>) {
     // 1	Upė
     // 2	Kanalas
-    // 3	Natūralus ežeras
+    // 3	Natūralus ežeras +
     // 4	Patvenktas ežeras
     // 5	Tvenkinys
     // 6	Nepratekamas dirbtinis paviršinis vandens telkinys
     // 7	Tarpinis vandens telkinys
 
     const items = await Promise.all([
-      // ...[7].map((id) => getLakesAndPondsQuery({ kategorijaId: id, limit: 3 })),
-      ...[1].map((id) => getRiversQuery({ kategorijaId: id, limit: 10 })),
+      ...[4].map((id) => getLakesAndPondsQuery({ kategorijaId: id, limit: 100 })),
+      // ...[1].map((id) => getRiversQuery({ kategorijaId: id, limit: 10 })),
     ]);
 
     const objects = items.reduce(
@@ -337,7 +337,7 @@ export default class RequestsService extends moleculer.Service {
       roundNumber,
       moment,
       dateFormat: 'YYYY-MM-DD',
-      fullData: true,
+      fullData: false,
     });
   }
 

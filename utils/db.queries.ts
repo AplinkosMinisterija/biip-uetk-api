@@ -52,7 +52,6 @@ export async function getRiversQuery(filter?: {
   if (filter?.limit) {
     query.limit(filter.limit);
   }
-  query.whereNotNull('kitiDuomenys')
 
   return query;
 }

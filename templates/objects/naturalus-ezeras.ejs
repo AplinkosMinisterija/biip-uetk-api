@@ -21,7 +21,7 @@
     baseinoPlotas: item.baseinoPlotasKvKm,
     ilgis: fullData ? item.ilgisKm || ' ' : '', 
     vidutinisPlotis: fullData ? item.vidPlotisKm || ' ' : '',
-    vvlAukstis: fullData && 0.1 ,// TODO: missing data
+    vvlAukstis: fullData && 111111111 ,// TODO: missing data
     vvlGylisMax: fullData ? item.maxGylis || ' ' : '',
     vvlGylisVid: fullData ? item.vidGylis || ' ' : '',
     vvlTuris: fullData ? item.vandTuris || ' ' : '',
@@ -41,7 +41,8 @@
   <% if (!!item?.hidrografinisTinklas?.length) { %>
   <%- include('includes/extra/hidrografiniai', {
     id: 4,
-    items: item.hidrografinisTinklas
+    items: item.hidrografinisTinklas,
+    hideDistanceIfNotExists: true
   }); %>
   <% }; %>
 </div>

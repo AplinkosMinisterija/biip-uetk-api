@@ -12,10 +12,12 @@
     <td>Identifikavimo kodas:</td>
     <td><%= item.upes_kodas %></td>
   </tr>
+  <% if (!locals.hideDistanceIfNotExists || !!locals.hideDistanceIfNotExists && !!item.atstumas_nuo_ziociu) { %>
   <tr>
     <td>Atstumas nuo žiočių:</td>
     <td><%= roundNumber(item.atstumas_nuo_ziociu) || '-' %> km</td>
   </tr>
+  <% }; %>
   <% }); %>
 </table>
 
