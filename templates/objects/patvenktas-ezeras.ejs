@@ -44,7 +44,8 @@
   <% if (!!item?.hidrografinisTinklas?.length) { %>
   <%- include('includes/extra/hidrografiniai', {
     id: 4,
-    items: item.hidrografinisTinklas
+    items: item.hidrografinisTinklas,
+    hideDistanceIfNotExists: true
   }); %>
   <% }; %>
 </div>
@@ -78,10 +79,29 @@
   }); %>
   <% }; %>
 </div>
+
+<hr />
+<div>
+  <p class="font-bold">7. Hidrotechnikos statiniai:
+    <% if (!item?.zemiuUztvankos?.length) { %>
+      įrašų nėra
+    <% }; %>
+  </p>
+
+  <% if (!!item?.zemiuUztvankos?.length) { %>
+  <%- include('includes/hidrotechnikos-statiniai', {
+    id: 7,
+    zemiuUztvankos: item.zemiuUztvankos,
+    vandensPertekliausPralaidos: item.vandensPertekliausPralaidos,
+    hidroelektrines: item.hidroelektrines,
+    zuvuPralaidos: item.zuvuPralaidos,
+  }); %>
+  <% }; %>
+</div>
 <% }; %>
   
 <hr />
 <%- include('includes/extra/other', {
-  id: fullData ? 7 : 4,
+  id: fullData ? 8 : 4,
   text: item.kitiDuomenys
 }); %>

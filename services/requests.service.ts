@@ -320,7 +320,7 @@ export default class RequestsService extends moleculer.Service {
     // 7	Tarpinis vandens telkinys
 
     const items = await Promise.all([
-      ...[4].map((id) => getLakesAndPondsQuery({ kategorijaId: id, limit: 100 })),
+      ...[7].map((id) => getLakesAndPondsQuery({ kategorijaId: id, limit: 100 })),
       // ...[1].map((id) => getRiversQuery({ kategorijaId: id, limit: 10 })),
     ]);
 
@@ -337,7 +337,7 @@ export default class RequestsService extends moleculer.Service {
       roundNumber,
       moment,
       dateFormat: 'YYYY-MM-DD',
-      fullData: false,
+      fullData: true,
     });
   }
 
