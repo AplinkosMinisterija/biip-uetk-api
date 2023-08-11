@@ -44,10 +44,10 @@
     <td>Vandens tūris esant NPL:</td>
     <td><%= roundNumber(locals.nplTuris) || '-' %> tūkst. m<sup>3</sup></td>
   </tr>
-  <% }; if (!!locals.vvlAukstis) { %>
+  <% }; if (!!locals.vvl) { %>
   <tr>
     <td>Vidutinio vandens lygio (VVL) altitudė (BAS 77):</td>
-    <td><%= roundNumber(locals.vvlAukstis) || '-' %> m</td>
+    <td><%= roundNumber(locals.vvl) || '-' %> m</td>
   </tr>
   <% }; if (!!locals.vvlGylisMax) { %>
   <tr>
