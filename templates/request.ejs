@@ -5,7 +5,7 @@
     <%- include('styles'); %>
   </head>
   <body>
-    <div style="width: 620px">
+    <div>
       <div class="flex flex-col items-center">
         <p class="font-bold text-2xl">APLINKOS APSAUGOS AGENTŪRA</p>
         <p>
@@ -20,15 +20,95 @@
       <hr />
       <div class="flex flex-col items-center">
         <p>LIETUVOS RESPUBLIKOS UPIŲ, EŽERŲ IR TVENKINIŲ KADASTRO IŠRAŠAS</p>
-        <p>Išrašo unikalus numeris <b><%= id %></b>, suformavimo data <b><%= moment(locals.date).format(dateFormat) %></b></p>
+        <p>Išrašo unikalus numeris <b><%= id %></b>, suformavimo data <b><%= formatDate(locals.date) %></b></p>
       </div>
       <% objects.forEach(function(item, index) { %>
         <div class="mb-32"></div>
         <hr />
         
         <div>
-          <p class="font-bold">1. Kadastro objektas:</p>
-          <%- include('includes/object-table', { item: item }); %>
+          <% if (!!item.kategorijaId) { %>
+            <p class="font-bold">1. Kadastro objektas:</p>
+            <%- include('includes/object-table', { 
+              pavadinimas: item.pavadinimas || '-',
+              kadastroId: item.kadastroId || '-',
+              kategorija: item.kategorija || '-',
+              registravimoData: item.registravimoData || ' ',
+            }); %>
+          <% } else if (item.objectSubtype === 'zuvu_pralaida') { %>
+            <p class="font-bold">1. Žuvų pralaidos duomenys:</p>
+            <table class="table-center">
+              <%- include('includes/extra/hidrotechnikos-statinys', {
+                pavadinimas: item.pavadinimas || '-',
+                kodas: item.hidrostatinioKodas || '-',
+                registravimoData: item.registravimoData || ' ',
+                tipas: item.tipas || '-',
+                pastatymoMetai: item.pastatymoMetai || ' ',
+                zuvuPralaidosDebitas: item.zuvuPralaidosDebitas || '-',
+                coordinatesX: item.objektoX,
+                coordinatesY: item.objektoY,
+                atstumasNuoZiociu: item.atstumasNuoZiociu || ' ',
+                savivaldybe: item.savivaldybe,
+              }); %>
+            </table>
+          <% } else if (item.objectSubtype === 'hidroelektrine') { %>
+            <p class="font-bold">1. Hidroelektrinės duomenys:</p>
+            <table class="table-center">
+              <%- include('includes/extra/hidrotechnikos-statinys', {
+                pavadinimas: item.pavadinimas || '-',
+                kodas: item.hidrostatinioKodas || '-',
+                registravimoData: item.registravimoData || ' ',
+                tipas: item.tipas || '-',
+                pastatymoMetai: item.pastatymoMetai || ' ',
+                galia: item.galia || ' ',
+                maxSlegioAukstis: item.maxSlegioAukstis || ' ',
+                coordinatesX: item.objekto_x,
+                coordinatesY: item.objekto_y,
+                atstumasNuoZiociu: item.atstumasNuoZiociu || ' ',
+                savivaldybe: item.savivaldybe,
+              }); %>
+            </table>
+          <% } else if (item.objectSubtype === 'zemiu_uztvanka') { %>
+            <p class="font-bold">1. Žemių užtvankos duomenys:</p>
+            <table class="table-center">
+              <%- include('includes/extra/hidrotechnikos-statinys', {
+                pavadinimas: item.pavadinimas || '-',
+                kodas: item.hidrostatinioKodas || '-',
+                registravimoData: item.registravimoData || ' ',
+                maxPatvankosAukstis: item.maksimalusPatvankosAuktis || ' ',
+                ilgis: item.ilgis || ' ',
+                plotis: item.plotis || ' ',
+                pastatymoMetai: item.pastatymoMetai || ' ',
+                coordinatesX: item.objektoX,
+                coordinatesY: item.objektoY,
+                atstumasNuoZiociu: item.atstumasNuoZiociu || ' ',
+                savivaldybe: item.savivaldybe,
+              }); %>
+            </table>
+          <% } else if (item.objectSubtype === 'vandens_pertekliaus_pralaida') { %>
+            <p class="font-bold">1. Vandens pertekliaus pralaidos duomenys:</p>
+            <table class="table-center">
+              <%- include('includes/extra/hidrotechnikos-statinys', {
+                pavadinimas: item.pavadinimas || '-',
+                kodas: item.hidrostatinioKodas || '-',
+                registravimoData: item.registravimoData || ' ',
+                tipas: item.tipas || '-',
+                pastatymoMetai: item.pastatymoMetai || ' ',
+                patvankosAukstis: item.patvankosAukstis || ' ',
+                gamtosauginisDebitas: item.gamtosauginisDebitas || ' ',
+                vidDaugiametisDebitas: item.vidDaugiametisDebitas || ' ',
+                vidDaugiametisDebitas95: item.vidDaugiametisDebitas95 || ' ',
+                maxPavasarioPotvynioDeb1: item.maxPavasarioPotvynioDeb1 || ' ',
+                maxPavasarioPotvynioDeb5: item.maxPavasarioPotvynioDeb5 || ' ',
+                minVasarosRudens30ParuDebitas95: item.minVasarosRudens30ParuDebitas95 || ' ',
+                maxDebitas: item.maxDebitas || ' ',
+                coordinatesX: item.objektoX,
+                coordinatesY: item.objektoY,
+                atstumasNuoZiociu: item.atstumasNuoZiociu || ' ',
+                savivaldybe: item.savivaldybe,
+              }); %>
+            </table>
+          <% } %>
         </div>
         
         <hr />
@@ -47,6 +127,8 @@
           <%- include('objects/dirbtinis-vt', { item: item }); %>
         <% } else if  (item.kategorijaId === 7) { %>
           <%- include('objects/tarpinis-teritorinis-vt', { item: item }); %>
+        <% } else if  (['zuvu_pralaida', 'hidroelektrine', 'zemiu_uztvanka', 'vandens_pertekliaus_pralaida'].includes(item.objectSubtype)) { %>
+          <%- include('objects/hs', { item: item }); %>
         <% } %>
 
         <% if (item.screenshot) { %>

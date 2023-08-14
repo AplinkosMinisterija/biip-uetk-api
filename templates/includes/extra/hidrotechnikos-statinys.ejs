@@ -8,10 +8,20 @@
   <td>Hidrotechnikos statinio kodas:</td>
   <td><%= locals.kodas %></td>
 </tr>
+<% }; if (!!locals.registravimoData) { %>
+<tr>
+  <td>Įrašymo data:</td>
+  <td><%= formatDate(locals.registravimoData) || '-' %></td>
+</tr>
 <% }; if (!!locals.tipas) { %>
 <tr>
   <td>Tipas:</td>
   <td><%= locals.tipas %></td>
+</tr>
+<% }; if (!!locals.pastatymoMetai) { %>
+<tr>
+  <td>Pastatymo metai:</td>
+  <td><%= formatDate(locals.pastatymoMetai, 'YYYY') || '-' %></td>
 </tr>
 <% }; if (!!locals.patvankosAukstis) { %>
 <tr>
@@ -67,11 +77,6 @@
 <tr>
   <td>Maksimalus vandens debitas, esant maksimaliai (skaičiuotinai) debito tikimybei:</td>
   <td><%= roundNumber(locals.maxDebitas) || '-' %> m<sup>3</sup>/s</td>
-</tr>
-<% }; if (!!locals.pastatymoMetai) { %>
-<tr>
-  <td>Pastatymo metai:</td>
-  <td><%= moment(locals.pastatymoMetai).format(dateFormat) || '-' %></td>
 </tr>
 <% }; if (!!locals.galia) { %>
 <tr>

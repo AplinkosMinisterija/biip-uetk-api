@@ -29,7 +29,7 @@
   </tr>
   <tr>
     <td>Stebima nuo:</td>
-    <td><%= item.stebejimu_pradzia ? moment(item.stebejimu_pradzia).format(dateFormat) : '' %></td>
+    <td><%= formatDate(item.stebejimu_pradzia) || '-' %></td>
   </tr>
   <tr>
     <td>Šaltinis:</td>

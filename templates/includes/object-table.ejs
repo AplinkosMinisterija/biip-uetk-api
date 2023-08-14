@@ -13,10 +13,6 @@
   </tr>
   <tr>
     <td>Įregistravimo data:</td>
-    <% if (!!locals.item?.registravimoData) { %>
-      <td><%= moment(locals.item?.registravimoData).format(dateFormat) %></td>
-    <% } else { %>
-      <td>-</td>
-    <% }; %>
+    <td><%= formatDate(locals.item?.registravimoData) || '-' %></td>
   </tr>
 </table>

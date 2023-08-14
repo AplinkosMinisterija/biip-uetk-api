@@ -48,13 +48,21 @@ export default class ToolsService extends moleculer.Service {
   @Action({
     params: {
       url: 'string',
+      footer: {
+        type: 'string',
+        optional: true,
+      },
+      header: {
+        type: 'string',
+        optional: true,
+      },
     },
     timeout: 0,
   })
   async makePdf(
-    ctx: Context<{ url: string; stream: boolean; encoding: string }>
+    ctx: Context<{ url: string; header?: string; footer?: string }>
   ) {
-    const { url } = ctx.params;
+    const { url, footer, header } = ctx.params;
 
     const pdfEndpoint = `${this.toolsHost()}/pdf`;
 
@@ -65,7 +73,8 @@ export default class ToolsService extends moleculer.Service {
           url,
           height: 877,
           width: 620,
-          footer: '<span>labas</span>',
+          footer,
+          header,
           margin: {
             top: 50,
             bottom: 50,

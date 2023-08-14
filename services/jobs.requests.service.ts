@@ -7,6 +7,7 @@ import { User } from './users.service';
 import { Tenant } from './tenants.service';
 import {
   getLakesAndPondsQuery,
+  getRiversQuery,
   getTemplateHtml,
   roundNumber,
   toMD5Hash,
@@ -79,8 +80,14 @@ export default class JobsRequestsService extends moleculer.Service {
 
     const secret = getSecret(request);
 
+    const footerHtml = getTemplateHtml('footer.ejs', {
+      id,
+      date: moment(request.createdAt).format('YYYY-MM-DD'),
+    });
+
     const pdf = await ctx.call('tools.makePdf', {
       url: `${process.env.SERVER_HOST}/jobs/requests/${id}/html?secret=${secret}&skey=${screenshotsHash}`,
+      footer: footerHtml,
     });
 
     const folder = this.getFolderName(
@@ -184,7 +191,7 @@ export default class JobsRequestsService extends moleculer.Service {
 
     const secretToApprove = getSecret(request);
     if (!request?.id || !secret || secret !== secretToApprove) {
-      return throwNotFoundError('Invalid secret!')
+      return throwNotFoundError('Invalid secret!');
     }
 
     const objects: any[] = await this.getRequestData(id);
@@ -226,8 +233,9 @@ export default class JobsRequestsService extends moleculer.Service {
       .map((i) => i.id);
 
     const lakesAndPonds = await getLakesAndPondsQuery({ cadastralIds });
+    const rivers = await getRiversQuery({ cadastralIds });
 
-    const objects = [...lakesAndPonds].map((item) => ({
+    const objects = [...lakesAndPonds, ...rivers].map((item) => ({
       ...item,
       screenshot: '',
       hash: toMD5Hash(`cadastralId=${item.kadastroId}`),

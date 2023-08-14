@@ -1,19 +1,23 @@
 <table class="table-center">
-  <% locals.items?.forEach(function(item, index) { %>
+  <% locals.upes?.forEach(function(item, index) { %>
   <tr>
     <td colspan="2" class="text-left"><%= id %>.<%= index + 1 %>.</td>
   </tr>
+  <%- include('includes/object-destination-table-object', {
+    pavadinimas: item.pavadinimas,
+    kodas: item.kodas,
+    kategorija: item.kategorija,
+  }); %>
+  <% }); %>
+
+  <% locals.ezeraiTvenkiniai?.forEach(function(item, index) { %>
   <tr>
-    <td>Pavadinimas:</td>
-    <td><%= item.title %></td>
+    <td colspan="2" class="text-left"><%= id %>.<%= index + 1 + (locals.upes?.length || 0) %>.</td>
   </tr>
-  <tr>
-    <td>Identifikavimo kodas:</td>
-    <td><%= item.id %></td>
-  </tr>
-  <tr>
-    <td>Kategorija:</td>
-    <td><%= item.category %></td>
-  </tr>
+  <%- include('includes/object-destination-table-object', {
+    pavadinimas: item.pavadinimas,
+    kodas: item.kodas,
+    kategorija: item.kategorija,
+  }); %>
   <% }); %>
 </table>
