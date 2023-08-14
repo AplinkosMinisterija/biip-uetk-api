@@ -18,6 +18,8 @@ export default function (opts: any = {}) {
     enabled: false,
   };
 
+  opts.entityChangedOldEntity = true;
+
   opts = _.defaultsDeep(opts, { adapter }, { cache: opts.cache || cache });
 
   const removeRestActions: any = {};
