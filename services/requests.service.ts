@@ -373,7 +373,7 @@ export default class RequestsService extends moleculer.Service {
       RequestStatus.APPROVED,
     ];
 
-    const newStatuses = [RequestStatus.CREATED];
+    const newStatuses = [RequestStatus.CREATED, RequestStatus.APPROVED];
 
     const error = `Cannot set status with value ${value}`;
     if (!entity?.id) {
