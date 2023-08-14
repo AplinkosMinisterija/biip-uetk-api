@@ -57,14 +57,17 @@ export async function getRiversQuery(filter?: {
 }
 
 export async function getFishPassagesQuery(filter?: {
-  hidrostaticCodes?: number[] | string[];
+  cadastralIds?: number[] | string[];
   limit?: number;
 }) {
   const adapter = getGisAdapter();
-  const query = adapter.select('*').select(adapter.client.raw("'zuvu_pralaida' as object_subtype")).from('uetk.israsaiZuvuPralaidos');
+  const query = adapter
+    .select('*')
+    .select(adapter.client.raw("'zuvu_pralaida' as object_subtype"))
+    .from('uetk.israsaiZuvuPralaidos');
 
-  if (filter?.hidrostaticCodes?.length) {
-    query.whereIn('hidrostatinioKodas', filter.hidrostaticCodes);
+  if (filter?.cadastralIds?.length) {
+    query.whereIn('hidrostatinioKodas', filter.cadastralIds);
   }
 
   if (filter?.limit) {
@@ -75,14 +78,17 @@ export async function getFishPassagesQuery(filter?: {
 }
 
 export async function getHidroPowerPlantsQuery(filter?: {
-  hidrostaticCodes?: number[] | string[];
+  cadastralIds?: number[] | string[];
   limit?: number;
 }) {
   const adapter = getGisAdapter();
-  const query = adapter.select('*').select(adapter.client.raw("'hidroelektrine' as object_subtype")).from('uetk.israsaiHidroelektrines');
+  const query = adapter
+    .select('*')
+    .select(adapter.client.raw("'hidroelektrine' as object_subtype"))
+    .from('uetk.israsaiHidroelektrines');
 
-  if (filter?.hidrostaticCodes?.length) {
-    query.whereIn('hidrostatinioKodas', filter.hidrostaticCodes);
+  if (filter?.cadastralIds?.length) {
+    query.whereIn('hidrostatinioKodas', filter.cadastralIds);
   }
 
   if (filter?.limit) {
@@ -93,14 +99,17 @@ export async function getHidroPowerPlantsQuery(filter?: {
 }
 
 export async function getDamOfLandsQuery(filter?: {
-  hidrostaticCodes?: number[] | string[];
+  cadastralIds?: number[] | string[];
   limit?: number;
 }) {
   const adapter = getGisAdapter();
-  const query = adapter.select('*').select(adapter.client.raw("'zemiu_uztvanka' as object_subtype")).from('uetk.israsaiZemiuUztvankos');
+  const query = adapter
+    .select('*')
+    .select(adapter.client.raw("'zemiu_uztvanka' as object_subtype"))
+    .from('uetk.israsaiZemiuUztvankos');
 
-  if (filter?.hidrostaticCodes?.length) {
-    query.whereIn('hidrostatinioKodas', filter.hidrostaticCodes);
+  if (filter?.cadastralIds?.length) {
+    query.whereIn('hidrostatinioKodas', filter.cadastralIds);
   }
 
   if (filter?.limit) {
@@ -111,14 +120,19 @@ export async function getDamOfLandsQuery(filter?: {
 }
 
 export async function getExcessWaterCulvertQuery(filter?: {
-  hidrostaticCodes?: number[] | string[];
+  cadastralIds?: number[] | string[];
   limit?: number;
 }) {
   const adapter = getGisAdapter();
-  const query = adapter.select('*').select(adapter.client.raw("'vandens_pertekliaus_pralaida' as object_subtype")).from('uetk.israsaiVandensPertekliausPralaidos');
+  const query = adapter
+    .select('*')
+    .select(
+      adapter.client.raw("'vandens_pertekliaus_pralaida' as object_subtype")
+    )
+    .from('uetk.israsaiVandensPertekliausPralaidos');
 
-  if (filter?.hidrostaticCodes?.length) {
-    query.whereIn('hidrostatinioKodas', filter.hidrostaticCodes);
+  if (filter?.cadastralIds?.length) {
+    query.whereIn('hidrostatinioKodas', filter.cadastralIds);
   }
 
   if (filter?.limit) {

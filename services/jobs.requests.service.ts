@@ -6,6 +6,10 @@ import BullMqMixin from '../mixins/bullmq.mixin';
 import { User } from './users.service';
 import { Tenant } from './tenants.service';
 import {
+  getDamOfLandsQuery,
+  getExcessWaterCulvertQuery,
+  getFishPassagesQuery,
+  getHidroPowerPlantsQuery,
   getLakesAndPondsQuery,
   getRiversQuery,
   getTemplateHtml,
@@ -132,7 +136,10 @@ export default class JobsRequestsService extends moleculer.Service {
 
     const objects: any[] = await this.getRequestData(id);
 
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({
+      screenshot: '1',
+      preview: '1',
+    });
 
     function getUrl(params: URLSearchParams) {
       const mapHost = process.env.MAPS_HOST || 'https://maps.biip.lt';
@@ -141,20 +148,18 @@ export default class JobsRequestsService extends moleculer.Service {
 
     // add all objects
     objects.forEach((item) => {
-      params.set('cadastralId', `${item.kadastroId}`);
+      params.set('cadastralId', `${item.id}`);
       data.push({
         url: getUrl(params),
         hash: item.hash,
       });
     });
 
-    // const childrenJobs = data.map((item) => ({
-    //   params: item,
-    //   name: 'jobs',
-    //   action: 'saveScreenshot',
-    // }));
-
-    const childrenJobs: any[] = [];
+    const childrenJobs = data.map((item) => ({
+      params: { ...item, waitFor: '#image-canvas-0' },
+      name: 'jobs',
+      action: 'saveScreenshot',
+    }));
 
     return this.flow(
       ctx,
@@ -209,10 +214,12 @@ export default class JobsRequestsService extends moleculer.Service {
         ...o,
         screenshot: screenshotsByHash?.[o.hash] || '',
       })),
+      formatDate: (date: string, format = 'YYYY-MM-DD') => {
+        if (!date || date === ' ') return;
+        return moment(date).format(format);
+      },
       roundNumber,
-      moment,
-      dateFormat: 'YYYY-MM-DD',
-      fullData: false,
+      fullData: true,
     });
   }
 
@@ -232,13 +239,27 @@ export default class JobsRequestsService extends moleculer.Service {
       .filter((i) => i.type === 'CADASTRAL_ID')
       .map((i) => i.id);
 
-    const lakesAndPonds = await getLakesAndPondsQuery({ cadastralIds });
-    const rivers = await getRiversQuery({ cadastralIds });
+    const items = await Promise.all([
+      getLakesAndPondsQuery({ cadastralIds }),
+      getRiversQuery({ cadastralIds }),
+      getFishPassagesQuery({ cadastralIds }),
+      getHidroPowerPlantsQuery({ cadastralIds }),
+      getDamOfLandsQuery({ cadastralIds }),
+      getExcessWaterCulvertQuery({ cadastralIds }),
+    ]);
 
-    const objects = [...lakesAndPonds, ...rivers].map((item) => ({
+    const allItems: any[] = items.reduce(
+      (acc: any[], item: any) => [...acc, ...item],
+      []
+    );
+
+    const objects = allItems.map((item) => ({
       ...item,
       screenshot: '',
-      hash: toMD5Hash(`cadastralId=${item.kadastroId}`),
+      id: item.kadastroId || item.hidrostatinioKodas,
+      hash: toMD5Hash(
+        `cadastralId=${item.kadastroId || item.hidrostatinioKodas}`
+      ),
     }));
 
     return objects;

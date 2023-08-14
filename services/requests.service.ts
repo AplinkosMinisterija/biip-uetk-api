@@ -327,12 +327,13 @@ export default class RequestsService extends moleculer.Service {
     // 6	Nepratekamas dirbtinis paviršinis vandens telkinys
     // 7	Tarpinis vandens telkinys
 
-    const categoryIds = [1, 2, 3, 4, 5, 6, 7];
-
     const items = await Promise.all([
-      // ...categoryIds.map((id) => getLakesAndPondsQuery({ kategorijaId: id, limit: 10 })),
-      // ...categoryIds.map((id) => getRiversQuery({ kategorijaId: id, limit: 10 })),
-      ...categoryIds.map((id) => getExcessWaterCulvertQuery({ limit: 10 })),
+      getLakesAndPondsQuery({ limit: 10 }),
+      getRiversQuery({ limit: 10 }),
+      getFishPassagesQuery({ limit: 10 }),
+      getHidroPowerPlantsQuery({ limit: 10 }),
+      getDamOfLandsQuery({ limit: 10 }),
+      getExcessWaterCulvertQuery({ limit: 10 }),
     ]);
 
     const objects = items.reduce(
@@ -350,8 +351,6 @@ export default class RequestsService extends moleculer.Service {
         if (!date || date === ' ') return;
         return moment(date).format(format);
       },
-      moment,
-      dateFormat: 'YYYY-MM-DD',
       fullData: true,
     });
   }

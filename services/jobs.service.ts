@@ -32,13 +32,22 @@ export default class JobsService extends moleculer.Service {
         type: 'object',
         optional: true,
       },
+      waitFor: {
+        type: 'string',
+        optional: true,
+      },
     },
     timeout: 0,
   })
   async saveScreenshot(
-    ctx: Context<{ url: string; hash: string; data: { [key: string]: any } }>
+    ctx: Context<{
+      url: string;
+      hash: string;
+      waitFor: string;
+      data: { [key: string]: any };
+    }>
   ) {
-    const { url, hash, data } = ctx.params;
+    const { url, hash, data, waitFor } = ctx.params;
     const { job } = ctx.locals;
 
     const folder = 'temp/screenshots';
@@ -70,6 +79,7 @@ export default class JobsService extends moleculer.Service {
     if (!screenshotUrl) {
       const screenshot = await ctx.call('tools.makeScreenshot', {
         url,
+        waitFor,
         stream: true,
       });
 

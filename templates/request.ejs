@@ -29,12 +29,7 @@
         <div>
           <% if (!!item.kategorijaId) { %>
             <p class="font-bold">1. Kadastro objektas:</p>
-            <%- include('includes/object-table', { 
-              pavadinimas: item.pavadinimas || '-',
-              kadastroId: item.kadastroId || '-',
-              kategorija: item.kategorija || '-',
-              registravimoData: item.registravimoData || ' ',
-            }); %>
+            <%- include('includes/object-table', { item: item }); %>
           <% } else if (item.objectSubtype === 'zuvu_pralaida') { %>
             <p class="font-bold">1. Žuvų pralaidos duomenys:</p>
             <table class="table-center">

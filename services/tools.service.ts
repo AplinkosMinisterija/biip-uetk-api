@@ -19,19 +19,32 @@ export default class ToolsService extends moleculer.Service {
         enum: ['binary', 'base64'],
         default: 'binary',
       },
+      waitFor: {
+        type: 'string',
+        optional: true,
+      },
     },
     timeout: 0,
   })
   async makeScreenshot(
-    ctx: Context<{ url: string; stream: boolean; encoding: string }>
+    ctx: Context<{
+      url: string;
+      stream: boolean;
+      encoding: string;
+      waitFor: string;
+    }>
   ) {
-    const { url, stream, encoding } = ctx.params;
+    const { url, stream, encoding, waitFor } = ctx.params;
     const searchParams = new URLSearchParams({
       quality: '75',
       url: url,
       type: 'jpeg',
       encoding,
     });
+
+    if (waitFor) {
+      searchParams.set('waitFor', waitFor);
+    }
 
     const screenshotEndpoint = `${this.toolsHost()}/screenshot`;
 
