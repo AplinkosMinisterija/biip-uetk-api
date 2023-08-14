@@ -53,6 +53,7 @@ export interface Request extends BaseModelInterface {
   objects: any[];
   objectType: string;
   generatedFile: string;
+  notifyEmail: string;
   tenant: number | Tenant;
 }
 
@@ -501,13 +502,15 @@ export default class RequestsService extends moleculer.Service {
       scope: USERS_DEFAULT_SCOPES,
     });
 
-    if (!user?.email) return;
+    const notifyEmail = request.notifyEmail || user?.email;
+
+    if (!notifyEmail) return;
 
     notifyOnRequestUpdate(
-      user.email,
+      request.notifyEmail || user.email,
       request.status,
       request.id,
-      user.type === UserType.ADMIN
+      user?.type === UserType.ADMIN
     );
   }
 
