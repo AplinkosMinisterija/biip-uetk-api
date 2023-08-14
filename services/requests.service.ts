@@ -44,6 +44,7 @@ import {
 } from '../utils/mails';
 
 type RequestStatusChanged = { statusChanged: boolean };
+type RequestAutoApprove = { autoApprove: boolean };
 
 export interface Request extends BaseModelInterface {
   status: string;
@@ -152,14 +153,20 @@ const populatePermissions = (field: string) => {
       status: {
         type: 'string',
         enum: Object.values(RequestStatus),
+        default: RequestStatus.CREATED,
         validate: 'validateStatus',
-        onCreate: () => RequestStatus.CREATED,
+        onCreate: function ({
+          ctx,
+        }: FieldHookCallback & ContextMeta<RequestAutoApprove>) {
+          const { autoApprove } = ctx?.meta;
+          return autoApprove ? RequestStatus.APPROVED : RequestStatus.CREATED;
+        },
         onUpdate: function ({
           ctx,
           value,
         }: FieldHookCallback & ContextMeta<RequestStatusChanged>) {
-          const { user } = ctx?.meta;
-          if (!ctx?.meta?.statusChanged) return;
+          const { user, statusChanged } = ctx?.meta;
+          if (!statusChanged) return;
           else if (!user?.id) return value;
 
           return value || RequestStatus.SUBMITTED;
@@ -457,12 +464,18 @@ export default class RequestsService extends moleculer.Service {
 
   @Method
   async validateStatusChange(
-    ctx: Context<{ id: number }, UserAuthMeta & RequestStatusChanged>
+    ctx: Context<
+      { id: number },
+      UserAuthMeta & RequestAutoApprove & RequestStatusChanged
+    >
   ) {
     const { id } = ctx.params;
 
+    const { user } = ctx.meta;
     if (!!id) {
       ctx.meta.statusChanged = true;
+    } else if (user?.type === UserType.ADMIN) {
+      ctx.meta.autoApprove = true;
     }
 
     return ctx;
@@ -498,6 +511,20 @@ export default class RequestsService extends moleculer.Service {
     );
   }
 
+  @Method
+  async generatePdfIfNeeded(request: Request) {
+    if (!request || !request.id) return;
+
+    if (request.status !== RequestStatus.APPROVED) {
+      return;
+    }
+
+    if (request.generatedFile) return;
+
+    this.broker.call('requests.generatePdf', { id: request.id });
+    return request;
+  }
+
   @Event()
   async 'requests.updated'(ctx: Context<EntityChangedParams<Request>>) {
     const { oldData: prevRequest, data: request } = ctx.params;
@@ -517,34 +544,34 @@ export default class RequestsService extends moleculer.Service {
         type: typesByStatus[request.status],
       });
 
+      await this.generatePdfIfNeeded(request);
       await this.sendNotificationOnStatusChange(request);
+    }
 
-      if (
-        prevRequest?.generatedFile !== request.generatedFile &&
-        !!request.generatedFile
-      ) {
-        await ctx.call(
-          'requests.histories.create',
-          {
-            request: request.id,
-            comment,
-            type: RequestHistoryType.FILE_GENERATED,
-          },
-          { meta: null }
+    if (
+      prevRequest?.generatedFile !== request.generatedFile &&
+      !!request.generatedFile
+    ) {
+      await ctx.call(
+        'requests.histories.create',
+        {
+          request: request.id,
+          type: RequestHistoryType.FILE_GENERATED,
+        },
+        { meta: null }
+      );
+
+      if (emailCanBeSent()) {
+        const user: User = await ctx.call('users.resolve', {
+          id: request.createdBy,
+          scope: USERS_DEFAULT_SCOPES,
+        });
+
+        notifyOnFileGenerated(
+          user.email,
+          request.id,
+          user.type === UserType.ADMIN
         );
-
-        if (emailCanBeSent()) {
-          const user: User = await ctx.call('users.resolve', {
-            id: request.createdBy,
-            scope: USERS_DEFAULT_SCOPES,
-          });
-
-          notifyOnFileGenerated(
-            user.email,
-            request.id,
-            user.type === UserType.ADMIN
-          );
-        }
       }
     }
   }
@@ -557,6 +584,16 @@ export default class RequestsService extends moleculer.Service {
       request: request.id,
       type: RequestHistoryType.CREATED,
     });
+
+    if (request.status === RequestStatus.APPROVED) {
+      await ctx.call('requests.histories.create', {
+        request: request.id,
+        comment: 'Automatiškai patvirtintas prašymas.',
+        type: RequestHistoryType.APPROVED,
+      });
+
+      await this.generatePdfIfNeeded(request);
+    }
 
     await this.sendNotificationOnStatusChange(request);
   }
