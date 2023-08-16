@@ -30,6 +30,7 @@ import { Tenant } from './tenants.service';
 import { FormHistoryTypes } from './forms.histories.service';
 import { emailCanBeSent, notifyOnFormUpdate } from '../utils/mails';
 import { getObjectByCadastralId } from '../utils';
+import { UETKObjectType } from './objects.service';
 
 type FormStatusChanged = { statusChanged: boolean };
 
@@ -60,21 +61,6 @@ export const FormType = {
   NEW: 'NEW',
   EDIT: 'EDIT',
   REMOVE: 'REMOVE',
-};
-
-const FormObjectType = {
-  RIVER: 'RIVER', // Upė
-  CANAL: 'CANAL', // Kanalas
-  INTERMEDIATE_WATER_BODY: 'INTERMEDIATE_WATER_BODY', // Tarpinis vandens telkinys
-  TERRITORIAL_WATER_BODY: 'TERRITORIAL_WATER_BODY', // Teritorinis vandens telkinys
-  NATURAL_LAKE: 'NATURAL_LAKE', // Natūralus ežeras
-  PONDED_LAKE: 'PONDED_LAKE', // Patvenktas ežeras
-  POND: 'POND', // Tvenkinys
-  ISOLATED_WATER_BODY: 'ISOLATED_WATER_BODY', // Nepratekamas dirbtinis paviršinis vandens telkinys
-  EARTH_DAM: 'EARTH_DAM', // Žemių užtvanka
-  WATER_EXCESS_CULVERT: 'WATER_EXCESS_CULVERT', // Vandens pertekliaus pralaida
-  HYDRO_POWER_PLANT: 'HYDRO_POWER_PLANT', // Hidroelektrinė
-  FISH_PASS: 'FISH_PASS', // Žuvų perlaida
 };
 
 const nonEditableStatuses = [FormStatus.APPROVED, FormStatus.REJECTED];
@@ -121,7 +107,7 @@ const populatePermissions = (field: string) => {
       objectType: {
         type: 'string',
         required: true,
-        enum: Object.values(FormObjectType),
+        enum: Object.values(UETKObjectType),
       },
 
       objectName: 'string',

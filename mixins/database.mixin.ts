@@ -9,7 +9,7 @@ export default function (opts: any = {}) {
   const adapter: any = {
     type: 'Knex',
     options: {
-      knex: config,
+      knex: opts.config || config,
       tableName: opts.collection,
     },
   };
