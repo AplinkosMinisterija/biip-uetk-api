@@ -134,20 +134,21 @@ const populatePermissions = (field: string) => {
             .filter((v) => v.type === 'CADASTRAL_ID' && !!v.id)
             .map((v) => v.id);
 
-          const objs: UETKObject[] = await ctx.call(
-            'objects.findByCadastralId',
-            {
-              id: cadastralIds,
-              mapping: true,
-            }
-          );
+          const objs: UETKObject[] = await ctx.call('objects.find', {
+            query: {
+              cadastralId: { $in: cadastralIds },
+            },
+            mapping: 'cadastralId',
+          });
 
           return requests.map((r) =>
-            r.objects.map((obj: any) => {
-              if (obj.type === 'CADASTRAL_ID' && obj.id) {
-                return { ...objs[obj.id], ...obj };
-              }
-            })
+            r.objects
+              .map((obj: any) => {
+                if (obj.type === 'CADASTRAL_ID' && obj.id) {
+                  return { ...objs[obj.id], ...obj };
+                }
+              })
+              .filter((i: any) => !!i)
           );
         },
       },

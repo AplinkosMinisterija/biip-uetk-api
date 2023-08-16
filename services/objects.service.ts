@@ -6,7 +6,7 @@ import { Action, Service } from 'moleculer-decorators';
 import DbConnection from '../mixins/database.mixin';
 import { gisConfig } from '../knexfile';
 import GeometriesMixin from '../mixins/geometries.mixin';
-import { throwNotFoundError } from '../types';
+import { throwBadRequestError } from '../types';
 import { GeomFeatureCollection, geometryFilterFn } from '../modules/geometry';
 import {
   getDamOfLandsQuery,
@@ -16,6 +16,8 @@ import {
   getLakesAndPondsQuery,
   getRiversQuery,
 } from '../utils';
+import { AuthType } from './api.service';
+import { snakeCase } from 'lodash';
 const tableName = 'publishing.uetkMerged';
 
 export type UETKObject = {
@@ -107,15 +109,22 @@ export const UETKObjectTypeTranslates = {
         },
       },
       municipality: 'string',
-      area: 'number',
-      length: 'number',
+      area: {
+        type: 'number',
+        get: ({ value }: any) => Number(value),
+      },
+      length: {
+        type: 'number',
+        get: ({ value }: any) => Number(value),
+      },
       lat: {
         type: 'number',
-        convert: true,
+        get: ({ value }: any) => Number(value),
       },
       lng: {
         type: 'number',
         columnName: 'lon',
+        get: ({ value }: any) => Number(value),
       },
       geom: {
         type: 'any',
@@ -208,62 +217,53 @@ export const UETKObjectTypeTranslates = {
 })
 export default class ObjectsService extends moleculer.Service {
   @Action({
+    rest: 'GET /search',
+    auth: AuthType.PUBLIC,
     params: {
-      id: [
-        {
-          type: 'array',
-          items: {
-            type: 'string',
-            convert: true,
-          },
-        },
-        {
-          type: 'string',
-          convert: true,
-        },
-      ],
-      mapping: {
-        type: 'boolean',
-        default: false,
+      search: {
+        type: 'string',
+        optional: true,
+      },
+      searchFields: {
+        type: 'array',
+        optional: true,
+        items: 'string',
+        default: ['name', 'cadastralId', 'municipality'],
       },
     },
   })
-  async findByCadastralId(
-    ctx: Context<{ id: string | string[]; mapping?: boolean }>
+  async search(
+    ctx: Context<{
+      search?: string;
+      searchFields: string[];
+      query: any;
+    }>
   ) {
-    const { id, mapping } = ctx.params;
-    const multi = Array.isArray(id);
+    const { search, searchFields, query } = ctx.params;
 
-    const query: any = {
-      cadastralId: id,
-    };
+    delete ctx.params.search;
+    delete ctx.params.searchFields;
 
-    if (multi) {
-      query.cadastralId = { $in: id };
+    const searchValueFixed = search?.replace(
+      /([-[\]{}()*+?.,%\\^$|#\s;])/gi,
+      '\\$&'
+    );
+
+    if (/[;%]/gi.test(search)) {
+      throwBadRequestError('Invalid search', { search });
     }
 
-    const params: any = {};
+    const textQuery = searchFields
+      .map((field) => {
+        field = this.settings.fields?.[field]?.columnName || field;
+        return `"${snakeCase(field)}" ilike '%${searchValueFixed}%'`;
+      })
+      .join(' OR ');
 
-    if (mapping) {
-      params.mapping = 'cadastralId';
-    }
-
-    if (multi) {
-      return ctx.call(`objects.find`, { query, ...params });
-    }
-
-    const obj: UETKObject = await ctx.call('objects.findOne', { query });
-
-    if (!obj?.cadastralId) {
-      return throwNotFoundError('Object not found');
-    }
-
-    if (mapping) {
-      return {
-        [obj.cadastralId]: obj,
-      };
-    }
-
-    return obj;
+    return ctx.call('objects.list', {
+      ...ctx.params,
+      query: { ...(query || {}), ...(search ? { $raw: textQuery } : {}) },
+      sort: 'name',
+    });
   }
 }
