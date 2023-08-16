@@ -13,6 +13,14 @@ import {
   geometryFromText,
 } from '../modules/geometry';
 import { snakeCase } from 'lodash';
+import {
+  getDamOfLandsQuery,
+  getExcessWaterCulvertQuery,
+  getFishPassagesQuery,
+  getHidroPowerPlantsQuery,
+  getLakesAndPondsQuery,
+  getRiversQuery,
+} from '../utils';
 const tableName = 'publishing.uetkMerged';
 
 export type UETKObject = {
@@ -127,6 +135,74 @@ export const UETKObjectTypeTranslates = {
           });
 
           return objects.map((o) => result[`${o.id}`] || {});
+        },
+      },
+      data: {
+        virtual: true,
+        type: 'object',
+        async populate(ctx: any, _values: any, objects: any[]) {
+          const riverTypes = [UETKObjectType.RIVER, UETKObjectType.CANAL];
+          const lakesAndPondsTypes = [
+            UETKObjectType.INTERMEDIATE_WATER_BODY,
+            UETKObjectType.TERRITORIAL_WATER_BODY,
+            UETKObjectType.NATURAL_LAKE,
+            UETKObjectType.PONDED_LAKE,
+            UETKObjectType.POND,
+            UETKObjectType.ISOLATED_WATER_BODY,
+          ];
+          const fishPassagesTypes = [UETKObjectType.FISH_PASS];
+          const hydroPowerPlantTypes = [UETKObjectType.HYDRO_POWER_PLANT];
+          const earthDamTypes = [UETKObjectType.EARTH_DAM];
+          const waterExcessCulvertTypes = [UETKObjectType.WATER_EXCESS_CULVERT];
+
+          function getItemId(item: any) {
+            return (
+              item.cadastralId || item.kadastroId || item.hidrostatinioKodas
+            );
+          }
+          function mapByCategoryIds(types: string[]) {
+            return objects
+              .filter((o) => types.includes(o.assignedCategory))
+              .map((o) => getItemId(o));
+          }
+          async function getItemsByCadastralId(
+            fn: Function,
+            cadastralIds: string[]
+          ) {
+            if (!cadastralIds?.length) return {};
+
+            const items: any[] = await fn({ cadastralIds });
+            return items?.reduce(
+              (acc: any, item: any) => ({
+                ...acc,
+                [getItemId(item)]: item,
+              }),
+              {}
+            );
+          }
+
+          const riversIds = mapByCategoryIds(riverTypes);
+          const lakesAndPondsIds = mapByCategoryIds(lakesAndPondsTypes);
+          const fishPassagesIds = mapByCategoryIds(fishPassagesTypes);
+          const powerPlantsIds = mapByCategoryIds(hydroPowerPlantTypes);
+          const earthDamsIds = mapByCategoryIds(earthDamTypes);
+          const culvertsIds = mapByCategoryIds(waterExcessCulvertTypes);
+
+          const result = await Promise.all([
+            getItemsByCadastralId(getRiversQuery, riversIds),
+            getItemsByCadastralId(getLakesAndPondsQuery, lakesAndPondsIds),
+            getItemsByCadastralId(getFishPassagesQuery, fishPassagesIds),
+            getItemsByCadastralId(getHidroPowerPlantsQuery, powerPlantsIds),
+            getItemsByCadastralId(getDamOfLandsQuery, earthDamsIds),
+            getItemsByCadastralId(getExcessWaterCulvertQuery, culvertsIds),
+          ]);
+
+          const itemsByCadastralId = Object.values(result).reduce(
+            (acc: any, item: any) => ({ ...acc, ...item }),
+            {}
+          );
+
+          return objects.map((o) => itemsByCadastralId[getItemId(o)]);
         },
       },
     },
