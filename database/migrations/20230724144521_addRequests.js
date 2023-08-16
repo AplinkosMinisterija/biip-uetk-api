@@ -25,7 +25,7 @@ exports.up = function (knex) {
       table.timestamp('respondedAt');
       commonFields(table);
     })
-    .raw(`ALTER TABLE requests ADD COLUMN geom geometry(multipolygon, 3346)`)
+    .raw(`ALTER TABLE requests ADD COLUMN geom geometry(geometry, 3346)`)
     .createTable('requestHistories', (table) => {
       table.increments('id');
       table.integer('requestId').unsigned().notNullable();
