@@ -231,6 +231,11 @@ export default class JobsRequestsService extends moleculer.Service {
     return `uploads/requests/${tenantPath}/${userPath}`;
   }
 
+  @Action()
+  async test(ctx: Context) {
+    return this.getRequestData(10);
+  }
+
   @Method
   async getRequestData(id: number) {
     const request: Request = await this.broker.call('requests.resolve', {
@@ -253,7 +258,7 @@ export default class JobsRequestsService extends moleculer.Service {
       query.geom = request.geom;
     }
 
-    if (!query.cadastralIds && !query.geom) return [];
+    if (!query.cadastralId && !query.geom) return [];
 
     const allItems: any[] = await this.broker.call('objects.find', {
       query,
