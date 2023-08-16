@@ -65,6 +65,8 @@ export const FormType = {
 const FormObjectType = {
   RIVER: 'RIVER', // Upė
   CANAL: 'CANAL', // Kanalas
+  INTERMEDIATE_WATER_BODY: 'INTERMEDIATE_WATER_BODY', // Tarpinis vandens telkinys
+  TERRITORIAL_WATER_BODY: 'TERRITORIAL_WATER_BODY', // Teritorinis vandens telkinys
   NATURAL_LAKE: 'NATURAL_LAKE', // Natūralus ežeras
   PONDED_LAKE: 'PONDED_LAKE', // Patvenktas ežeras
   POND: 'POND', // Tvenkinys
