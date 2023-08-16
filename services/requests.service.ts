@@ -154,7 +154,7 @@ const populatePermissions = (field: string) => {
           return requests.map((r) =>
             r.objects.map((obj: any) => {
               if (obj.type === 'CADASTRAL_ID' && obj.id) {
-                return { ...objs[obj.id], type: obj.type };
+                return { ...objs[obj.id], ...obj };
               }
             })
           );
