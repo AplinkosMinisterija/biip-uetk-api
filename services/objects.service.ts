@@ -217,7 +217,7 @@ export const UETKObjectTypeTranslates = {
 })
 export default class ObjectsService extends moleculer.Service {
   @Action({
-    rest: 'GET /search',
+    rest: 'GET /',
     auth: AuthType.PUBLIC,
     params: {
       search: {
