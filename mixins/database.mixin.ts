@@ -5,6 +5,7 @@ const DbService = require('@moleculer/database').Service;
 import { config } from '../knexfile';
 import filtersMixin from 'moleculer-knex-filters';
 import { Context } from 'moleculer';
+import { parseToJsonIfNeeded } from '../utils';
 
 export default function (opts: any = {}) {
   const adapter: any = {
@@ -60,7 +61,11 @@ export default function (opts: any = {}) {
 
         return ids.filter((id) => queryIds.indexOf(id) >= 0);
       },
-      async applyFilterFunction(ctx: Context<{ query: any }>) {
+      async applyFilterFunction(
+        ctx: Context<{ query: { [key: string]: any } }>
+      ) {
+        ctx.params.query = parseToJsonIfNeeded(ctx.params.query);
+
         if (!ctx.params?.query) {
           return ctx;
         }

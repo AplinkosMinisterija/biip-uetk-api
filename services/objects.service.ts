@@ -15,6 +15,7 @@ import {
   getHidroPowerPlantsQuery,
   getLakesAndPondsQuery,
   getRiversQuery,
+  parseToJsonIfNeeded,
 } from '../utils';
 import { AuthType } from './api.service';
 import { snakeCase } from 'lodash';
@@ -237,8 +238,8 @@ export default class ObjectsService extends moleculer.Service {
       query: any;
     }>
   ) {
-    const { search, searchFields, query } = ctx.params;
-
+    const { search, searchFields } = ctx.params;
+    const query = parseToJsonIfNeeded(ctx.params.query);
     delete ctx.params.search;
     delete ctx.params.searchFields;
 

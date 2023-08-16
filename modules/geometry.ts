@@ -1,3 +1,5 @@
+import { parseToJsonIfNeeded } from '../utils';
+
 export type CoordinatesPoint = number[];
 export type CoordinatesLine = CoordinatesPoint[];
 export type CoordinatesPolygon = CoordinatesLine[];
@@ -48,11 +50,7 @@ export function geometriesToGeomCollection(geometries: GeometryObject[]) {
 }
 
 export function geometryFilterFn(geom: GeomFeatureCollection) {
-  if (typeof geom === 'string') {
-    try {
-      geom = JSON.parse(geom);
-    } catch (err) {}
-  }
+  geom = parseToJsonIfNeeded(geom) as GeomFeatureCollection;
 
   if (!geom?.features?.length) return;
 

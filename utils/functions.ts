@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { Readable } from 'stream';
 
+type QueryObject = { [key: string]: any };
 export function toReadableStream(fetchReadable: any): NodeJS.ReadableStream {
   return new Readable({
     async read() {
@@ -48,4 +49,16 @@ export function roundNumber(number: string, digits: number = 2) {
   if (Number.isNaN(numberParsed)) return;
 
   return numberParsed.toFixed(digits);
+}
+
+export function parseToJsonIfNeeded(query: QueryObject | string): QueryObject {
+  if (!query) return;
+
+  if (typeof query === 'string') {
+    try {
+      query = JSON.parse(query);
+    } catch (err) {}
+  }
+
+  return query as QueryObject;
 }
