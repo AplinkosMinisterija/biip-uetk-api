@@ -120,7 +120,7 @@ export default class JobsRequestsService extends moleculer.Service {
       url: result.url,
     });
 
-    return { job: job.id, objects };
+    return { job: job.id };
   }
 
   @Action({
@@ -239,27 +239,18 @@ export default class JobsRequestsService extends moleculer.Service {
       .filter((i) => i.type === 'CADASTRAL_ID')
       .map((i) => i.id);
 
-    const items = await Promise.all([
-      getLakesAndPondsQuery({ cadastralIds }),
-      getRiversQuery({ cadastralIds }),
-      getFishPassagesQuery({ cadastralIds }),
-      getHidroPowerPlantsQuery({ cadastralIds }),
-      getDamOfLandsQuery({ cadastralIds }),
-      getExcessWaterCulvertQuery({ cadastralIds }),
-    ]);
-
-    const allItems: any[] = items.reduce(
-      (acc: any[], item: any) => [...acc, ...item],
-      []
-    );
+    const allItems: any[] = await this.broker.call('objects.find', {
+      query: {
+        cadastralId: { $in: cadastralIds },
+        populate: 'extendedData',
+      },
+    });
 
     const objects = allItems.map((item) => ({
       ...item,
       screenshot: '',
-      id: item.kadastroId || item.hidrostatinioKodas,
-      hash: toMD5Hash(
-        `cadastralId=${item.kadastroId || item.hidrostatinioKodas}`
-      ),
+      id: item.cadastralId,
+      hash: toMD5Hash(`cadastralId=${item.cadastralId}`),
     }));
 
     return objects;

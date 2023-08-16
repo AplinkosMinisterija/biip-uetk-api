@@ -27,80 +27,80 @@
         <hr />
         
         <div>
-          <% if (!!item.kategorijaId) { %>
+          <% if (['RIVER', 'CANAL', 'INTERMEDIATE_WATER_BODY', 'TERRITORIAL_WATER_BODY', 'NATURAL_LAKE', 'PONDED_LAKE', 'POND', 'ISOLATED_WATER_BODY'].includes(item.category)) { %>
             <p class="font-bold">1. Kadastro objektas:</p>
-            <%- include('includes/object-table', { item: item }); %>
-          <% } else if (item.objectSubtype === 'zuvu_pralaida') { %>
+            <%- include('includes/object-table', { item: item.extendedData }); %>
+          <% } else if (['FISH_PASS'].includes(item.category)) { %>
             <p class="font-bold">1. Žuvų pralaidos duomenys:</p>
             <table class="table-center">
               <%- include('includes/extra/hidrotechnikos-statinys', {
-                pavadinimas: item.pavadinimas || '-',
-                kodas: item.hidrostatinioKodas || '-',
-                registravimoData: item.registravimoData || ' ',
-                tipas: item.tipas || '-',
-                pastatymoMetai: item.pastatymoMetai || ' ',
-                zuvuPralaidosDebitas: item.zuvuPralaidosDebitas || '-',
-                coordinatesX: item.objektoX,
-                coordinatesY: item.objektoY,
-                atstumasNuoZiociu: item.atstumasNuoZiociu || ' ',
-                savivaldybe: item.savivaldybe,
+                pavadinimas: item.extendedData.pavadinimas || '-',
+                kodas: item.extendedData.hidrostatinioKodas || '-',
+                registravimoData: item.extendedData.registravimoData || ' ',
+                tipas: item.extendedData.tipas || '-',
+                pastatymoMetai: item.extendedData.pastatymoMetai || ' ',
+                zuvuPralaidosDebitas: item.extendedData.zuvuPralaidosDebitas || '-',
+                coordinatesX: item.extendedData.objektoX,
+                coordinatesY: item.extendedData.objektoY,
+                atstumasNuoZiociu: item.extendedData.atstumasNuoZiociu || ' ',
+                savivaldybe: item.extendedData.savivaldybe,
               }); %>
             </table>
-          <% } else if (item.objectSubtype === 'hidroelektrine') { %>
+          <% } else if (['HYDRO_POWER_PLANT'].includes(item.category)) { %>
             <p class="font-bold">1. Hidroelektrinės duomenys:</p>
             <table class="table-center">
               <%- include('includes/extra/hidrotechnikos-statinys', {
-                pavadinimas: item.pavadinimas || '-',
-                kodas: item.hidrostatinioKodas || '-',
-                registravimoData: item.registravimoData || ' ',
-                tipas: item.tipas || '-',
-                pastatymoMetai: item.pastatymoMetai || ' ',
-                galia: item.galia || ' ',
-                maxSlegioAukstis: item.maxSlegioAukstis || ' ',
-                coordinatesX: item.objekto_x,
-                coordinatesY: item.objekto_y,
-                atstumasNuoZiociu: item.atstumasNuoZiociu || ' ',
-                savivaldybe: item.savivaldybe,
+                pavadinimas: item.extendedData.pavadinimas || '-',
+                kodas: item.extendedData.hidrostatinioKodas || '-',
+                registravimoData: item.extendedData.registravimoData || ' ',
+                tipas: item.extendedData.tipas || '-',
+                pastatymoMetai: item.extendedData.pastatymoMetai || ' ',
+                galia: item.extendedData.galia || ' ',
+                maxSlegioAukstis: item.extendedData.maxSlegioAukstis || ' ',
+                coordinatesX: item.extendedData.objekto_x,
+                coordinatesY: item.extendedData.objekto_y,
+                atstumasNuoZiociu: item.extendedData.atstumasNuoZiociu || ' ',
+                savivaldybe: item.extendedData.savivaldybe,
               }); %>
             </table>
-          <% } else if (item.objectSubtype === 'zemiu_uztvanka') { %>
+          <% } else if (['EARTH_DAM'].includes(item.category)) { %>
             <p class="font-bold">1. Žemių užtvankos duomenys:</p>
             <table class="table-center">
               <%- include('includes/extra/hidrotechnikos-statinys', {
-                pavadinimas: item.pavadinimas || '-',
-                kodas: item.hidrostatinioKodas || '-',
-                registravimoData: item.registravimoData || ' ',
-                maxPatvankosAukstis: item.maksimalusPatvankosAuktis || ' ',
-                ilgis: item.ilgis || ' ',
-                plotis: item.plotis || ' ',
-                pastatymoMetai: item.pastatymoMetai || ' ',
-                coordinatesX: item.objektoX,
-                coordinatesY: item.objektoY,
-                atstumasNuoZiociu: item.atstumasNuoZiociu || ' ',
-                savivaldybe: item.savivaldybe,
+                pavadinimas: item.extendedData.pavadinimas || '-',
+                kodas: item.extendedData.hidrostatinioKodas || '-',
+                registravimoData: item.extendedData.registravimoData || ' ',
+                maxPatvankosAukstis: item.extendedData.maksimalusPatvankosAuktis || ' ',
+                ilgis: item.extendedData.ilgis || ' ',
+                plotis: item.extendedData.plotis || ' ',
+                pastatymoMetai: item.extendedData.pastatymoMetai || ' ',
+                coordinatesX: item.extendedData.objektoX,
+                coordinatesY: item.extendedData.objektoY,
+                atstumasNuoZiociu: item.extendedData.atstumasNuoZiociu || ' ',
+                savivaldybe: item.extendedData.savivaldybe,
               }); %>
             </table>
-          <% } else if (item.objectSubtype === 'vandens_pertekliaus_pralaida') { %>
+          <% } else if (['WATER_EXCESS_CULVERT'].includes(item.category)) { %>
             <p class="font-bold">1. Vandens pertekliaus pralaidos duomenys:</p>
             <table class="table-center">
               <%- include('includes/extra/hidrotechnikos-statinys', {
-                pavadinimas: item.pavadinimas || '-',
-                kodas: item.hidrostatinioKodas || '-',
-                registravimoData: item.registravimoData || ' ',
-                tipas: item.tipas || '-',
-                pastatymoMetai: item.pastatymoMetai || ' ',
-                patvankosAukstis: item.patvankosAukstis || ' ',
-                gamtosauginisDebitas: item.gamtosauginisDebitas || ' ',
-                vidDaugiametisDebitas: item.vidDaugiametisDebitas || ' ',
-                vidDaugiametisDebitas95: item.vidDaugiametisDebitas95 || ' ',
-                maxPavasarioPotvynioDeb1: item.maxPavasarioPotvynioDeb1 || ' ',
-                maxPavasarioPotvynioDeb5: item.maxPavasarioPotvynioDeb5 || ' ',
-                minVasarosRudens30ParuDebitas95: item.minVasarosRudens30ParuDebitas95 || ' ',
-                maxDebitas: item.maxDebitas || ' ',
-                coordinatesX: item.objektoX,
-                coordinatesY: item.objektoY,
-                atstumasNuoZiociu: item.atstumasNuoZiociu || ' ',
-                savivaldybe: item.savivaldybe,
+                pavadinimas: item.extendedData.pavadinimas || '-',
+                kodas: item.extendedData.hidrostatinioKodas || '-',
+                registravimoData: item.extendedData.registravimoData || ' ',
+                tipas: item.extendedData.tipas || '-',
+                pastatymoMetai: item.extendedData.pastatymoMetai || ' ',
+                patvankosAukstis: item.extendedData.patvankosAukstis || ' ',
+                gamtosauginisDebitas: item.extendedData.gamtosauginisDebitas || ' ',
+                vidDaugiametisDebitas: item.extendedData.vidDaugiametisDebitas || ' ',
+                vidDaugiametisDebitas95: item.extendedData.vidDaugiametisDebitas95 || ' ',
+                maxPavasarioPotvynioDeb1: item.extendedData.maxPavasarioPotvynioDeb1 || ' ',
+                maxPavasarioPotvynioDeb5: item.extendedData.maxPavasarioPotvynioDeb5 || ' ',
+                minVasarosRudens30ParuDebitas95: item.extendedData.minVasarosRudens30ParuDebitas95 || ' ',
+                maxDebitas: item.extendedData.maxDebitas || ' ',
+                coordinatesX: item.extendedData.objektoX,
+                coordinatesY: item.extendedData.objektoY,
+                atstumasNuoZiociu: item.extendedData.atstumasNuoZiociu || ' ',
+                savivaldybe: item.extendedData.savivaldybe,
               }); %>
             </table>
           <% } %>
@@ -108,22 +108,22 @@
         
         <hr />
 
-        <% if (item.kategorijaId === 1) { %>
-          <%- include('objects/upe', { item: item }); %>
-        <% } else if  (item.kategorijaId === 2) { %>
-          <%- include('objects/kanalas', { item: item }); %>
-        <% } else if  (item.kategorijaId === 3) { %>
-          <%- include('objects/naturalus-ezeras', { item: item }); %>
-        <% } else if  (item.kategorijaId === 4) { %>
-          <%- include('objects/patvenktas-ezeras', { item: item }); %>
-        <% } else if  (item.kategorijaId === 5) { %>
-          <%- include('objects/tvenkinys', { item: item }); %>
-        <% } else if  (item.kategorijaId === 6) { %>
-          <%- include('objects/dirbtinis-vt', { item: item }); %>
-        <% } else if  (item.kategorijaId === 7) { %>
-          <%- include('objects/tarpinis-teritorinis-vt', { item: item }); %>
-        <% } else if  (['zuvu_pralaida', 'hidroelektrine', 'zemiu_uztvanka', 'vandens_pertekliaus_pralaida'].includes(item.objectSubtype)) { %>
-          <%- include('objects/hs', { item: item }); %>
+        <% if (item.category === 'RIVER') { %>
+          <%- include('objects/upe', { item: item.extendedData }); %>
+        <% } else if  (item.category === 'CANAL') { %>
+          <%- include('objects/kanalas', { item: item.extendedData }); %>
+        <% } else if  (item.category === 'NATURAL_LAKE') { %>
+          <%- include('objects/naturalus-ezeras', { item: item.extendedData }); %>
+        <% } else if  (item.category === 'PONDED_LAKE') { %>
+          <%- include('objects/patvenktas-ezeras', { item: item.extendedData }); %>
+        <% } else if  (item.category === 'POND') { %>
+          <%- include('objects/tvenkinys', { item: item.extendedData }); %>
+        <% } else if  (item.category === 'ISOLATED_WATER_BODY') { %>
+          <%- include('objects/dirbtinis-vt', { item: item.extendedData }); %>
+        <% } else if  (['INTERMEDIATE_WATER_BODY', 'TERRITORIAL_WATER_BODY'].includes(item.category)) { %>
+          <%- include('objects/tarpinis-teritorinis-vt', { item: item.extendedData }); %>
+        <% } else if  (['EARTH_DAM', 'WATER_EXCESS_CULVERT', 'HYDRO_POWER_PLANT', 'FISH_PASS'].includes(item.category)) { %>
+          <%- include('objects/hs', { item: item.extendedData }); %>
         <% } %>
 
         <% if (item.screenshot) { %>

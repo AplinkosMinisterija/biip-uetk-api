@@ -349,33 +349,17 @@ export default class RequestsService extends moleculer.Service {
     auth: AuthType.PUBLIC,
   })
   async testHtml(ctx: Context<{}, { $responseType: string }>) {
-    // 1	Upė
-    // 2	Kanalas
-    // 3	Natūralus ežeras +
-    // 4	Patvenktas ežeras
-    // 5	Tvenkinys
-    // 6	Nepratekamas dirbtinis paviršinis vandens telkinys
-    // 7	Tarpinis vandens telkinys
+    const objects2: any = await ctx.call('objects.list', {
+      populate: 'extendedData',
+      pageSize: 100,
+    });
 
-    const items = await Promise.all([
-      getLakesAndPondsQuery({ limit: 10 }),
-      getRiversQuery({ limit: 10 }),
-      getFishPassagesQuery({ limit: 10 }),
-      getHidroPowerPlantsQuery({ limit: 10 }),
-      getDamOfLandsQuery({ limit: 10 }),
-      getExcessWaterCulvertQuery({ limit: 10 }),
-    ]);
-
-    const objects = items.reduce(
-      (acc: any[], item: any) => [...acc, ...item],
-      []
-    );
 
     ctx.meta.$responseType = 'text/html';
     return getTemplateHtml('request.ejs', {
       id: 123123,
       date: '2023-01-05',
-      objects,
+      objects: objects2.rows,
       roundNumber,
       formatDate: (date: string, format = 'YYYY-MM-DD') => {
         if (!date || date === ' ') return;
