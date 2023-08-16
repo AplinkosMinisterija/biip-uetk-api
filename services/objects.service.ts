@@ -202,22 +202,19 @@ export default class ObjectsService extends moleculer.Service {
     },
   })
   async findByGeom(ctx: Context<{ geom: GeomFeatureCollection }>) {
-    const adapter = await this.getAdapter(ctx);
-    const table = adapter.getTable();
+    const { geom } = ctx.params;
+    if (!geom?.features?.length) return [];
 
-    if (!ctx.params?.geom?.features?.length) return [];
-
-    const geomItems = ctx.params.geom.features
-      .map((i) => i.geometry)
-      .filter((i) => !!i);
+    const geomItems = geom.features.map((i) => i.geometry).filter((i) => !!i);
 
     if (!geomItems?.length) return [];
 
     const value = geometriesToGeomCollection(geomItems);
-    const geom = table.client.raw(geometryFromText(value));
 
-    return table
-      .select('cadastralId')
-      .where(adapter.client.raw(`st_intersects(geom, ${geom})`));
+    return ctx.call('objects.list', {
+      query: {
+        $raw: `st_intersects(geom, ${geometryFromText(value)})`,
+      },
+    });
   }
 }
