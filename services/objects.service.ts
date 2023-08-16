@@ -133,9 +133,7 @@ export const UETKObjectTypeTranslates = {
           if (typeof value === 'string') return;
           return value;
         },
-        filterFn({ value }: any) {
-          return geometryFilterFn(value);
-        },
+        filterFn: ({ value }: any) => geometryFilterFn(value),
         async populate(ctx: any, _values: any, objects: any[]) {
           const result = await ctx.call('objects.getGeometryJson', {
             id: objects.map((o) => o.id),

@@ -48,6 +48,12 @@ export function geometriesToGeomCollection(geometries: GeometryObject[]) {
 }
 
 export function geometryFilterFn(geom: GeomFeatureCollection) {
+  if (typeof geom === 'string') {
+    try {
+      geom = JSON.parse(geom);
+    } catch (err) {}
+  }
+
   if (!geom?.features?.length) return;
 
   const geomItems = geom.features
