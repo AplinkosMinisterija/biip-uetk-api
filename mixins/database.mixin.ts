@@ -4,6 +4,7 @@ import _ from 'lodash';
 const DbService = require('@moleculer/database').Service;
 import { config } from '../knexfile';
 import filtersMixin from 'moleculer-knex-filters';
+import { Context } from 'moleculer';
 
 export default function (opts: any = {}) {
   const adapter: any = {
@@ -58,6 +59,44 @@ export default function (opts: any = {}) {
         );
 
         return ids.filter((id) => queryIds.indexOf(id) >= 0);
+      },
+    },
+    hooks: {
+      after: {
+        find: [
+          async function (
+            ctx: Context<{
+              mapping: string;
+              mappingMulti: boolean;
+              mappingField: string;
+            }>,
+            data: any[]
+          ) {
+            if (ctx.params.mapping) {
+              const { mapping, mappingMulti, mappingField } = ctx.params;
+              return data?.reduce((acc: any, item) => {
+                let value: any = item;
+
+                if (mappingField) {
+                  value = item[mappingField];
+                }
+
+                if (mappingMulti) {
+                  return {
+                    ...acc,
+                    [`${item[mapping]}`]: [
+                      ...(acc[`${item[mapping]}`] || []),
+                      value,
+                    ],
+                  };
+                }
+
+                return { ...acc, [`${item[mapping]}`]: value };
+              }, {});
+            }
+            return data;
+          },
+        ],
       },
     },
 

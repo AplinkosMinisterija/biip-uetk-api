@@ -42,6 +42,7 @@ import {
   notifyOnFileGenerated,
   notifyOnRequestUpdate,
 } from '../utils/mails';
+import { UETKObject } from './objects.service';
 
 type RequestStatusChanged = { statusChanged: boolean };
 type RequestAutoApprove = { autoApprove: boolean };
@@ -132,11 +133,32 @@ const populatePermissions = (field: string) => {
             type: {
               type: 'string',
               required: true,
-              enum: ['CADASTRAL_ID', 'CATEGORY_ID'],
+              enum: ['CADASTRAL_ID'], //, 'CATEGORY_ID'],
             },
           },
         },
         required: true,
+        async populate(ctx: any, _values: any[], requests: any[]) {
+          const cadastralIds = _values
+            .filter((v) => v.type === 'CADASTRAL_ID' && !!v.id)
+            .map((v) => v.id);
+
+          const objs: UETKObject[] = await ctx.call(
+            'objects.findByCadastralId',
+            {
+              id: cadastralIds,
+              mapping: true,
+            }
+          );
+
+          return requests.map((r) =>
+            r.objects.map((obj: any) => {
+              if (obj.type === 'CADASTRAL_ID' && obj.id) {
+                return { ...objs[obj.id], type: obj.type };
+              }
+            })
+          );
+        },
       },
 
       geom: {

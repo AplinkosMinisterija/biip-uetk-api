@@ -7,7 +7,21 @@ import DbConnection from '../mixins/database.mixin';
 import { gisConfig } from '../knexfile';
 import GeometriesMixin from '../mixins/geometries.mixin';
 import { throwNotFoundError } from '../types';
+import { GeomFeatureCollection } from '../modules/geometry';
 
+export type UETKObject = {
+  id: string;
+  name: string;
+  cadastralId: string;
+  category: string;
+  categoryTranslate: string;
+  municipality: string;
+  area: number;
+  length: number;
+  lat: number;
+  lng: number;
+  geom: GeomFeatureCollection;
+};
 export const UETKObjectType = {
   RIVER: 'RIVER',
   CANAL: 'CANAL',
@@ -128,10 +142,16 @@ export default class ObjectsService extends moleculer.Service {
           convert: true,
         },
       ],
+      mapping: {
+        type: 'boolean',
+        default: false,
+      },
     },
   })
-  async findByCadastralId(ctx: Context<{ id: string | string[] }>) {
-    const { id } = ctx.params;
+  async findByCadastralId(
+    ctx: Context<{ id: string | string[]; mapping?: boolean }>
+  ) {
+    const { id, mapping } = ctx.params;
     const multi = Array.isArray(id);
 
     const query: any = {
@@ -142,14 +162,26 @@ export default class ObjectsService extends moleculer.Service {
       query.cadastralId = { $in: id };
     }
 
-    if (multi) {
-      return ctx.call(`objects.find`, { query });
+    const params: any = {};
+
+    if (mapping) {
+      params.mapping = 'cadastralId';
     }
 
-    const obj: any = await ctx.call('objects.findOne', { query });
+    if (multi) {
+      return ctx.call(`objects.find`, { query, ...params });
+    }
+
+    const obj: UETKObject = await ctx.call('objects.findOne', { query });
 
     if (!obj?.cadastralId) {
       return throwNotFoundError('Object not found');
+    }
+
+    if (mapping) {
+      return {
+        [obj.cadastralId]: obj,
+      };
     }
 
     return obj;
