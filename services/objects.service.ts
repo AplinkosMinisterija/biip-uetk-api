@@ -7,7 +7,13 @@ import DbConnection from '../mixins/database.mixin';
 import { gisConfig } from '../knexfile';
 import GeometriesMixin from '../mixins/geometries.mixin';
 import { throwNotFoundError } from '../types';
-import { GeomFeatureCollection } from '../modules/geometry';
+import {
+  GeomFeatureCollection,
+  geometriesToGeomCollection,
+  geometryFromText,
+} from '../modules/geometry';
+import { snakeCase } from 'lodash';
+const tableName = 'publishing.uetkMerged';
 
 export type UETKObject = {
   id: string;
@@ -67,7 +73,7 @@ export const UETKObjectTypeTranslates = {
 
   mixins: [
     DbConnection({
-      collection: 'publishing.uetkMerged',
+      collection: tableName,
       config: gisConfig,
       rest: false,
       createActions: {
@@ -185,5 +191,33 @@ export default class ObjectsService extends moleculer.Service {
     }
 
     return obj;
+  }
+
+  @Action({
+    params: {
+      geom: {
+        type: 'object',
+        convert: true,
+      },
+    },
+  })
+  async findByGeom(ctx: Context<{ geom: GeomFeatureCollection }>) {
+    const adapter = await this.getAdapter(ctx);
+    const table = adapter.getTable();
+
+    if (!ctx.params?.geom?.features?.length) return [];
+
+    const geomItems = ctx.params.geom.features
+      .map((i) => i.geometry)
+      .filter((i) => !!i);
+
+    if (!geomItems?.length) return [];
+
+    const value = geometriesToGeomCollection(geomItems);
+    const geom = table.client.raw(geometryFromText(value));
+
+    return table
+      .select('cadastralId')
+      .where(adapter.client.raw(`st_intersects(geom, ${geom})`));
   }
 }
