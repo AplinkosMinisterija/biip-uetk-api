@@ -137,7 +137,7 @@ export const UETKObjectTypeTranslates = {
           return objects.map((o) => result[`${o.id}`] || {});
         },
       },
-      data: {
+      extendedData: {
         virtual: true,
         type: 'object',
         async populate(ctx: any, _values: any, objects: any[]) {
