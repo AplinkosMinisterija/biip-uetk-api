@@ -7,11 +7,7 @@ import DbConnection from '../mixins/database.mixin';
 import { gisConfig } from '../knexfile';
 import GeometriesMixin from '../mixins/geometries.mixin';
 import { throwNotFoundError } from '../types';
-import {
-  GeomFeatureCollection,
-  geometriesToGeomCollection,
-  geometryFromText,
-} from '../modules/geometry';
+import { GeomFeatureCollection, geometryFilterFn } from '../modules/geometry';
 import { snakeCase } from 'lodash';
 import {
   getDamOfLandsQuery,
@@ -128,6 +124,9 @@ export const UETKObjectTypeTranslates = {
         get({ value }: any) {
           if (typeof value === 'string') return;
           return value;
+        },
+        filterFn({ value }: any) {
+          return geometryFilterFn(value);
         },
         async populate(ctx: any, _values: any, objects: any[]) {
           const result = await ctx.call('objects.getGeometryJson', {
@@ -267,30 +266,5 @@ export default class ObjectsService extends moleculer.Service {
     }
 
     return obj;
-  }
-
-  @Action({
-    params: {
-      geom: {
-        type: 'object',
-        convert: true,
-      },
-    },
-  })
-  async findByGeom(ctx: Context<{ geom: GeomFeatureCollection }>) {
-    const { geom } = ctx.params;
-    if (!geom?.features?.length) return [];
-
-    const geomItems = geom.features.map((i) => i.geometry).filter((i) => !!i);
-
-    if (!geomItems?.length) return [];
-
-    const value = geometriesToGeomCollection(geomItems);
-
-    return ctx.call('objects.list', {
-      query: {
-        $raw: `st_intersects(geom, ${geometryFromText(value)})`,
-      },
-    });
   }
 }

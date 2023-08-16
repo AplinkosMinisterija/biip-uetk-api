@@ -30,7 +30,7 @@ export function areaFn(field: string) {
 
 export function geomToFeatureCollection(geom: any, properties?: any) {
   if (!geom) return;
-  
+
   const getFeature = (geom: any) => {
     return {
       type: 'Feature',

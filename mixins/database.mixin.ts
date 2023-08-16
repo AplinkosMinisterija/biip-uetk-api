@@ -60,8 +60,32 @@ export default function (opts: any = {}) {
 
         return ids.filter((id) => queryIds.indexOf(id) >= 0);
       },
+      async applyFilterFunction(ctx: Context<{ query: any }>) {
+        if (!ctx.params?.query) {
+          return ctx;
+        }
+
+        for (const key of Object.keys(ctx.params.query)) {
+          if (this.settings?.fields?.[key]?.filterFn) {
+            if (typeof this.settings?.fields?.[key]?.filterFn === 'function') {
+              ctx.params.query[key] = await this.settings?.fields?.[
+                key
+              ]?.filterFn({
+                value: ctx.params.query[key],
+                query: ctx.params.query,
+              });
+            }
+          }
+        }
+
+        return ctx;
+      },
     },
     hooks: {
+      before: {
+        find: 'applyFilterFunction',
+        list: 'applyFilterFunction',
+      },
       after: {
         find: [
           async function (

@@ -233,17 +233,31 @@ export default class JobsRequestsService extends moleculer.Service {
 
   @Method
   async getRequestData(id: number) {
-    const request: Request = await this.broker.call('requests.resolve', { id });
+    const request: Request = await this.broker.call('requests.resolve', {
+      id,
+      populate: 'geom',
+    });
 
     const cadastralIds = request.objects
       .filter((i) => i.type === 'CADASTRAL_ID')
-      .map((i) => i.id);
+      .map((i) => i.id)
+      .filter((i) => !!i);
+
+    const query: any = {};
+
+    if (cadastralIds?.length) {
+      query.cadastralId = { $in: cadastralIds };
+    }
+
+    if (!!Object.keys(request.geom).length) {
+      query.geom = request.geom;
+    }
+
+    if (!query.cadastralIds && !query.geom) return [];
 
     const allItems: any[] = await this.broker.call('objects.find', {
-      query: {
-        cadastralId: { $in: cadastralIds },
-        populate: 'extendedData',
-      },
+      query,
+      populate: 'extendedData',
     });
 
     const objects = allItems.map((item) => ({
