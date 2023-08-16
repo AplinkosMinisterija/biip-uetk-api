@@ -1,0 +1,30 @@
+<table class="table-center">
+  <% locals.items?.forEach(function(item, index) { %>
+  <tr>
+    <td class="text-left" colspan="2"><%= id %>.<%= index + 1 %>.</td>
+  </tr>
+  <tr>
+    <td>Pavadinimas:</td>
+    <td><%= item.pavadinimas || '' %></td>
+  </tr>
+  <tr>
+    <td>Koordinatė X (LKS94):</td>
+    <td><%= roundNumber(item.objekto_x) || '' %></td>
+  </tr>
+  <tr>
+    <td>Koordinatė Y (LKS94):</td>
+    <td><%= roundNumber(item.objekto_y) || '' %></td>
+  </tr>
+  <% if (locals.showDistance) { %>
+  <tr>
+    <td>Atstumas nuo upės žiočių:</td>
+    <td><%= roundNumber(item.atstumas_nuo_ziociu) || '-' %> km</td>
+  </tr>
+  <% } %>
+  <tr>
+    <td>Šaltinis:</td>
+    <td><b><%= item.saltinis || '' %></b></td>
+  </tr>
+  <% }); %>
+</table>
+

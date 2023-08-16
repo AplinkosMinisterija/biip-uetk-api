@@ -1,0 +1,113 @@
+<table class="table-center">
+  <tr>
+    <td class="text-left font-bold" colspan="2">
+      <%= id %>.1. Žemių užtvankos:
+      <% if (!item?.zemiuUztvankos?.length) { %>
+       įrašų nėra
+      <% }; %>
+    </td>
+  </tr>
+
+  <% locals.zemiuUztvankos?.forEach(function(item, index) { %>
+  <tr>
+    <td class="text-left big" colspan="2"><%= id %>.1.<%= index + 1 %>.</td>
+  </tr>
+  <%- include('includes/extra/hidrotechnikos-statinys', {
+    pavadinimas: item.pavadinimas || '-',
+    kodas: item.hidrostatinio_kodas || '-',
+    maxPatvankosAukstis: item.maksimalus_patvankos_auktis || ' ',
+    ilgis: item.ilgis || ' ',
+    plotis: item.plotis || ' ',
+    pastatymoMetai: item.pastatymo_metai || ' ',
+    coordinatesX: item.objekto_x,
+    coordinatesY: item.objekto_y,
+    atstumasNuoZiociu: item.atstumas_nuo_ziociu || ' ',
+    savivaldybe: item.savivaldybe,
+  }); %>
+  <% }); %>
+
+  <tr>
+    <td class="text-left font-bold" colspan="2">
+      <%= id %>.2. Vandens pertekliaus pralaidos:
+      <% if (!item?.vandensPertekliausPralaidos?.length) { %>
+        įrašų nėra
+      <% }; %>
+    </td>
+  </tr>
+
+  <% locals.vandensPertekliausPralaidos?.forEach(function(item, index) { %>
+    <tr>
+      <td class="text-left big" colspan="2"><%= id %>.2.<%= index + 1 %>.</td>
+    </tr>
+    <%- include('includes/extra/hidrotechnikos-statinys', {
+      pavadinimas: item.pavadinimas || '-',
+      kodas: item.hidrostatinio_kodas || '-',
+      tipas: item.tipas || '-',
+      patvankosAukstis: item.patvankos_aukstis || ' ',
+      gamtosauginisDebitas: item.gamtosauginis_debitas || ' ',
+      vidDaugiametisDebitas: item.vid_daugiametis_debitas || ' ',
+      vidDaugiametisDebitas95: item.vid_daugiametis_debitas_95 || ' ',
+      maxPavasarioPotvynioDeb1: item.max_pavasario_potvynio_deb_1 || ' ',
+      maxPavasarioPotvynioDeb5: item.max_pavasario_potvynio_deb_5 || ' ',
+      minVasarosRudens30ParuDebitas95: item.min_vasaros_rudens_30_paru_debitas_95 || ' ',
+      maxDebitas: item.max_debitas || ' ',
+      coordinatesX: item.objekto_x,
+      coordinatesY: item.objekto_y,
+      savivaldybe: item.savivaldybe,
+    }); %>
+    <% }); %>
+
+  <tr>
+    <td class="text-left font-bold" colspan="2">
+      <%= id %>.3. Hidroelektrinės:
+      <% if (!item?.hidroelektrines?.length) { %>
+        įrašų nėra
+      <% }; %>
+    </td>
+  </tr>
+
+  <% locals.hidroelektrines?.forEach(function(item, index) { %>
+    <tr>
+      <td class="text-left big" colspan="2"><%= id %>.3.<%= index + 1 %>.</td>
+    </tr>
+    <%- include('includes/extra/hidrotechnikos-statinys', {
+      pavadinimas: item.pavadinimas || '-',
+      kodas: item.hidrostatinio_kodas || '-',
+      tipas: item.tipas || '-',
+      pastatymoMetai: item.pastatymo_metai || ' ',
+      galia: item.galia || ' ',
+      maxSlegioAukstis: item.max_slegio_aukstis || ' ',
+      coordinatesX: item.objekto_x,
+      coordinatesY: item.objekto_y,
+      atstumasNuoZiociu: item.atstumas_nuo_ziociu || ' ',
+      savivaldybe: item.savivaldybe,
+    }); %>
+    <% }); %>
+
+  <tr>
+    <td class="text-left font-bold" colspan="2">
+      <%= id %>.4. Žuvų pralaidos:
+      <% if (!item?.zuvuPralaidos?.length) { %>
+        įrašų nėra
+      <% }; %>
+    </td>
+  </tr>
+
+  <% locals.zuvuPralaidos?.forEach(function(item, index) { %>
+    <tr>
+      <td class="text-left big" colspan="2"><%= id %>.4.<%= index + 1 %>.</td>
+    </tr>
+    <%- include('includes/extra/hidrotechnikos-statinys', {
+      pavadinimas: item.pavadinimas || '-',
+      kodas: item.hidrostatinio_kodas || '-',
+      tipas: item.tipas || '-',
+      pastatymoMetai: item.pastatymo_metai || ' ',
+      zuvuPralaidosDebitas: item.zuvu_pralaidos_debitas || ' ',
+      coordinatesX: item.objekto_x,
+      coordinatesY: item.objekto_y,
+      atstumasNuoZiociu: item.atstumas_nuo_ziociu || ' ',
+      savivaldybe: item.savivaldybe,
+    }); %>
+    <% }); %>
+</table>
+

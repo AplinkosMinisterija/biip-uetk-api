@@ -1,3 +1,5 @@
+import { parseToJsonIfNeeded } from '../utils';
+
 export type CoordinatesPoint = number[];
 export type CoordinatesLine = CoordinatesPoint[];
 export type CoordinatesPolygon = CoordinatesLine[];
@@ -45,4 +47,22 @@ export function geometriesToGeomCollection(geometries: GeometryObject[]) {
   return `ST_AsText(ST_Collect(ARRAY(
     SELECT ST_GeomFromGeoJSON(JSON_ARRAY_ELEMENTS('${geometriesStr}'))
   )))`;
+}
+
+export function geometryFilterFn(geom: GeomFeatureCollection) {
+  geom = parseToJsonIfNeeded(geom) as GeomFeatureCollection;
+
+  if (!geom?.features?.length) return;
+
+  const geomItems = geom.features
+    .map((i: any) => i.geometry)
+    .filter((i: any) => !!i);
+
+  if (!geomItems?.length) return;
+
+  const collection = geometriesToGeomCollection(geomItems);
+
+  return {
+    $raw: `st_intersects(geom, ${geometryFromText(collection)})`,
+  };
 }

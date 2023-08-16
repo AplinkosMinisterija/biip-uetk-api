@@ -1,0 +1,20 @@
+<div>
+  <% var vandensTelkiniaiCount = 
+  (item?.upes?.length || 0) +
+  (item?.ezeraiTvenkiniai?.length || 0)
+  %>
+
+  <p class="font-bold">2. Vandens telkiniai, kuriuose yra hidrotechnikos statinys: 
+    <% if (!vandensTelkiniaiCount) { %>
+      įrašų nėra
+    <% }; %>
+  </p>
+
+  <% if (!!vandensTelkiniaiCount) { %>
+  <%- include('includes/object-destination-table', {
+    id: 2,
+    upes: item.upes,
+    ezeraiTvenkiniai: item.ezeraiTvenkiniai
+  }); %>
+  <% }; %>
+</div>

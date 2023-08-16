@@ -1,0 +1,105 @@
+<div>
+  <p class="font-bold">2. Kadastro objekto vietos aprašymas:</p>
+  <%- include('includes/object-location-table', {
+    coordinatesX: item.objektoX,
+    coordinatesY: item.objektoY,
+    upesBaseinoRajonas: item.baseinoRajPavadinimas || ' ',
+    upesBaseinas: item.baseinoPavadinimas || ' ',
+    upesPabaseinis: item.pabaseinioPavadinimas || ' ',
+    municipalities: item.savivaldybes,
+    patvenktosUpesPavadinimas: item.patvenktaUpe?.[0]?.upes_pavadinimas || ' ',
+    patvenktosUpesID: item.patvenktaUpe?.[0]?.upes_kodas || ' ',
+    atstumasNuoPatvenktosUpesZiociu: item.patvenktaUpe?.[0]?.atstumas_nuo_ziociu || '-',
+  }); %>
+</div>
+<hr />
+<div>
+  <p class="font-bold">3. Morfometriniai kadastro objekto duomenys:</p>
+
+  <%- include('includes/object-morphometric-data-table', {
+    vandensPavirsiausBeSaluPlotas: item.vandensPavirsiausPlotasHe,
+    krantoLinijosIlgis: item.krantoLinijosIlgisKm,
+    baseinoPlotas: item.baseinoPlotasKvKm,
+    ilgis: fullData ? item.ilgisKm || ' ' : '', 
+    vidutinisPlotis: fullData ? item.vidPlotisKm || ' ' : '',
+    nplAukstis: fullData ? item.npl || ' ' : '',
+    nplGylisMax: fullData ? item.maxGylis || ' ' : '',
+    nplGylisVid: fullData ? item.vidGylis || ' ' : '',
+    nplTuris: fullData ? item.vandTuris || ' ' : '',
+    naudingasTuris: fullData ? item.naudVandTuris || ' ' : ''
+  }); %>
+</div>
+
+<% if (!!fullData) { %>
+<hr />
+<div>
+  <p class="font-bold">4. Hidrografinio tinklo duomenys:
+    <% if (!item?.hidrografinisTinklas?.length) { %>
+      įrašų nėra
+    <% }; %>
+  </p>
+
+  <% if (!!item?.hidrografinisTinklas?.length) { %>
+  <%- include('includes/extra/hidrografiniai', {
+    id: 4,
+    items: item.hidrografinisTinklas,
+    hideDistanceIfNotExists: true
+  }); %>
+  <% }; %>
+</div>
+<hr />
+<div>
+  <p class="font-bold">5. Vandens matavimo stotys:
+    <% if (!item?.vandensMatavimoStotys?.length) { %>
+      įrašų nėra
+    <% }; %>
+  </p>
+
+  <% if (!!item?.vandensMatavimoStotys?.length) { %>
+  <%- include('includes/extra/matavimo-stotys', {
+    id: 5,
+    items: item.vandensMatavimoStotys
+  }); %>
+  <% }; %>
+</div>
+<hr />
+<div>
+  <p class="font-bold">6. Vandens tyrimo vietos:
+    <% if (!item?.vandensTyrimuVietos?.length) { %>
+      įrašų nėra
+    <% }; %>
+  </p>
+
+  <% if (!!item?.vandensTyrimuVietos?.length) { %>
+  <%- include('includes/extra/tyrimo-vietos', {
+    id: 6,
+    items: item.vandensTyrimuVietos
+  }); %>
+  <% }; %>
+
+  <hr />
+  <div>
+    <p class="font-bold">7. Hidrotechnikos statiniai:
+      <% if (!item?.zemiuUztvankos?.length) { %>
+        įrašų nėra
+      <% }; %>
+    </p>
+
+    <% if (!!item?.zemiuUztvankos?.length) { %>
+    <%- include('includes/hidrotechnikos-statiniai', {
+      id: 7,
+      zemiuUztvankos: item.zemiuUztvankos,
+      vandensPertekliausPralaidos: item.vandensPertekliausPralaidos,
+      hidroelektrines: item.hidroelektrines,
+      zuvuPralaidos: item.zuvuPralaidos,
+    }); %>
+    <% }; %>
+  </div>
+</div>
+<% }; %>
+
+<hr />
+<%- include('includes/extra/other', {
+  id: fullData ? 8 : 4,
+  text: item.kitiDuomenys
+}); %>

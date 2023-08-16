@@ -1,0 +1,18 @@
+<table class="table-center">
+  <tr>
+    <td>Identifikavimo kodas:</td>
+    <td><%= locals.item?.kadastroId %></td>
+  </tr>
+  <tr>
+    <td>Pavadinimas:</td>
+    <td><%= locals.item?.pavadinimas %></td>
+  </tr>
+  <tr>
+    <td>Kategorija:</td>
+    <td class="font-bold"><%= locals.item?.kategorija %></td>
+  </tr>
+  <tr>
+    <td>Įregistravimo data:</td>
+    <td><%= formatDate(locals.item?.registravimoData) || '-' %></td>
+  </tr>
+</table>

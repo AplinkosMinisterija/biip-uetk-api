@@ -11,9 +11,9 @@
     "test": "jest --coverage --passWithNoTests",
     "lint": "eslint --ext .js,.ts .",
     "lint:sarif": "set SARIF_ESLINT_EMBED=true && yarn run lint --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif",
-    "dc:up": "docker-compose -p uetk-backend up --build -d",
-    "dc:logs": "docker-compose -p uetk-backend logs -f",
-    "dc:down": "docker-compose -p uetk-backend down"
+    "dc:up": "docker-compose -p biip-uetk-api up --build -d",
+    "dc:logs": "docker-compose -p biip-uetk-api logs -f",
+    "dc:down": "docker-compose -p biip-uetk-api down"
   },
   "keywords": [
     "microservices",
@@ -40,13 +40,16 @@
   "dependencies": {
     "@faker-js/faker": "^6.0.0-alpha.7",
     "@moleculer/database": "github:ambrazasp/moleculerjs-database",
+    "@types/ejs": "^3.1.2",
     "@sentry/node": "^7.61.0",
     "@types/jest": "^27.4.0",
     "@types/mime-types": "^2.1.1",
     "@types/mkdirp": "^1.0.2",
     "@types/node": "^20.3.3",
     "biip-auth-nodejs": "github:DadPatch/biip-auth-nodejs",
+    "bullmq": "^4.6.0",
     "dotenv": "^16.0.0",
+    "ejs": "^3.1.9",
     "ioredis": "^4.28.5",
     "knex": "^2.4.2",
     "lodash": "^4.17.21",
@@ -59,11 +62,13 @@
     "moleculer-minio": "github:zeckon/moleculer-minio",
     "moleculer-sentry": "^2.0.0",
     "moleculer-web": "^0.10.4",
+    "moment": "^2.29.4",
     "nats": "^2.6.0",
     "nedb": "^1.8.0",
     "objection": "^3.0.1",
     "pg": "^8.10.0",
     "pg-hstore": "^2.3.4",
+    "postmark": "^3.0.18",
     "redlock": "^4.2.0",
     "typescript": "^4.5.5"
   },

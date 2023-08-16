@@ -1,0 +1,23 @@
+<table class="table-center">
+  <% locals.items?.forEach(function(item, index) { %>
+  <tr>
+    <td class="text-left"><%= id %>.<%= index + 1 %>.</td>
+    <td><b><%= item.upes_tipas %></b></td>
+  </tr>
+  <tr>
+    <td>Pavadinimas:</td>
+    <td><%= item.upes_pavadinimas %></td>
+  </tr>
+  <tr>
+    <td>Identifikavimo kodas:</td>
+    <td><%= item.upes_kodas %></td>
+  </tr>
+  <% if (!locals.hideDistanceIfNotExists || !!locals.hideDistanceIfNotExists && !!item.atstumas_nuo_ziociu) { %>
+  <tr>
+    <td>Atstumas nuo žiočių:</td>
+    <td><%= roundNumber(item.atstumas_nuo_ziociu) || '-' %> km</td>
+  </tr>
+  <% }; %>
+  <% }); %>
+</table>
+

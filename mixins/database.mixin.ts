@@ -2,14 +2,16 @@
 
 import _ from 'lodash';
 const DbService = require('@moleculer/database').Service;
-import config from '../knexfile';
+import { config } from '../knexfile';
 import filtersMixin from 'moleculer-knex-filters';
+import { Context } from 'moleculer';
+import { parseToJsonIfNeeded } from '../utils';
 
 export default function (opts: any = {}) {
   const adapter: any = {
     type: 'Knex',
     options: {
-      knex: config,
+      knex: opts.config || config,
       tableName: opts.collection,
     },
   };
@@ -17,6 +19,8 @@ export default function (opts: any = {}) {
   const cache = {
     enabled: false,
   };
+
+  opts.entityChangedOldEntity = true;
 
   opts = _.defaultsDeep(opts, { adapter }, { cache: opts.cache || cache });
 
@@ -31,8 +35,7 @@ export default function (opts: any = {}) {
   const schema = {
     mixins: [DbService(opts), filtersMixin()],
 
-    async started() {
-    },
+    async started() {},
 
     actions: {
       ...removeRestActions,
@@ -57,6 +60,72 @@ export default function (opts: any = {}) {
         );
 
         return ids.filter((id) => queryIds.indexOf(id) >= 0);
+      },
+      async applyFilterFunction(
+        ctx: Context<{ query: { [key: string]: any } }>
+      ) {
+        ctx.params.query = parseToJsonIfNeeded(ctx.params.query);
+
+        if (!ctx.params?.query) {
+          return ctx;
+        }
+
+        for (const key of Object.keys(ctx.params.query)) {
+          if (this.settings?.fields?.[key]?.filterFn) {
+            if (typeof this.settings?.fields?.[key]?.filterFn === 'function') {
+              ctx.params.query[key] = await this.settings?.fields?.[
+                key
+              ]?.filterFn({
+                value: ctx.params.query[key],
+                query: ctx.params.query,
+              });
+            }
+          }
+        }
+
+        return ctx;
+      },
+    },
+    hooks: {
+      before: {
+        find: 'applyFilterFunction',
+        list: 'applyFilterFunction',
+      },
+      after: {
+        find: [
+          async function (
+            ctx: Context<{
+              mapping: string;
+              mappingMulti: boolean;
+              mappingField: string;
+            }>,
+            data: any[]
+          ) {
+            if (ctx.params.mapping) {
+              const { mapping, mappingMulti, mappingField } = ctx.params;
+              return data?.reduce((acc: any, item) => {
+                let value: any = item;
+
+                if (mappingField) {
+                  value = item[mappingField];
+                }
+
+                if (mappingMulti) {
+                  return {
+                    ...acc,
+                    [`${item[mapping]}`]: [
+                      ...(acc[`${item[mapping]}`] || []),
+                      value,
+                    ],
+                  };
+                }
+
+                return { ...acc, [`${item[mapping]}`]: value };
+              }, {});
+            }
+            return data;
+          },
+        ],
       },
     },
 

@@ -30,7 +30,7 @@ exports.up = function (knex) {
         .defaultTo('USER');
       commonFields(table);
     })
-    .createTableIfNotExists('tenants', (table) => {
+    .createTable('tenants', (table) => {
       table.increments('id');
       table.string('name', 255);
       table.integer('authGroupId').unsigned();
@@ -39,7 +39,7 @@ exports.up = function (knex) {
       table.string('code', 255);
       commonFields(table);
     })
-    .createTableIfNotExists('tenantUsers', (table) => {
+    .createTable('tenantUsers', (table) => {
       table.increments('id');
       table.integer('tenantId').unsigned();
       table.integer('userId').unsigned();

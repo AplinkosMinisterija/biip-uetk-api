@@ -20,6 +20,17 @@ export function throwUnauthorizedError(
     'UNAUTHORIZED'
   );
 }
+export function throwBadRequestError(
+  message?: string,
+  data?: any
+): Errors.MoleculerError {
+  throw new Moleculer.Errors.MoleculerClientError(
+    message || `Bad request.`,
+    400,
+    'BAD_REQUEST',
+    data
+  );
+}
 
 export function throwNotFoundError(message?: string): Errors.MoleculerError {
   throw new Moleculer.Errors.MoleculerClientError(
@@ -79,7 +90,7 @@ export const USER_PUBLIC_GET = async ({ value, ctx }: any) => {
 
   return {
     id: value.id,
-    firstName: 'Ekspertas',
+    firstName: 'UETK Administratorius',
     lastName: '',
   };
 };
