@@ -6,12 +6,6 @@ import BullMqMixin from '../mixins/bullmq.mixin';
 import { User } from './users.service';
 import { Tenant } from './tenants.service';
 import {
-  getDamOfLandsQuery,
-  getExcessWaterCulvertQuery,
-  getFishPassagesQuery,
-  getHidroPowerPlantsQuery,
-  getLakesAndPondsQuery,
-  getRiversQuery,
   getTemplateHtml,
   roundNumber,
   toMD5Hash,

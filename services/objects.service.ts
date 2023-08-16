@@ -8,7 +8,6 @@ import { gisConfig } from '../knexfile';
 import GeometriesMixin from '../mixins/geometries.mixin';
 import { throwNotFoundError } from '../types';
 import { GeomFeatureCollection, geometryFilterFn } from '../modules/geometry';
-import { snakeCase } from 'lodash';
 import {
   getDamOfLandsQuery,
   getExcessWaterCulvertQuery,
@@ -170,7 +169,7 @@ export const UETKObjectTypeTranslates = {
           ) {
             if (!cadastralIds?.length) return {};
 
-            const items: any[] = await fn({ cadastralIds });
+            const items: any[] = await fn(cadastralIds);
             return items?.reduce(
               (acc: any, item: any) => ({
                 ...acc,

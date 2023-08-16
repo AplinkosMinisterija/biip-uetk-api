@@ -26,16 +26,7 @@ import {
 } from '../modules/geometry';
 import { Tenant } from './tenants.service';
 import { RequestHistoryType } from './requests.histories.service';
-import {
-  getLakesAndPondsQuery,
-  getFishPassagesQuery,
-  getHidroPowerPlantsQuery,
-  getRiversQuery,
-  getTemplateHtml,
-  roundNumber,
-  getDamOfLandsQuery,
-  getExcessWaterCulvertQuery,
-} from '../utils';
+import { getTemplateHtml, roundNumber } from '../utils';
 import moment from 'moment';
 import {
   emailCanBeSent,
@@ -353,7 +344,6 @@ export default class RequestsService extends moleculer.Service {
       populate: 'extendedData',
       pageSize: 100,
     });
-
 
     ctx.meta.$responseType = 'text/html';
     return getTemplateHtml('request.ejs', {
