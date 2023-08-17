@@ -57,8 +57,6 @@ export const RequestStatus = {
   APPROVED: 'APPROVED',
 };
 
-const nonEditableStatuses = [RequestStatus.APPROVED, RequestStatus.REJECTED];
-
 const VISIBLE_TO_USER_SCOPE = 'visibleToUser';
 
 const AUTH_PROTECTED_SCOPES = [...COMMON_DEFAULT_SCOPES, VISIBLE_TO_USER_SCOPE];
@@ -333,6 +331,28 @@ export default class RequestsService extends moleculer.Service {
 
     return {
       generating: !!flow?.job?.id,
+    };
+  }
+
+  @Action({
+    params: {
+      id: {
+        type: 'number',
+        convert: true,
+      },
+    },
+    auth: AuthType.PUBLIC,
+    rest: 'GET /:id/geom',
+  })
+  async getRequestGeom(ctx: Context<{ id: number }>) {
+    const request: Request = await ctx.call('requests.resolve', {
+      id: ctx.params.id,
+      populate: 'geom',
+      throwIfNotExist: true,
+    });
+
+    return {
+      geom: request?.geom,
     };
   }
 
