@@ -227,7 +227,7 @@ export default class ObjectsService extends moleculer.Service {
         type: 'array',
         optional: true,
         items: 'string',
-        default: ['name', 'cadastralId', 'municipality'],
+        default: ['name', 'cadastralId'],
       },
     },
   })
