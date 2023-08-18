@@ -47,6 +47,10 @@ export interface Request extends BaseModelInterface {
   generatedFile: string;
   notifyEmail: string;
   tenant: number | Tenant;
+  data?: {
+    extended?: boolean;
+    unverified?: boolean;
+  };
 }
 
 export const RequestStatus = {
@@ -351,9 +355,7 @@ export default class RequestsService extends moleculer.Service {
       throwIfNotExist: true,
     });
 
-    return {
-      geom: request?.geom,
-    };
+    return request?.geom || {};
   }
 
   @Action({

@@ -213,7 +213,7 @@ export default class JobsRequestsService extends moleculer.Service {
         return moment(date).format(format);
       },
       roundNumber,
-      fullData: true,
+      fullData: !!request?.data?.extended,
     });
   }
 
