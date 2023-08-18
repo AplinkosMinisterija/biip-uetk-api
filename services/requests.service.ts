@@ -225,7 +225,21 @@ const populatePermissions = (field: string) => {
         },
       },
 
-      data: 'object',
+      data: {
+        type: 'object',
+        properties: {
+          extended: {
+            type: 'boolean',
+            required: false,
+            default: false,
+          },
+          unverified: {
+            type: 'boolean',
+            required: false,
+            default: false,
+          },
+        },
+      },
 
       ...TENANT_FIELD,
 
