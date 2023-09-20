@@ -11,6 +11,11 @@ export enum EndpointType {
   SELF = 'SELF',
 }
 
+export enum Roles {
+  ADMIN = 'ADMIN',
+  USER = 'USER',
+}
+
 export function throwUnauthorizedError(
   message?: string
 ): Errors.MoleculerError {

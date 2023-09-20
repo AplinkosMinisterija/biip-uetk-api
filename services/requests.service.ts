@@ -3,37 +3,39 @@
 import moleculer, { Context } from 'moleculer';
 import { Action, Event, Method, Service } from 'moleculer-decorators';
 
-import { AuthType, UserAuthMeta } from './api.service';
 import DbConnection from '../mixins/database.mixin';
 import GeometriesMixin from '../mixins/geometries.mixin';
+import { AuthType, UserAuthMeta } from './api.service';
 
+import { isEqual } from 'lodash';
+import moment from 'moment';
 import {
-  COMMON_FIELDS,
-  COMMON_DEFAULT_SCOPES,
-  COMMON_SCOPES,
-  FieldHookCallback,
-  BaseModelInterface,
-  ContextMeta,
-  EntityChangedParams,
-  TENANT_FIELD,
-} from '../types';
-import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
-import _ from 'lodash';
-import {
-  GeomFeatureCollection,
   geometryFromText,
   geometryToGeom,
+  GeomFeatureCollection,
 } from '../modules/geometry';
-import { Tenant } from './tenants.service';
-import { RequestHistoryType } from './requests.histories.service';
+import {
+  BaseModelInterface,
+  COMMON_DEFAULT_SCOPES,
+  COMMON_FIELDS,
+  COMMON_SCOPES,
+  ContextMeta,
+  EndpointType,
+  EntityChangedParams,
+  FieldHookCallback,
+  Roles,
+  TENANT_FIELD,
+} from '../types';
 import { getTemplateHtml, roundNumber } from '../utils';
-import moment from 'moment';
 import {
   emailCanBeSent,
   notifyOnFileGenerated,
   notifyOnRequestUpdate,
 } from '../utils/mails';
 import { UETKObject } from './objects.service';
+import { RequestHistoryType } from './requests.histories.service';
+import { Tenant } from './tenants.service';
+import { User, USERS_DEFAULT_SCOPES, UserType } from './users.service';
 
 type RequestStatusChanged = { statusChanged: boolean };
 type RequestAutoApprove = { autoApprove: boolean };
@@ -49,7 +51,6 @@ export interface Request extends BaseModelInterface {
   tenant: number | Tenant;
   data?: {
     extended?: boolean;
-    unverified?: boolean;
   };
 }
 
@@ -215,7 +216,18 @@ const populatePermissions = (field: string) => {
         populate: populatePermissions('validate'),
       },
 
-      generatedFile: 'string',
+      generatedFile: {
+        type: 'string',
+        get: ({ ctx, value, entity }: any) => {
+          const showPdf =
+            isEqual(ctx?.meta?.user?.type, Roles.ADMIN) ||
+            isEqual(entity?.status, RequestStatus.APPROVED);
+
+          if (showPdf) return value;
+
+          return null;
+        },
+      },
 
       notifyEmail: {
         type: 'string',
@@ -229,11 +241,6 @@ const populatePermissions = (field: string) => {
         type: 'object',
         properties: {
           extended: {
-            type: 'boolean',
-            required: false,
-            default: false,
-          },
-          unverified: {
             type: 'boolean',
             required: false,
             default: false,
@@ -396,6 +403,29 @@ export default class RequestsService extends moleculer.Service {
     });
   }
 
+  @Action({
+    rest: 'PATCH /:id/regeneratePdf',
+    auth: EndpointType.ADMIN,
+    params: {
+      id: {
+        type: 'number',
+        convert: true,
+      },
+    },
+  })
+  async regeneratePdf(ctx: Context<{ id: number }>) {
+    const request: Request = await ctx.call('requests.resolve', {
+      id: ctx.params.id,
+    });
+
+    await this.removePdf(request.generatedFile);
+    await this.updateEntity(ctx, {
+      id: request.id,
+      generatedFile: null,
+    });
+    await this.generatePdfIfNeeded(request);
+  }
+
   @Method
   validateStatus({ ctx, value, entity }: FieldHookCallback) {
     const { user, profile } = ctx.meta;
@@ -549,16 +579,23 @@ export default class RequestsService extends moleculer.Service {
 
   @Method
   async generatePdfIfNeeded(request: Request) {
-    if (!request || !request.id) return;
-
-    if (request.status !== RequestStatus.APPROVED) {
-      return;
-    }
-
-    if (request.generatedFile) return;
+    if (!request?.id || request?.generatedFile) return;
 
     this.broker.call('requests.generatePdf', { id: request.id });
     return request;
+  }
+
+  @Method
+  async removePdf(generatedFile: string) {
+    if (!generatedFile) return;
+
+    const path = new URL(generatedFile).pathname.slice(1);
+
+    const result: any = await this.broker.call('minio.removeFile', {
+      path,
+    });
+
+    return result?.success;
   }
 
   @Event()
@@ -580,7 +617,6 @@ export default class RequestsService extends moleculer.Service {
         type: typesByStatus[request.status],
       });
 
-      await this.generatePdfIfNeeded(request);
       await this.sendNotificationOnStatusChange(request);
     }
 
@@ -627,10 +663,8 @@ export default class RequestsService extends moleculer.Service {
         comment: 'Automatiškai patvirtintas prašymas.',
         type: RequestHistoryType.APPROVED,
       });
-
-      await this.generatePdfIfNeeded(request);
     }
-
+    await this.generatePdfIfNeeded(request);
     await this.sendNotificationOnStatusChange(request);
   }
 }

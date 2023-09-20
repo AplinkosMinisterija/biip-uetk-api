@@ -1,10 +1,10 @@
 'use strict';
 
-// @ts-ignore
-import MinioMixin from 'moleculer-minio';
 import Moleculer, { Context } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
-import { UserAuthMeta, AuthType } from './api.service';
+// @ts-ignore
+import MinioMixin from 'moleculer-minio';
+import moment from 'moment';
 import {
   getExtention,
   getMimetype,
@@ -15,7 +15,7 @@ import {
   throwUnableToUploadError,
   throwUnsupportedMimetypeError,
 } from '../types';
-import moment from 'moment';
+import { AuthType, UserAuthMeta } from './api.service';
 
 export const BUCKET_NAME = () => process.env.MINIO_BUCKET || 'uetk';
 
@@ -260,9 +260,9 @@ export default class MinioService extends Moleculer.Service {
         bucketName: bucket,
         objectName: paths.join('/'),
       });
-      return { sucess: !result };
+      return { success: !!result };
     } catch (err) {
-      return { succes: false };
+      return { success: false };
     }
   }
 
