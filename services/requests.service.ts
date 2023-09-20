@@ -419,11 +419,11 @@ export default class RequestsService extends moleculer.Service {
     });
 
     await this.removePdf(request.generatedFile);
-    await this.updateEntity(ctx, {
+    const updatedRequest = await this.updateEntity(ctx, {
       id: request.id,
       generatedFile: null,
     });
-    await this.generatePdfIfNeeded(request);
+    await this.generatePdfIfNeeded(updatedRequest);
   }
 
   @Method
