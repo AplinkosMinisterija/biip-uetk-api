@@ -405,7 +405,7 @@ export default class RequestsService extends moleculer.Service {
 
   @Action({
     rest: 'PATCH /:id/regeneratePdf',
-    auth: EndpointType.ADMIN,
+    types: [EndpointType.ADMIN],
     params: {
       id: {
         type: 'number',
