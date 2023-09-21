@@ -429,7 +429,7 @@ export default class RequestsService extends moleculer.Service {
 
     const error = `Cannot delete pdf`;
 
-    if (!result?.success) return error;
+    return result;
 
     const updatedRequest = await this.updateEntity(ctx, {
       id: request.id,
