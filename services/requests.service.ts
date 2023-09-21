@@ -417,12 +417,25 @@ export default class RequestsService extends moleculer.Service {
     const request: Request = await ctx.call('requests.resolve', {
       id: ctx.params.id,
     });
+    const generatedFile = request?.generatedFile;
 
-    await this.removePdf(request.generatedFile);
+    if (!generatedFile) return;
+
+    const path = new URL(generatedFile).pathname.slice(1);
+
+    const result: any = await this.broker.call('minio.removeFile', {
+      path,
+    });
+
+    const error = `Cannot delete pdf`;
+
+    if (!result?.success) return error;
+
     const updatedRequest = await this.updateEntity(ctx, {
       id: request.id,
       generatedFile: null,
     });
+
     await this.generatePdfIfNeeded(updatedRequest);
   }
 
@@ -585,19 +598,6 @@ export default class RequestsService extends moleculer.Service {
     return request;
   }
 
-  @Method
-  async removePdf(generatedFile: string) {
-    if (!generatedFile) return;
-
-    const path = new URL(generatedFile).pathname.slice(1);
-
-    const result: any = await this.broker.call('minio.removeFile', {
-      path,
-    });
-
-    return result?.success;
-  }
-
   @Event()
   async 'requests.updated'(ctx: Context<EntityChangedParams<Request>>) {
     const { oldData: prevRequest, data: request } = ctx.params;
@@ -616,6 +616,12 @@ export default class RequestsService extends moleculer.Service {
         comment,
         type: typesByStatus[request.status],
       });
+
+      if (isEqual(request.status, RequestStatus.SUBMITTED)) {
+        await ctx.call('requests.regeneratePdf', {
+          id: request.id,
+        });
+      }
 
       await this.sendNotificationOnStatusChange(request);
     }
