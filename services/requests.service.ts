@@ -436,7 +436,7 @@ export default class RequestsService extends moleculer.Service {
       generatedFile: null,
     });
 
-    await this.generatePdfIfNeeded(updatedRequest);
+    return await this.generatePdfIfNeeded(updatedRequest);
   }
 
   @Method
