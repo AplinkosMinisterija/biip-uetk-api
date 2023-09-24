@@ -423,7 +423,7 @@ export default class RequestsService extends moleculer.Service {
 
     const path = new URL(generatedFile).pathname.slice(1);
 
-    const result: any = await this.broker.call('minio.removeFile', {
+    const result: any = await ctx.call('minio.removeFile', {
       path,
     });
 
