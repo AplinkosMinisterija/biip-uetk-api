@@ -602,6 +602,10 @@ export default class RequestsService extends moleculer.Service {
   async 'requests.updated'(ctx: Context<EntityChangedParams<Request>>) {
     const { oldData: prevRequest, data: request } = ctx.params;
 
+    await ctx.call('requests.regeneratePdf', {
+      id: request.id,
+    });
+
     if (prevRequest?.status !== request.status) {
       const { comment } = ctx.options?.parentCtx?.params as any;
       const typesByStatus = {
@@ -616,12 +620,6 @@ export default class RequestsService extends moleculer.Service {
         comment,
         type: typesByStatus[request.status],
       });
-
-      if (isEqual(request.status, RequestStatus.SUBMITTED)) {
-        await ctx.call('requests.regeneratePdf', {
-          id: request.id,
-        });
-      }
 
       await this.sendNotificationOnStatusChange(request);
     }
