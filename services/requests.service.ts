@@ -49,7 +49,6 @@ export interface Request extends BaseModelInterface {
   tenant: number | Tenant;
   data?: {
     extended?: boolean;
-    unverified?: boolean;
   };
 }
 
@@ -229,11 +228,6 @@ const populatePermissions = (field: string) => {
         type: 'object',
         properties: {
           extended: {
-            type: 'boolean',
-            required: false,
-            default: false,
-          },
-          unverified: {
             type: 'boolean',
             required: false,
             default: false,
