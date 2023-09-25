@@ -618,7 +618,7 @@ export default class RequestsService extends moleculer.Service {
       });
 
       if (isEqual(request.status, RequestStatus.SUBMITTED)) {
-        await this.broker.call('requests.regeneratePdf', {
+        await ctx.call('requests.regeneratePdf', {
           id: request.id,
         });
       }
