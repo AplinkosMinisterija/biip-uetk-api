@@ -260,9 +260,9 @@ export default class MinioService extends Moleculer.Service {
         bucketName: bucket,
         objectName: paths.join('/'),
       });
-      return { sucess: !result };
+      return { success: !result };
     } catch (err) {
-      return { succes: false };
+      return { success: false };
     }
   }
 
