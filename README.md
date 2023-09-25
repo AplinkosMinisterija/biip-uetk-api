@@ -12,7 +12,6 @@ Ministerija.
 - [Getting Started](#getting-started)
     - [Installation](#installation)
     - [Usage](#usage)
-- [OpenAPI](#openapi)
 - [Deployment](#deployment)
 - [Contributing](#contributing)
 - [License](#license)
@@ -52,8 +51,6 @@ To get started with the BĮIP UETK API, follow the instructions below.
    ```
 
 The API will be available at `http://localhost:3000/uetk`.
-## OpenAPI
-OpenAPI documentation is available at `http://localhost:3000/uetk/openapi/ui`
 
 ## Deployment
 
