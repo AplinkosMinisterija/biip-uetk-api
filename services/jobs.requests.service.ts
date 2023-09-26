@@ -171,6 +171,7 @@ export default class JobsRequestsService extends moleculer.Service {
       },
     },
     rest: 'GET /:id/html',
+    timeout: 0,
     auth: AuthType.PUBLIC,
   })
   async getRequestHtml(
