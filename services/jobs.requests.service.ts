@@ -199,7 +199,7 @@ export default class JobsRequestsService extends moleculer.Service {
     ctx.meta.$responseType = 'text/html';
 
     return getTemplateHtml('request.ejs', {
-      id,
+      id: String(id).padStart(5, '0'),
       date: request.createdAt,
       objects: objects.map((o) => ({
         ...o,
