@@ -171,6 +171,7 @@ export default class JobsRequestsService extends moleculer.Service {
       },
     },
     rest: 'GET /:id/html',
+    timeout: 0,
     auth: AuthType.PUBLIC,
   })
   async getRequestHtml(
@@ -181,7 +182,10 @@ export default class JobsRequestsService extends moleculer.Service {
   ) {
     const { id, secret, skey: screenshotsRedisKey } = ctx.params;
 
-    const request: Request = await ctx.call('requests.resolve', { id });
+    const request: Request = await ctx.call('requests.resolve', {
+      id,
+      throwIfNotExist: true,
+    });
 
     const secretToApprove = getRequestSecret(request);
     if (!request?.id || !secret || secret !== secretToApprove) {
