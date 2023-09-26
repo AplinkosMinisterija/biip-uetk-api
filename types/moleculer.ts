@@ -4,11 +4,6 @@ import { IncomingMessage } from 'http';
 import { EndpointType } from './constants';
 import { UserAuthMeta } from '../services/api.service';
 
-// import {
-//   DbAdapter,
-//   DbContextParameters,
-//   DbServiceSettings,
-// } from 'moleculer-db';
 export interface EntityChangedParams<T> {
   type: 'create' | 'update' | 'replace' | 'remove' | 'clear';
   data: T;

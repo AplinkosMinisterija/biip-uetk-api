@@ -5,9 +5,7 @@ import { Action, Service } from 'moleculer-decorators';
 
 import DbConnection from '../mixins/database.mixin';
 import { gisConfig } from '../knexfile';
-// import GeometriesMixin from '../mixins/geometries.mixin';
 import { throwBadRequestError } from '../types';
-// import { GeomFeatureCollection, geometryFilterFn } from '../modules/geometry';
 import { FeatureCollection } from 'geojsonjs';
 
 import {
