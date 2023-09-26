@@ -4,15 +4,11 @@ import moleculer, { Context } from 'moleculer';
 import { Action, Event, Method, Service } from 'moleculer-decorators';
 
 import DbConnection from '../mixins/database.mixin';
-import GeometriesMixin from '../mixins/geometries.mixin';
 import { AuthType, UserAuthMeta } from './api.service';
+import PostgisMixin, { GeometryType } from 'moleculer-postgis';
+import { FeatureCollection } from 'geojsonjs';
 
 import moment from 'moment';
-import {
-  geometryFromText,
-  geometryToGeom,
-  GeomFeatureCollection,
-} from '../modules/geometry';
 import {
   BaseModelInterface,
   COMMON_DEFAULT_SCOPES,
@@ -46,7 +42,7 @@ type RequestAutoApprove = { autoApprove: boolean };
 
 export interface Request extends BaseModelInterface {
   status: string;
-  geom: GeomFeatureCollection;
+  geom: FeatureCollection;
   purpose: string;
   purposeValue: string;
   objects: any[];
@@ -115,7 +111,9 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
     DbConnection({
       collection: 'requests',
     }),
-    GeometriesMixin,
+    PostgisMixin({
+      srid: 3346,
+    }),
   ],
 
   settings: {
@@ -187,13 +185,10 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
       geom: {
         type: 'any',
-        raw: true,
-        async populate(ctx: any, _values: any, requests: Request[]) {
-          const result = await ctx.call('requests.getGeometryJson', {
-            id: requests.map((f) => f.id),
-          });
-
-          return requests.map((request) => result[`${request.id}`] || {});
+        geom: {
+          type: 'geom',
+          multi: true,
+          types: [GeometryType.POLYGON, GeometryType.MULTI_POLYGON],
         },
       },
 
@@ -301,8 +296,8 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
   hooks: {
     before: {
-      create: ['parseGeomField', 'validateStatusChange'],
-      update: ['parseGeomField', 'validateStatusChange'],
+      create: ['validateStatusChange'],
+      update: ['validateStatusChange'],
     },
   },
 
@@ -507,30 +502,6 @@ export default class RequestsService extends moleculer.Service {
     }
 
     return invalid;
-  }
-
-  @Method
-  async parseGeomField(
-    ctx: Context<{ id?: number; type?: string; geom: GeomFeatureCollection }>
-  ) {
-    const { geom, id } = ctx.params;
-
-    const errMessage = 'No geometry was passed';
-
-    if (geom?.features?.length) {
-      const adapter = await this.getAdapter(ctx);
-      const table = adapter.getTable();
-
-      try {
-        const geomItem = geom.features[0];
-        const value = geometryToGeom(geomItem.geometry);
-        ctx.params.geom = table.client.raw(geometryFromText(value));
-      } catch (err) {
-        throw new moleculer.Errors.ValidationError(err.message);
-      }
-    }
-
-    return ctx;
   }
 
   @Method

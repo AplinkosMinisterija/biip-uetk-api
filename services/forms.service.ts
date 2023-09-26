@@ -5,8 +5,8 @@ import { Action, Event, Method, Service } from 'moleculer-decorators';
 
 import { UserAuthMeta } from './api.service';
 import DbConnection from '../mixins/database.mixin';
-import GeometriesMixin from '../mixins/geometries.mixin';
-
+import PostgisMixin from 'moleculer-postgis';
+import { FeatureCollection } from 'geojsonjs';
 import {
   COMMON_FIELDS,
   COMMON_DEFAULT_SCOPES,
@@ -21,11 +21,6 @@ import {
 } from '../types';
 import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
 import _ from 'lodash';
-import {
-  GeomFeatureCollection,
-  geometryFromText,
-  geometryToGeom,
-} from '../modules/geometry';
 import { Tenant } from './tenants.service';
 import { FormHistoryTypes } from './forms.histories.service';
 import { emailCanBeSent, notifyOnFormUpdate } from '../utils/mails';
@@ -36,7 +31,7 @@ type FormStatusChanged = { statusChanged: boolean };
 
 export interface Form extends BaseModelInterface {
   status: string;
-  geom: GeomFeatureCollection;
+  geom: FeatureCollection;
   objectName: string;
   cadastralId: string | number;
   type: string;
@@ -86,7 +81,9 @@ const populatePermissions = (field: string) => {
     DbConnection({
       collection: 'forms',
     }),
-    GeometriesMixin,
+    PostgisMixin({
+      srid: 3346,
+    }),
   ],
 
   settings: {
@@ -116,13 +113,17 @@ const populatePermissions = (field: string) => {
 
       geom: {
         type: 'any',
-        raw: true,
-        async populate(ctx: any, _values: any, forms: Form[]) {
-          const result = await ctx.call('forms.getGeometryJson', {
-            id: forms.map((f) => f.id),
-          });
+        geom: {
+          type: 'geom',
+          validate({ value, params }: any) {
+            if (params?.id) return true;
 
-          return forms.map((form) => result[`${form.id}`] || {});
+            if ((!params?.type || params?.type === FormType.NEW) && !value) {
+              return 'Geometry must be provided';
+            }
+
+            return true;
+          },
         },
       },
 
@@ -245,8 +246,8 @@ const populatePermissions = (field: string) => {
 
   hooks: {
     before: {
-      create: ['parseGeomField', 'validateStatusChange'],
-      update: ['parseGeomField', 'validateStatusChange'],
+      create: ['validateStatusChange'],
+      update: ['validateStatusChange'],
     },
   },
 
@@ -382,42 +383,6 @@ export default class FormsService extends moleculer.Service {
     }
 
     return invalid;
-  }
-
-  @Method
-  async parseGeomField(
-    ctx: Context<{ id?: number; type?: string; geom: GeomFeatureCollection }>
-  ) {
-    const { geom, id } = ctx.params;
-
-    const errMessage = 'No geometry was passed';
-    let form: Form;
-    let type: string = ctx.params.type || FormType.NEW;
-    if (id) {
-      form = await this.broker.call('forms.resolve', { id });
-      type = form.type;
-    }
-
-    if (type === FormType.NEW) {
-      if (!form?.geom && !geom?.features?.length) {
-        throw new moleculer.Errors.ValidationError(errMessage);
-      }
-    }
-
-    if (geom?.features?.length) {
-      const adapter = await this.getAdapter(ctx);
-      const table = adapter.getTable();
-
-      try {
-        const geomItem = geom.features[0];
-        const value = geometryToGeom(geomItem.geometry);
-        ctx.params.geom = table.client.raw(geometryFromText(value));
-      } catch (err) {
-        throw new moleculer.Errors.ValidationError(err.message);
-      }
-    }
-
-    return ctx;
   }
 
   @Method
