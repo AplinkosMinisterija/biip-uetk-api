@@ -413,6 +413,7 @@ export default class RequestsService extends moleculer.Service {
 
     const request: Request = await ctx.call('requests.resolve', {
       id,
+      throwIfNotExist: true,
       populate: 'createdBy,tenant',
     });
 
