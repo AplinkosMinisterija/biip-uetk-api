@@ -25,7 +25,7 @@ import {
   TENANT_FIELD,
   throwValidationError,
 } from '../types';
-import { getRequestSecret, getTemplateHtml, roundNumber, toReadableStream } from '../utils';
+import { getRequestSecret, getTemplateHtml, toReadableStream } from '../utils';
 import {
   emailCanBeSent,
   notifyOnFileGenerated,
@@ -417,7 +417,6 @@ export default class RequestsService extends moleculer.Service {
       id,
       date: moment(request.createdAt).format('YYYY-MM-DD'),
     });
-
 
     const pdf = await ctx.call('tools.makePdf', {
       url: `${process.env.SERVER_HOST}/jobs/requests/${id}/html?secret=${secret}`,
