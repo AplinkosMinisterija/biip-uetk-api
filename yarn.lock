@@ -2655,6 +2655,19 @@ gensync@^1.0.0-beta.2:
   resolved "https://registry.yarnpkg.com/gensync/-/gensync-1.0.0-beta.2.tgz#32a6ee76c3d7f52d46b2b1ae5d93fea8580a25e0"
   integrity sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==
 
+geojson@^0.5.0:
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/geojson/-/geojson-0.5.0.tgz#3cd6c96399be65b56ee55596116fe9191ce701c0"
+  integrity sha512-/Bx5lEn+qRF4TfQ5aLu6NH+UKtvIv7Lhc487y/c8BdludrCTpiWf9wyI0RTyqg49MFefIAvFDuEi5Dfd/zgNxQ==
+
+geojsonjs@^0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/geojsonjs/-/geojsonjs-0.1.2.tgz#470a905671a50e712a39edd4cd16ed9755a2a387"
+  integrity sha512-ixEYX5NPi2K66eEbU6r93Dw2lkQdnfEiNuIXnRPgumzDrKp1k1xlJDN1AODA+gqvsb3r3Rz1EexmTfvjgnKPCg==
+  dependencies:
+    lodash "^4.17.21"
+    typescript "^4.5.5"
+
 get-caller-file@^2.0.5:
   version "2.0.5"
   resolved "https://registry.yarnpkg.com/get-caller-file/-/get-caller-file-2.0.5.tgz#4f94412a82db32f36e3b0b9741f8a97feb031f7e"
@@ -4206,6 +4219,16 @@ moleculer-decorators@^1.3.0:
     ramda "0.27.1"
     ramda-adjunct "^2.35.0"
 
+moleculer-postgis@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/moleculer-postgis/-/moleculer-postgis-0.1.0.tgz#4bb0e62baa3c0761ad49e381ff2083fe75c0cf3f"
+  integrity sha512-mXwsQ9kzNM0S7dASsArllm8lqwVaIVNh7I4QXdBD/Nt/j+PbJMQ7Hi6NtJLIUN+7Jza4ZX0umFHGbBMIyYQeYw==
+  dependencies:
+    geojsonjs "^0.1.2"
+    lodash "^4.17.21"
+    moleculer "^0.14.31"
+    typescript "^4.5.5"
+
 moleculer-repl@^0.7.0:
   version "0.7.4"
   resolved "https://registry.yarnpkg.com/moleculer-repl/-/moleculer-repl-0.7.4.tgz#77d3c8dd0df21fa45f3c10e78f919c58b0fcb0d5"
@@ -4248,7 +4271,7 @@ moleculer-web@^0.10.4:
     qs "^6.11.0"
     serve-static "^1.14.1"
 
-moleculer@^0.14.0, moleculer@^0.14.20:
+moleculer@^0.14.0, moleculer@^0.14.20, moleculer@^0.14.31:
   version "0.14.31"
   resolved "https://registry.yarnpkg.com/moleculer/-/moleculer-0.14.31.tgz#55d7e24ba162673b47f150007eeb77d44c5c3529"
   integrity sha512-EbcafGr4KWfltjwrV+k8xLA7majB7g8RvsD6aQ2bwzYpBo5e8xp9jYlJPpfScoORXAwT75puAqQTrFmAaBpYqA==

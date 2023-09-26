@@ -5,9 +5,11 @@ import { Action, Service } from 'moleculer-decorators';
 
 import DbConnection from '../mixins/database.mixin';
 import { gisConfig } from '../knexfile';
-import GeometriesMixin from '../mixins/geometries.mixin';
+// import GeometriesMixin from '../mixins/geometries.mixin';
 import { throwBadRequestError } from '../types';
-import { GeomFeatureCollection, geometryFilterFn } from '../modules/geometry';
+// import { GeomFeatureCollection, geometryFilterFn } from '../modules/geometry';
+import { FeatureCollection } from 'geojsonjs';
+
 import {
   getDamOfLandsQuery,
   getExcessWaterCulvertQuery,
@@ -19,6 +21,7 @@ import {
 } from '../utils';
 import { AuthType } from './api.service';
 import { snakeCase } from 'lodash';
+import PostgisMixin from 'moleculer-postgis';
 const tableName = 'publishing.uetkMerged';
 
 export type UETKObject = {
@@ -32,7 +35,7 @@ export type UETKObject = {
   length: number;
   lat: number;
   lng: number;
-  geom: GeomFeatureCollection;
+  geom: FeatureCollection;
 };
 export const UETKObjectType = {
   RIVER: 'RIVER',
@@ -91,7 +94,9 @@ export const UETKObjectTypeTranslates = {
         removeAllEntities: false,
       },
     }),
-    GeometriesMixin,
+    PostgisMixin({
+      srid: 3346,
+    }),
   ],
 
   settings: {
@@ -129,18 +134,8 @@ export const UETKObjectTypeTranslates = {
       },
       geom: {
         type: 'any',
-        raw: true,
-        get({ value }: any) {
-          if (typeof value === 'string') return;
-          return value;
-        },
-        filterFn: ({ value }: any) => geometryFilterFn(value),
-        async populate(ctx: any, _values: any, objects: any[]) {
-          const result = await ctx.call('objects.getGeometryJson', {
-            id: objects.map((o) => o.id),
-          });
-
-          return objects.map((o) => result[`${o.id}`] || {});
+        geom: {
+          type: 'geom',
         },
       },
       extendedData: {
