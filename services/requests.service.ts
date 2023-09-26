@@ -3,38 +3,38 @@
 import moleculer, { Context } from 'moleculer';
 import { Action, Event, Method, Service } from 'moleculer-decorators';
 
-import { AuthType, UserAuthMeta } from './api.service';
 import DbConnection from '../mixins/database.mixin';
 import GeometriesMixin from '../mixins/geometries.mixin';
+import { AuthType, UserAuthMeta } from './api.service';
 
+import moment from 'moment';
 import {
-  COMMON_FIELDS,
-  COMMON_DEFAULT_SCOPES,
-  COMMON_SCOPES,
-  FieldHookCallback,
-  BaseModelInterface,
-  ContextMeta,
-  EntityChangedParams,
-  TENANT_FIELD,
-  EndpointType,
-} from '../types';
-import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
-import _ from 'lodash';
-import {
-  GeomFeatureCollection,
   geometryFromText,
   geometryToGeom,
+  GeomFeatureCollection,
 } from '../modules/geometry';
-import { Tenant } from './tenants.service';
-import { RequestHistoryType } from './requests.histories.service';
-import { getRequestSecret, getTemplateHtml, toReadableStream } from '../utils';
-import moment from 'moment';
+import {
+  BaseModelInterface,
+  COMMON_DEFAULT_SCOPES,
+  COMMON_FIELDS,
+  COMMON_SCOPES,
+  ContextMeta,
+  EndpointType,
+  EntityChangedParams,
+  FieldHookCallback,
+  TENANT_FIELD,
+  throwValidationError,
+} from '../types';
+import { getRequestSecret, getTemplateHtml, roundNumber, toReadableStream } from '../utils';
 import {
   emailCanBeSent,
   notifyOnFileGenerated,
   notifyOnRequestUpdate,
 } from '../utils/mails';
 import { UETKObject } from './objects.service';
+import { RequestHistoryType } from './requests.histories.service';
+import { Tenant } from './tenants.service';
+import { User, USERS_DEFAULT_SCOPES, UserType } from './users.service';
 
 type RequestStatusChanged = { statusChanged: boolean };
 type RequestAutoApprove = { autoApprove: boolean };
@@ -43,6 +43,7 @@ export interface Request extends BaseModelInterface {
   status: string;
   geom: GeomFeatureCollection;
   purpose: string;
+  purposeValue: string;
   objects: any[];
   objectType: string;
   generatedFile: string;
@@ -59,6 +60,13 @@ export const RequestStatus = {
   REJECTED: 'REJECTED',
   RETURNED: 'RETURNED',
   APPROVED: 'APPROVED',
+};
+
+export const PurposeTypes = {
+  TERRITORIAL_PLANNING_DOCUMENT: 'TERRITORIAL_PLANNING_DOCUMENT',
+  TECHNICAL_PROJECT: 'TECHNICAL_PROJECT',
+  SCIENTIFIC_INVESTIGATION: 'SCIENTIFIC_INVESTIGATION',
+  OTHER: 'OTHER',
 };
 
 const VISIBLE_TO_USER_SCOPE = 'visibleToUser';
@@ -83,6 +91,18 @@ const populatePermissions = (field: string) => {
   };
 };
 
+async function validatePurposeValue({ params, value }: FieldHookCallback) {
+  const { purpose } = params;
+
+  if (purpose === PurposeTypes.OTHER && !value) {
+    throwValidationError('purpose value is required');
+  } else if (purpose !== PurposeTypes.OTHER && value) {
+    throwValidationError('purpose value must be empty');
+  }
+
+  return value;
+}
+
 @Service({
   name: 'requests',
 
@@ -104,10 +124,15 @@ const populatePermissions = (field: string) => {
 
       purpose: {
         type: 'string',
+        enum: Object.values(PurposeTypes),
+        required: true,
       },
 
-      delivery: {
+      purposeValue: {
         type: 'string',
+        onCreate: validatePurposeValue,
+        onUpdate: validatePurposeValue,
+        onReplace: validatePurposeValue,
       },
 
       objects: {

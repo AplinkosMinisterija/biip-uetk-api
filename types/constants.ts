@@ -40,6 +40,17 @@ export function throwNotFoundError(message?: string): Errors.MoleculerError {
   );
 }
 
+export function throwValidationError(
+  message?: string,
+  data?: any
+): Errors.MoleculerError {
+  throw new Moleculer.Errors.ValidationError(
+    message || `Not valid.`,
+    'VALIDATION_ERROR',
+    data
+  );
+}
+
 export function queryBoolean(field: string, value: boolean = false) {
   let fieldValue = `${_.snakeCase(field)} IS`;
   if (!value) {
