@@ -9,15 +9,15 @@
   </tr>
   <tr>
     <td>Koordinatė X (LKS94):</td>
-    <td><%= roundNumber(item.objekto_x) || '' %></td>
+    <td><%= roundNumber(item.objekto_x, 0) || '' %></td>
   </tr>
   <tr>
     <td>Koordinatė Y (LKS94):</td>
-    <td><%= roundNumber(item.objekto_y) || '' %></td>
+    <td><%= roundNumber(item.objekto_y, 0) || '' %></td>
   </tr>
   <tr>
     <td>Stoties atskaitos nulinė altitudė:</td>
-    <td><%= roundNumber(item.nulineAltitude) || '-' %> m</td>
+    <td><%= roundNumber(item.nulineAltitude, 1) || '-' %> m</td>
   </tr>
   <tr>
     <td>Hidrometrinių stebėjimų laikotarpio pradžia:</td>

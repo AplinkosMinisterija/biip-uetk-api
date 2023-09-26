@@ -2,72 +2,72 @@
   <% if (!!locals.vandensPavirsiausBeSaluPlotas) { %>
   <tr>
     <td>Vandens paviršiaus be salų plotas:</td>
-    <td><%= roundNumber(locals.vandensPavirsiausBeSaluPlotas) || '-' %> ha</td>
+    <td><%= roundNumber(locals.vandensPavirsiausBeSaluPlotas, 1) || '-' %> ha</td>
   </tr>
   <% }; if (!!locals.ilgis) { %>
   <tr>
     <td>Ilgis:</td>
-    <td><%= roundNumber(locals.ilgis) || '-' %> km</td>
+    <td><%= roundNumber(locals.ilgis, 1) || '-' %> km</td>
   </tr>
   <% }; if (!!locals.vidutinisPlotis) { %>
   <tr>
     <td>Vidutinis plotis:</td>
-    <td><%= roundNumber(locals.vidutinisPlotis) || '-' %> km</td>
+    <td><%= roundNumber(locals.vidutinisPlotis, 1) || '-' %> km</td>
   </tr>
   <% }; if (!!locals.krantoLinijosIlgis) { %>
   <tr>
     <td>Kranto linijos ilgis:</td>
-    <td><%= roundNumber(locals.krantoLinijosIlgis) || '-' %> km</td>
+    <td><%= roundNumber(locals.krantoLinijosIlgis, 1) || '-' %> km</td>
   </tr>
   <% }; if (!!locals.baseinoPlotas) { %>
   <tr>
     <td>Baseino plotas:</td>
-    <td><%= roundNumber(locals.baseinoPlotas) || '-' %> km<sup>2</sup></td>
+    <td><%= roundNumber(locals.baseinoPlotas, 1) || '-' %> km<sup>2</sup></td>
   </tr>
   <% }; if (!!locals.nplAukstis) { %>
   <tr>
     <td>Normaliojo patvankos lygio (NPL) aukštis (BAS 77):</td>
-    <td><%= roundNumber(locals.nplAukstis) || '-' %> m</td>
+    <td><%= roundNumber(locals.nplAukstis, 2) || '-' %> m</td>
   </tr>
   <% }; if (!!locals.nplGylisMax) { %>
   <tr>
     <td>Maksimalus vandens gylis esant NPL:</td>
-    <td><%= roundNumber(locals.nplGylisMax) || '-' %> m</td>
+    <td><%= roundNumber(locals.nplGylisMax, 1) || '-' %> m</td>
   </tr>
   <% }; if (!!locals.nplGylisVid) { %>
   <tr>
     <td>Vidutinis vandens gylis esant NPL:</td>
-    <td><%= roundNumber(locals.nplGylisVid) || '-' %> m</td>
+    <td><%= roundNumber(locals.nplGylisVid, 1) || '-' %> m</td>
   </tr>
   <% }; if (!!locals.nplTuris) { %>
   <tr>
     <td>Vandens tūris esant NPL:</td>
-    <td><%= roundNumber(locals.nplTuris) || '-' %> tūkst. m<sup>3</sup></td>
+    <td><%= roundNumber(locals.nplTuris, 1) || '-' %> tūkst. m<sup>3</sup></td>
   </tr>
   <% }; if (!!locals.vvl) { %>
   <tr>
     <td>Vidutinio vandens lygio (VVL) altitudė (BAS 77):</td>
-    <td><%= roundNumber(locals.vvl) || '-' %> m</td>
+    <td><%= roundNumber(locals.vvl, 1) || '-' %> m</td>
   </tr>
   <% }; if (!!locals.vvlGylisMax) { %>
   <tr>
     <td>Maksimalus vandens gylis esant VVL:</td>
-    <td><%= roundNumber(locals.vvlGylisMax) || '-' %> m</td>
+    <td><%= roundNumber(locals.vvlGylisMax, 1) || '-' %> m</td>
   </tr>
   <% }; if (!!locals.vvlGylisVid) { %>
   <tr>
     <td>Vidutinis vandens gylis esant VVL:</td>
-    <td><%= roundNumber(locals.vvlGylisVid) || '-' %> m</td>
+    <td><%= roundNumber(locals.vvlGylisVid, 1) || '-' %> m</td>
   </tr>
   <% }; if (!!locals.vvlTuris) { %>
   <tr>
     <td>Vandens tūris esant VVL:</td>
-    <td><%= roundNumber(locals.vvlTuris) || '-' %> tūkst. m<sup>3</sup></td>
+    <td><%= roundNumber(locals.vvlTuris, 1) || '-' %> tūkst. m<sup>3</sup></td>
   </tr>
   <% }; if (!!locals.naudingasTuris) { %>
   <tr>
     <td>Naudingas vandens tūris:</td>
-    <td><%= roundNumber(locals.naudingasTuris) || '-' %> tūkst. m<sup>3</sup></td>
+    <td><%= roundNumber(locals.naudingasTuris, 1) || '-' %> tūkst. m<sup>3</sup></td>
   </tr>
   <% }; %>
 </table>

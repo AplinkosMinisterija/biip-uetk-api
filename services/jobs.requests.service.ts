@@ -6,6 +6,8 @@ import BullMqMixin from '../mixins/bullmq.mixin';
 import { User } from './users.service';
 import { Tenant } from './tenants.service';
 import {
+  addLeadingZeros,
+  getRequestSecret,
   getTemplateHtml,
   roundNumber,
   toMD5Hash,
@@ -15,14 +17,6 @@ import { FILE_TYPES, throwNotFoundError } from '../types';
 import { Request } from './requests.service';
 import { AuthType } from './api.service';
 import moment from 'moment';
-
-function getSecret(request: Request) {
-  return toMD5Hash(
-    `id=${request.id}&date=${moment(request.createdAt).format(
-      'YYYYMMDDHHmmss'
-    )}`
-  );
-}
 
 @Service({
   name: 'jobs.requests',
@@ -74,12 +68,10 @@ export default class JobsRequestsService extends moleculer.Service {
 
     await this.broker.cacher.set(redisKey, screenshotsByHash);
 
-    const objects: any[] = await this.getRequestData(id);
-
-    const secret = getSecret(request);
+    const secret = getRequestSecret(request);
 
     const footerHtml = getTemplateHtml('footer.ejs', {
-      id,
+      id: addLeadingZeros(id),
       date: moment(request.createdAt).format('YYYY-MM-DD'),
     });
 
@@ -173,9 +165,13 @@ export default class JobsRequestsService extends moleculer.Service {
         convert: true,
       },
       secret: 'string',
-      skey: 'string',
+      skey: {
+        type: 'string',
+        optional: true,
+      },
     },
     rest: 'GET /:id/html',
+    timeout: 0,
     auth: AuthType.PUBLIC,
   })
   async getRequestHtml(
@@ -186,23 +182,29 @@ export default class JobsRequestsService extends moleculer.Service {
   ) {
     const { id, secret, skey: screenshotsRedisKey } = ctx.params;
 
-    const request: Request = await ctx.call('requests.resolve', { id });
+    const request: Request = await ctx.call('requests.resolve', {
+      id,
+      throwIfNotExist: true,
+    });
 
-    const secretToApprove = getSecret(request);
+    const secretToApprove = getRequestSecret(request);
     if (!request?.id || !secret || secret !== secretToApprove) {
       return throwNotFoundError('Invalid secret!');
     }
 
     const objects: any[] = await this.getRequestData(id);
 
-    const screenshotsByHash = await this.broker.cacher.get(
-      `screenshots.${screenshotsRedisKey}`
-    );
+    let screenshotsByHash: any = {};
+    if (screenshotsRedisKey) {
+      screenshotsByHash = await this.broker.cacher.get(
+        `screenshots.${screenshotsRedisKey}`
+      );
+    }
 
     ctx.meta.$responseType = 'text/html';
 
     return getTemplateHtml('request.ejs', {
-      id,
+      id: addLeadingZeros(id),
       date: request.createdAt,
       objects: objects.map((o) => ({
         ...o,
@@ -223,11 +225,6 @@ export default class JobsRequestsService extends moleculer.Service {
     const userPath = user?.id || 'user';
 
     return `uploads/requests/${tenantPath}/${userPath}`;
-  }
-
-  @Action()
-  async test(ctx: Context) {
-    return this.getRequestData(10);
   }
 
   @Method

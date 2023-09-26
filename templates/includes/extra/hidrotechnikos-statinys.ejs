@@ -26,86 +26,86 @@
 <% }; if (!!locals.patvankosAukstis) { %>
 <tr>
   <td>Patvankos aukštis:</td>
-  <td><%= roundNumber(locals.patvankosAukstis) || '-' %> m</td>
+  <td><%= roundNumber(locals.patvankosAukstis, 1) || '-' %> m</td>
 </tr>
 <% }; if (!!locals.maxPatvankosAukstis) { %>
 <tr>
   <td>Maksimalus patvankos aukštis:</td>
-  <td><%= roundNumber(locals.maxPatvankosAukstis) || '-' %> m</td>
+  <td><%= roundNumber(locals.maxPatvankosAukstis, 1) || '-' %> m</td>
 </tr>
 <% }; if (!!locals.ilgis) { %>
 <tr>
   <td>Žemių užtvankos ilgis:</td>
-  <td><%= roundNumber(locals.ilgis) || '-' %> m</td>
+  <td><%= roundNumber(locals.ilgis, 1) || '-' %> m</td>
 </tr>
 <% }; if (!!locals.plotis) { %>
 <tr>
   <td>Žemių užtvankos plotis:</td>
-  <td><%= roundNumber(locals.plotis) || '-' %> m</td>
+  <td><%= roundNumber(locals.plotis, 1) || '-' %> m</td>
 </tr>
 <% }; if (!!locals.gamtosauginisDebitas) { %>
 <tr>
   <td>Gamtosauginis vandens debitas:</td>
-  <td><%= roundNumber(locals.gamtosauginisDebitas) || '-' %> m<sup>3</sup>/s</td>
+  <td><%= roundNumber(locals.gamtosauginisDebitas, 3) || '-' %> m<sup>3</sup>/s</td>
 </tr>
 <% }; if (!!locals.vidDaugiametisDebitas) { %>
 <tr>
   <td>Vidutinis daugiametis vandens debitas Qvid:</td>
-  <td><%= roundNumber(locals.vidDaugiametisDebitas) || '-' %> m<sup>3</sup>/s</td>
+  <td><%= roundNumber(locals.vidDaugiametisDebitas, 3) || '-' %> m<sup>3</sup>/s</td>
 </tr>
 <% }; if (!!locals.vidDaugiametisDebitas95) { %>
 <tr>
   <td>Vidutinis daugiametis vandens debitas Q95%:</td>
-  <td><%= roundNumber(locals.vidDaugiametisDebitas95) || '-' %> m<sup>3</sup>/s</td>
+  <td><%= roundNumber(locals.vidDaugiametisDebitas95, 3) || '-' %> m<sup>3</sup>/s</td>
 </tr>
 <% }; if (!!locals.maxPavasarioPotvynioDeb1) { %>
 <tr>
   <td>Maksimalus pavasario potvynio vandens debitas Q1%:</td>
-  <td><%= roundNumber(locals.maxPavasarioPotvynioDeb1) || '-' %> m<sup>3</sup>/s</td>
+  <td><%= roundNumber(locals.maxPavasarioPotvynioDeb1, 3) || '-' %> m<sup>3</sup>/s</td>
 </tr>
 <% }; if (!!locals.maxPavasarioPotvynioDeb5) { %>
 <tr>
   <td>Maksimalus pavasario potvynio vandens debitas Q5%:</td>
-  <td><%= roundNumber(locals.maxPavasarioPotvynioDeb5) || '-' %> m<sup>3</sup>/s</td>
+  <td><%= roundNumber(locals.maxPavasarioPotvynioDeb5, 3) || '-' %> m<sup>3</sup>/s</td>
 </tr>
 <% }; if (!!locals.minVasarosRudens30ParuDebitas95) { %>
 <tr>
   <td>Minimalus vasaros-rudens 30 sausiausių parų laikotarpio debitas Q95%:</td>
-  <td><%= roundNumber(locals.minVasarosRudens30ParuDebitas95) || '-' %> m<sup>3</sup>/s</td>
+  <td><%= roundNumber(locals.minVasarosRudens30ParuDebitas95, 3) || '-' %> m<sup>3</sup>/s</td>
 </tr>
 <% }; if (!!locals.maxDebitas) { %>
 <tr>
   <td>Maksimalus vandens debitas, esant maksimaliai (skaičiuotinai) debito tikimybei:</td>
-  <td><%= roundNumber(locals.maxDebitas) || '-' %> m<sup>3</sup>/s</td>
+  <td><%= roundNumber(locals.maxDebitas, 3) || '-' %> m<sup>3</sup>/s</td>
 </tr>
 <% }; if (!!locals.galia) { %>
 <tr>
   <td>Galia:</td>
-  <td><%= roundNumber(locals.galia) || '-' %> kW</td>
+  <td><%= roundNumber(locals.galia, 0) || '-' %> kW</td>
 </tr>
 <% }; if (!!locals.maxSlegioAukstis) { %>
 <tr>
   <td>Maksimalus slėgio aukštis:</td>
-  <td><%= roundNumber(locals.maxSlegioAukstis) || '-' %> m</td>
+  <td><%= roundNumber(locals.maxSlegioAukstis, 1) || '-' %> m</td>
 </tr>
 <% }; if (!!locals.zuvuPralaidosDebitas) { %>
 <tr>
   <td>Žuvų pralaidos debitas:</td>
-  <td><%= roundNumber(locals.zuvuPralaidosDebitas) || '-' %> m<sup>3</sup>/s</td>
+  <td><%= roundNumber(locals.zuvuPralaidosDebitas, 3) || '-' %> m<sup>3</sup>/s</td>
 </tr>
 <% }; %>
 <tr>
   <td>Koordinatė X (LKS94):</td>
-  <td><%= roundNumber(locals.coordinatesX) || '-' %></td>
+  <td><%= roundNumber(locals.coordinatesX, 0) || '-' %></td>
 </tr>
 <tr>
   <td>Koordinatė Y (LKS94):</td>
-  <td><%= roundNumber(locals.coordinatesY) || '-' %></td>
+  <td><%= roundNumber(locals.coordinatesY, 0) || '-' %></td>
 </tr>
 <% if (!!locals.atstumasNuoZiociu) { %>
 <tr>
   <td>Atstumas nuo upės žiočių:</td>
-  <td><%= roundNumber(locals.atstumasNuoZiociu) || '-' %> km</td>
+  <td><%= roundNumber(locals.atstumasNuoZiociu, 1) || '-' %> km</td>
 </tr>
 <% }; %>
 <tr>

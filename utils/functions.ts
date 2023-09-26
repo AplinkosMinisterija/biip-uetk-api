@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import moment from 'moment';
 import { Readable } from 'stream';
 
 type QueryObject = { [key: string]: any };
@@ -61,4 +62,16 @@ export function parseToJsonIfNeeded(query: QueryObject | string): QueryObject {
   }
 
   return query as QueryObject;
+}
+
+export function getRequestSecret(request: any) {
+  return toMD5Hash(
+    `id=${request.id}&date=${moment(request.createdAt).format(
+      'YYYYMMDDHHmmss'
+    )}`
+  );
+}
+
+export function addLeadingZeros(num: number, totalLength: number = 5) {
+  return String(num).padStart(totalLength, '0');
 }

@@ -9,16 +9,16 @@
   </tr>
   <tr>
     <td>Koordinatė X (LKS94):</td>
-    <td><%= roundNumber(item.objekto_x) || '' %></td>
+    <td><%= roundNumber(item.objekto_x, 0) || '' %></td>
   </tr>
   <tr>
     <td>Koordinatė Y (LKS94):</td>
-    <td><%= roundNumber(item.objekto_y) || '' %></td>
+    <td><%= roundNumber(item.objekto_y, 0) || '' %></td>
   </tr>
   <% if (locals.showDistance) { %>
   <tr>
     <td>Atstumas nuo upės žiočių:</td>
-    <td><%= roundNumber(item.atstumas_nuo_ziociu) || '-' %> km</td>
+    <td><%= roundNumber(item.atstumas_nuo_ziociu, 1) || '-' %> km</td>
   </tr>
   <% } %>
   <tr>

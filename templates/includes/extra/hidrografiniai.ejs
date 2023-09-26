@@ -15,7 +15,7 @@
   <% if (!locals.hideDistanceIfNotExists || !!locals.hideDistanceIfNotExists && !!item.atstumas_nuo_ziociu) { %>
   <tr>
     <td>Atstumas nuo žiočių:</td>
-    <td><%= roundNumber(item.atstumas_nuo_ziociu) || '-' %> km</td>
+    <td><%= roundNumber(item.atstumas_nuo_ziociu, 1) || '-' %> km</td>
   </tr>
   <% }; %>
   <% }); %>
