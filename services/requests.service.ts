@@ -95,9 +95,7 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
   if (purpose === PurposeTypes.OTHER && !value) {
     throwValidationError('purpose value is required');
-  }
-
-  if (purpose !== PurposeTypes.OTHER && value) {
+  } else if (purpose !== PurposeTypes.OTHER && value) {
     throwValidationError('purpose value must be empty');
   }
 
