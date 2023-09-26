@@ -118,7 +118,7 @@ const populatePermissions = (field: string) => {
           validate({ value, params }: any) {
             if (params?.id) return true;
 
-            if ((!params.type || params.type === FormType.NEW) && !value) {
+            if ((!params?.type || params?.type === FormType.NEW) && !value) {
               return 'Geometry must be provided';
             }
 
