@@ -19,12 +19,13 @@ import {
   COMMON_FIELDS,
   COMMON_SCOPES,
   ContextMeta,
+  EndpointType,
   EntityChangedParams,
   FieldHookCallback,
   TENANT_FIELD,
   throwValidationError,
 } from '../types';
-import { getTemplateHtml, roundNumber } from '../utils';
+import { getRequestSecret, getTemplateHtml, toReadableStream } from '../utils';
 import {
   emailCanBeSent,
   notifyOnFileGenerated,
@@ -392,27 +393,39 @@ export default class RequestsService extends moleculer.Service {
   }
 
   @Action({
-    rest: 'GET /test-html',
-    auth: AuthType.PUBLIC,
+    params: {
+      id: {
+        type: 'number',
+        convert: true,
+      },
+    },
+    rest: 'GET /:id/pdf',
+    types: [EndpointType.ADMIN],
+    timeout: 0,
   })
-  async testHtml(ctx: Context<{}, { $responseType: string }>) {
-    const objects2: any = await ctx.call('objects.list', {
-      populate: 'extendedData',
-      pageSize: 100,
+  async getRequestPdf(ctx: Context<{ id: number }, { $responseType: string }>) {
+    const { id } = ctx.params;
+
+    const request: Request = await ctx.call('requests.resolve', {
+      id,
+      populate: 'createdBy,tenant',
     });
 
-    ctx.meta.$responseType = 'text/html';
-    return getTemplateHtml('request.ejs', {
-      id: 123123,
-      date: '2023-01-05',
-      objects: objects2.rows,
-      roundNumber,
-      formatDate: (date: string, format = 'YYYY-MM-DD') => {
-        if (!date || date === ' ') return;
-        return moment(date).format(format);
-      },
-      fullData: true,
+    const secret = getRequestSecret(request);
+
+    const footerHtml = getTemplateHtml('footer.ejs', {
+      id,
+      date: moment(request.createdAt).format('YYYY-MM-DD'),
     });
+
+    const pdf = await ctx.call('tools.makePdf', {
+      url: `${process.env.SERVER_HOST}/jobs/requests/${id}/html?secret=${secret}`,
+      footer: footerHtml,
+    });
+
+    ctx.meta.$responseType = 'application/pdf';
+
+    return toReadableStream(pdf);
   }
 
   @Method
