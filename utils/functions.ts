@@ -71,3 +71,7 @@ export function getRequestSecret(request: any) {
     )}`
   );
 }
+
+export function addLeadingZeros(num: number, totalLength: number = 5) {
+  return String(num).padStart(totalLength, '0');
+}

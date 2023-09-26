@@ -6,6 +6,7 @@ import BullMqMixin from '../mixins/bullmq.mixin';
 import { User } from './users.service';
 import { Tenant } from './tenants.service';
 import {
+  addLeadingZeros,
   getRequestSecret,
   getTemplateHtml,
   roundNumber,
@@ -70,7 +71,7 @@ export default class JobsRequestsService extends moleculer.Service {
     const secret = getRequestSecret(request);
 
     const footerHtml = getTemplateHtml('footer.ejs', {
-      id,
+      id: addLeadingZeros(id),
       date: moment(request.createdAt).format('YYYY-MM-DD'),
     });
 
@@ -199,7 +200,7 @@ export default class JobsRequestsService extends moleculer.Service {
     ctx.meta.$responseType = 'text/html';
 
     return getTemplateHtml('request.ejs', {
-      id: String(id).padStart(5, '0'),
+      id: addLeadingZeros(id),
       date: request.createdAt,
       objects: objects.map((o) => ({
         ...o,

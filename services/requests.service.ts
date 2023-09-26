@@ -25,7 +25,12 @@ import {
   TENANT_FIELD,
   throwValidationError,
 } from '../types';
-import { getRequestSecret, getTemplateHtml, toReadableStream } from '../utils';
+import {
+  addLeadingZeros,
+  getRequestSecret,
+  getTemplateHtml,
+  toReadableStream,
+} from '../utils';
 import {
   emailCanBeSent,
   notifyOnFileGenerated,
@@ -414,7 +419,7 @@ export default class RequestsService extends moleculer.Service {
     const secret = getRequestSecret(request);
 
     const footerHtml = getTemplateHtml('footer.ejs', {
-      id,
+      id: addLeadingZeros(id),
       date: moment(request.createdAt).format('YYYY-MM-DD'),
     });
 
