@@ -9,10 +9,15 @@
     <td>Kanalo ilgis:</td>
     <td><%= roundNumber(locals.kanaloIlgis, 1) || '-' %> km</td>
   </tr>
-  <% }; if (!!locals.baseinoPlotas) { %>
+  <% }; if (!!locals.upesBaseinoPlotas) { %>
   <tr>
-    <td>Baseino plotas:</td>
-    <td><%= roundNumber(locals.baseinoPlotas, 1) || '-' %> km<sup>2</sup></td>
+    <td>Upės baseino plotas:</td>
+    <td><%= roundNumber(locals.upesBaseinoPlotas, 1) || '-' %> km<sup>2</sup></td>
+  </tr>
+  <% }; if (!!locals.kanaloBaseinoPlotas) { %>
+  <tr>
+    <td>Kanalo baseino plotas:</td>
+    <td><%= roundNumber(locals.kanaloBaseinoPlotas, 1) || '-' %> km<sup>2</sup></td>
   </tr>
   <% }; if (!!locals.ziociuX) { %>
   <tr>
