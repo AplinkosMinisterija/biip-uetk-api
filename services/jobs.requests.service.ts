@@ -235,9 +235,9 @@ export default class JobsRequestsService extends moleculer.Service {
     });
 
     const cadastralIds = request.objects
-      .filter((i) => i.type === 'CADASTRAL_ID')
-      .map((i) => i.id)
-      .filter((i) => !!i);
+      ?.filter((i) => i.type === 'CADASTRAL_ID')
+      ?.map((i) => i.id)
+      ?.filter((i) => !!i);
 
     const query: any = {};
 
@@ -245,7 +245,7 @@ export default class JobsRequestsService extends moleculer.Service {
       query.cadastralId = { $in: cadastralIds };
     }
 
-    if (!!Object.keys(request.geom).length) {
+    if (request.geom && !!Object.keys(request.geom).length) {
       query.geom = request.geom;
     }
 
