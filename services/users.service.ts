@@ -147,6 +147,8 @@ export const USERS_DEFAULT_SCOPES = [
         } else if (ctx?.meta?.user?.type === UserType.ADMIN) {
           tenantId = query.tenant;
           delete query.tenant;
+        } else if (!!ctx?.meta?.user?.id) {
+          query.id = ctx.meta.user.id;
         }
 
         if (tenantId) {
