@@ -224,7 +224,7 @@ export default class MinioService extends Moleculer.Service {
         objectName,
       });
 
-      response.exists = data?.size > 0;
+      response.exists = data?.size > 100;
 
       if (response.exists) {
         const presignedUrl: string = await this.getPresignedUrl(
