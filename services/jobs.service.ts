@@ -83,14 +83,13 @@ export default class JobsService extends moleculer.Service {
         stream: true,
       });
 
-      const fileData: any = await ctx.call(
+      await ctx.call(
         'minio.uploadFile',
         {
           payload: toReadableStream(screenshot),
           folder,
           name: hash,
           isPrivate: true,
-          presign: true,
         },
         {
           meta: {
@@ -100,7 +99,10 @@ export default class JobsService extends moleculer.Service {
         }
       );
 
-      screenshotUrl = fileData.presignedUrl;
+      screenshotUrl = await getHashedFileUrl();
+      if (!screenshotUrl) {
+        throw new Error('Screenshot is emtpy');
+      }
     }
 
     job.updateProgress(100);
