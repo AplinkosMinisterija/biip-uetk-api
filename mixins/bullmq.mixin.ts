@@ -33,7 +33,7 @@ export default {
   async started() {
     if (this.$queues.length > 0) {
       this.$worker = new Worker(
-        this.$queueName(),
+        this.$queueWithPrefix(),
         async (job) => {
           const { params, meta, parentSpan } = job.data;
           meta.job = { id: job.id, queue: this.$queueName() };
@@ -45,7 +45,7 @@ export default {
         },
         _.merge(this.settings.bullmq.worker, { connection: this.$connection })
       );
-      this.$events = new QueueEvents(this.$queueName(), {
+      this.$events = new QueueEvents(this.$queueWithPrefix(), {
         connection: this.$connection,
       });
       this.$events.on('active', ({ jobId }: any) =>
@@ -89,6 +89,18 @@ export default {
     );
   },
   methods: {
+    $queueWithPrefix(name?: string) {
+      return `${this.$queuePrefix()}${name || this.$queueName()}`;
+    },
+    $queuePrefix() {
+      const prefix =
+        this.settings.bullmq?.client?.prefix ||
+        this.broker.options?.cacher?.options?.prefix ||
+        '';
+
+      if (!prefix) return '';
+      return `${prefix}.`;
+    },
     $queueName() {
       if (this.version != null && !(this.settings || {}).$noVersionPrefix) {
         return `v${this.version}.${this.name}`;
@@ -97,7 +109,7 @@ export default {
     },
     $resolve(name: string) {
       if (!this.$queueResolved[name]) {
-        this.$queueResolved[name] = new Queue(name, {
+        this.$queueResolved[name] = new Queue(this.$queueWithPrefix(name), {
           connection: this.$connection,
         });
       }
@@ -168,7 +180,7 @@ export default {
       const convertItemToQueueItem = (item: any) => {
         return {
           name: item.action || action,
-          queueName: item.name || name,
+          queueName: this.$queueWithPrefix(item.name || name),
           data: this.$getQueueData(ctx, item.params),
           children: item?.children?.map?.(convertItemToQueueItem),
           opts: _.merge(this.settings.bullmq.job || {}, item.options || {}),

@@ -11,13 +11,11 @@ import moment from 'moment';
   mixins: [BullMqMixin],
   settings: {
     bullmq: {
-      worker: { concurrency: 10 },
+      worker: { concurrency: 5 },
       job: {
-        attempts: 5,
-        backoff: {
-          type: 'fixed',
-          delay: 1000,
-        },
+        attempts: 10,
+        backoff: 1000,
+        failParentOnFailure: true,
       },
     },
   },
