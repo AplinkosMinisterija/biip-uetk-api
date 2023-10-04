@@ -180,7 +180,7 @@ export default {
       const convertItemToQueueItem = (item: any) => {
         return {
           name: item.action || action,
-          queueName: item.name || name,
+          queueName: this.$queueWithPrefix(item.name || name),
           data: this.$getQueueData(ctx, item.params),
           children: item?.children?.map?.(convertItemToQueueItem),
           opts: _.merge(this.settings.bullmq.job || {}, item.options || {}),
