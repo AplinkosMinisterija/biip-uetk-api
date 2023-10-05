@@ -12,7 +12,7 @@ const sender = 'noreply@biip.lt';
 export function emailCanBeSent() {
   if (!client) return false;
 
-  return ['staging','production'].includes(process.env.NODE_ENV);
+  return ['staging', 'production'].includes(process.env.NODE_ENV);
 }
 
 function hostUrl(isAdmin: boolean = false) {
@@ -29,7 +29,7 @@ export function notifyOnFormUpdate(
   isAdmin: boolean = false
 ) {
   const updateTypes: any = {
-    [FormStatus.APPROVED]: 'Pavirtintas',
+    [FormStatus.APPROVED]: 'Patvirtintas',
     [FormStatus.REJECTED]: 'Atmestas',
     [FormStatus.SUBMITTED]: 'Pakartotinai pateiktas',
     [FormStatus.RETURNED]: 'Grąžintas taisymui',
@@ -45,7 +45,7 @@ export function notifyOnFormUpdate(
 
   if (!updateType) return;
 
-  const path = isAdmin ? 'teikimo-anketos' : 'duomenu-teikimas';
+  const path = isAdmin ? 'uetk/teikimo-anketos' : 'duomenu-teikimas';
 
   if (objectId) {
     objectName = `${objectName}, ${objectId}`;
@@ -72,7 +72,7 @@ export function notifyOnRequestUpdate(
   isAdmin: boolean = false
 ) {
   const updateTypes: any = {
-    [RequestStatus.APPROVED]: 'Pavirtintas',
+    [RequestStatus.APPROVED]: 'Patvirtintas',
     [RequestStatus.REJECTED]: 'Atmestas',
     [RequestStatus.SUBMITTED]: 'Pakartotinai pateiktas',
     [RequestStatus.RETURNED]: 'Grąžintas taisymui',
@@ -81,6 +81,8 @@ export function notifyOnRequestUpdate(
 
   if (!updateType) return;
 
+  const path = `${isAdmin ? 'uetk/' : ''}duomenu-gavimas`;
+
   return client.sendEmailWithTemplate({
     From: sender,
     To: email.toLowerCase(),
@@ -88,7 +90,7 @@ export function notifyOnRequestUpdate(
     TemplateModel: {
       title: updateType,
       titleText: updateType.toLowerCase(),
-      actionUrl: `${hostUrl(isAdmin)}/prasymai/${requestId}`,
+      actionUrl: `${hostUrl(isAdmin)}/${path}/${requestId}`,
     },
   });
 }
@@ -98,12 +100,14 @@ export function notifyOnFileGenerated(
   requestId: number | string,
   isAdmin: boolean = false
 ) {
+  const path = `${isAdmin ? 'uetk/' : ''}duomenu-gavimas`;
+
   return client.sendEmailWithTemplate({
     From: sender,
     To: email.toLowerCase(),
     TemplateId: 32594847,
     TemplateModel: {
-      actionUrl: `${hostUrl(isAdmin)}/prasymai/${requestId}`,
+      actionUrl: `${hostUrl(isAdmin)}/${path}/${requestId}`,
     },
   });
 }
