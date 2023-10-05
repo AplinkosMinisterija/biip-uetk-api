@@ -29,25 +29,15 @@
     <td>Žiočių koordinatė Y (LKS94):</td>
     <td><%= roundNumber(locals.ziociuY, 0) %></td>
   </tr>
-  <% }; if (!!locals.atstumasIkiKitosUpes) { %>
-  <tr>
-    <td>Atstumas iki kitos upės žiočių:</td>
-    <td><%= roundNumber(locals.atstumasIkiKitosUpes, 1) || '-' %> km</td>
-  </tr>
-  <% }; if (!!locals.itekejimoIKitaUpeKrantas) { %>
-  <tr>
-    <td>Įtekėjimo į kitą upę krantas:</td>
-    <td><%= locals.itekejimoIKitaUpeKrantas %></td>
-  </tr>
-  <% }; if (!!locals.itekejimoEiliskumas) { %>
-  <tr>
-    <td>Įtekėjimo eiliškumas:</td>
-    <td><%= locals.itekejimoEiliskumas %></td>
-  </tr>
   <% }; if (!!locals.daugiametisDebitas) { %>
   <tr>
     <td>Vidutinis daugiametis vandens debitas žiotyse:</td>
     <td><%= roundNumber(locals.daugiametisDebitas, 3) || '-' %> m<sup>3</sup>/s</td>
+  </tr>
+  <% }; if (!!locals.itekejimoEiliskumas) { %>
+  <tr>
+    <td>Įtekėjimo į Baltijos jūrą arba Kuršių marias eiliškumas:</td>
+    <td><%= locals.itekejimoEiliskumas %></td>
   </tr>
   <% }; %>
 </table>

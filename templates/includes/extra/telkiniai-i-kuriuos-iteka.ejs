@@ -15,6 +15,16 @@
     <td>Kategorija:</td>
     <td><%= item.kategorija %></td>
   </tr>
+  <% if (!!item.atstumas_iki_upes_ziociu && !!item.itekejimo_krantas) { %>
+  <tr>
+    <td>Atstumas iki upės žiočių:</td>
+    <td><%= roundNumber(item.atstumas_iki_upes_ziociu, 1) || '-' %> km</td>
+  </tr>
+  <tr>
+    <td>Įtekėjimo krantas:</td>
+    <td><%= item.itekejimo_krantas %></td>
+  </tr>
+  <% }; %>
   <% }); %>
 </table>
 
