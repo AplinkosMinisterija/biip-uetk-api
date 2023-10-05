@@ -107,6 +107,7 @@ export function notifyOnFileGenerated(
     To: email.toLowerCase(),
     TemplateId: 32594847,
     TemplateModel: {
+      requestId,
       actionUrl: `${hostUrl(isAdmin)}/${path}/${requestId}`,
     },
   });
