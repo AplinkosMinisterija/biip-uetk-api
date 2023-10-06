@@ -51,18 +51,14 @@ export interface TenantUser extends BaseModelInterface {
         type: 'number',
         columnName: 'tenantId',
         immutable: true,
-        populate: {
-          action: 'tenants.resolve',
-        },
+        populate: 'tenants.resolve',
       },
 
       user: {
         type: 'number',
         columnName: 'userId',
         immutable: true,
-        populate: {
-          action: 'users.resolve',
-        },
+        populate: 'users.resolve',
       },
 
       role: {

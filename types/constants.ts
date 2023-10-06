@@ -220,9 +220,7 @@ export const TENANT_FIELD = {
     columnType: 'integer',
     columnName: 'tenantId',
     readonly: true,
-    populate: {
-      action: 'tenants.resolve',
-    },
+    populate: 'tenants.resolve',
     onCreate: ({ ctx }: FieldHookCallback) => ctx.meta.profile?.id,
   },
 };
