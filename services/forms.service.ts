@@ -3,29 +3,28 @@
 import moleculer, { Context, RestSchema } from 'moleculer';
 import { Action, Event, Method, Service } from 'moleculer-decorators';
 
-import { UserAuthMeta } from './api.service';
-import DbConnection from '../mixins/database.mixin';
-import PostgisMixin from 'moleculer-postgis';
 import { FeatureCollection } from 'geojsonjs';
+import PostgisMixin from 'moleculer-postgis';
+import DbConnection from '../mixins/database.mixin';
 import {
-  COMMON_FIELDS,
-  COMMON_DEFAULT_SCOPES,
-  COMMON_SCOPES,
-  FieldHookCallback,
+  ALL_FILE_TYPES,
   BaseModelInterface,
-  throwUnauthorizedError,
+  COMMON_DEFAULT_SCOPES,
+  COMMON_FIELDS,
+  COMMON_SCOPES,
   ContextMeta,
   EntityChangedParams,
-  TENANT_FIELD,
-  ALL_FILE_TYPES,
+  FieldHookCallback,
+  NOTIFY_ADMIN_EMAIL,
+  TENANT_FIELD
 } from '../types';
-import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
-import _ from 'lodash';
-import { Tenant } from './tenants.service';
-import { FormHistoryTypes } from './forms.histories.service';
-import { emailCanBeSent, notifyOnFormUpdate } from '../utils/mails';
 import { getObjectByCadastralId } from '../utils';
+import { emailCanBeSent, notifyOnFormUpdate } from '../utils/mails';
+import { UserAuthMeta } from './api.service';
+import { FormHistoryTypes } from './forms.histories.service';
 import { UETKObjectType } from './objects.service';
+import { Tenant } from './tenants.service';
+import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
 
 type FormStatusChanged = { statusChanged: boolean };
 
@@ -430,12 +429,29 @@ export default class FormsService extends moleculer.Service {
 
   @Method
   async sendNotificationOnStatusChange(form: Form) {
-    // TODO: send email for admins.
+    const object = await this.getObjectFromCadastralId(
+      form.cadastralId,
+      form.objectName
+    );
+
     if (
       !emailCanBeSent() ||
-      [FormStatus.CREATED, FormStatus.SUBMITTED].includes(form.status)
-    ) {
+      !object?.name ||
+      [FormStatus.SUBMITTED].includes(form.status)
+    )
       return;
+
+    // TODO: send email for admins / assignees.
+    if ([FormStatus.CREATED].includes(form.status)) {
+      return notifyOnFormUpdate(
+        NOTIFY_ADMIN_EMAIL,
+        form.status,
+        form.id,
+        form.type,
+        object.name,
+        object.id,
+        true
+      );
     }
 
     const user: User = await this.broker.call('users.resolve', {
@@ -443,12 +459,7 @@ export default class FormsService extends moleculer.Service {
       scope: USERS_DEFAULT_SCOPES,
     });
 
-    const object = await this.getObjectFromCadastralId(
-      form.cadastralId,
-      form.objectName
-    );
-
-    if (!user?.email || !object?.name) return;
+    if (!user?.email) return;
 
     notifyOnFormUpdate(
       user.email,
