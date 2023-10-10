@@ -3,10 +3,10 @@
 import moleculer, { Context } from 'moleculer';
 import { Action, Event, Method, Service } from 'moleculer-decorators';
 
+import { FeatureCollection } from 'geojsonjs';
+import PostgisMixin, { GeometryType } from 'moleculer-postgis';
 import DbConnection from '../mixins/database.mixin';
 import { AuthType, UserAuthMeta } from './api.service';
-import PostgisMixin, { GeometryType } from 'moleculer-postgis';
-import { FeatureCollection } from 'geojsonjs';
 
 import moment from 'moment';
 import {
@@ -18,6 +18,7 @@ import {
   EndpointType,
   EntityChangedParams,
   FieldHookCallback,
+  NOTIFY_ADMIN_EMAIL,
   TENANT_FIELD,
   throwValidationError,
 } from '../types';
@@ -35,7 +36,7 @@ import {
 import { UETKObject } from './objects.service';
 import { RequestHistoryType } from './requests.histories.service';
 import { Tenant } from './tenants.service';
-import { User, USERS_DEFAULT_SCOPES, UserType } from './users.service';
+import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
 
 type RequestStatusChanged = { statusChanged: boolean };
 type RequestAutoApprove = { autoApprove: boolean };
@@ -525,17 +526,22 @@ export default class RequestsService extends moleculer.Service {
 
   @Method
   async sendNotificationOnStatusChange(request: Request) {
-    // TODO: send email for admins using settings.
     if (
       !emailCanBeSent() ||
-      [
-        RequestStatus.CREATED,
-        RequestStatus.SUBMITTED,
-        RequestStatus.APPROVED,
-      ].includes(request.status)
+      [RequestStatus.SUBMITTED, RequestStatus.APPROVED].includes(request.status)
     ) {
       // Do not send when approved - when file will be generated email will be sent
       return;
+    }
+
+    // TODO: send email for admins using settings.
+    if ([RequestStatus.CREATED].includes(request.status)) {
+      return notifyOnRequestUpdate(
+        NOTIFY_ADMIN_EMAIL,
+        request.status,
+        request.id,
+        true
+      );
     }
 
     const user: User = await this.broker.call('users.resolve', {

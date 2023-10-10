@@ -12,7 +12,7 @@ const sender = 'noreply@biip.lt';
 export function emailCanBeSent() {
   if (!client) return false;
 
-  return ['staging', 'production'].includes(process.env.NODE_ENV);
+  return ['production'].includes(process.env.NODE_ENV);
 }
 
 function hostUrl(isAdmin: boolean = false) {
@@ -29,6 +29,7 @@ export function notifyOnFormUpdate(
   isAdmin: boolean = false
 ) {
   const updateTypes: any = {
+    [FormStatus.CREATED]: 'Pateiktas',
     [FormStatus.APPROVED]: 'Patvirtintas',
     [FormStatus.REJECTED]: 'Atmestas',
     [FormStatus.SUBMITTED]: 'Pakartotinai pateiktas',
@@ -72,6 +73,7 @@ export function notifyOnRequestUpdate(
   isAdmin: boolean = false
 ) {
   const updateTypes: any = {
+    [RequestStatus.CREATED]: 'Pateiktas',
     [RequestStatus.APPROVED]: 'Patvirtintas',
     [RequestStatus.REJECTED]: 'Atmestas',
     [RequestStatus.SUBMITTED]: 'Pakartotinai pateiktas',

@@ -3,6 +3,8 @@ import Moleculer, { Context, Errors } from 'moleculer';
 import { UserAuthMeta } from '../services/api.service';
 import { FieldHookCallback } from './';
 
+export const NOTIFY_ADMIN_EMAIL = 'viktorija.ramune@gamta.lt';
+
 export enum EndpointType {
   ADMIN = 'ADMIN',
   USER = 'USER',
