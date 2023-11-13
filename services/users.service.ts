@@ -97,10 +97,10 @@ export const USERS_DEFAULT_SCOPES = [
         virtual: true,
         type: 'array',
         items: 'object',
-        populate(ctx: any, _values: any, users: any[]) {
+        populate(_ctx: Context, _values: any, users: any[]) {
           return Promise.all(
             users.map(async (user: any) => {
-              return ctx.call(
+              return this.broker.call(
                 'tenantUsers.getProfiles',
                 {},
                 {
