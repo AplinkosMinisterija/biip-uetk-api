@@ -2,42 +2,50 @@
   <% if (!!locals.upesIlgis) { %>
   <tr>
     <td>Upės ilgis:</td>
-    <td><%= roundNumber(locals.upesIlgis, 1) || '-' %> km</td>
+    <td class="font-bold"><%= roundNumber(locals.upesIlgis, 1) || '-' %> km</td>
   </tr>
   <% }; if (!!locals.kanaloIlgis) { %>
   <tr>
     <td>Kanalo ilgis:</td>
-    <td><%= roundNumber(locals.kanaloIlgis, 1) || '-' %> km</td>
+    <td class="font-bold">
+      <%= roundNumber(locals.kanaloIlgis, 1) || '-' %> km
+    </td>
   </tr>
   <% }; if (!!locals.upesBaseinoPlotas) { %>
   <tr>
     <td>Upės baseino plotas:</td>
-    <td><%= roundNumber(locals.upesBaseinoPlotas, 1) || '-' %> km<sup>2</sup></td>
+    <td class="font-bold">
+      <%= roundNumber(locals.upesBaseinoPlotas, 1) || '-' %> km<sup>2</sup>
+    </td>
   </tr>
   <% }; if (!!locals.kanaloBaseinoPlotas) { %>
   <tr>
     <td>Kanalo baseino plotas:</td>
-    <td><%= roundNumber(locals.kanaloBaseinoPlotas, 1) || '-' %> km<sup>2</sup></td>
+    <td class="font-bold">
+      <%= roundNumber(locals.kanaloBaseinoPlotas, 1) || '-' %> km<sup>2</sup>
+    </td>
   </tr>
   <% }; if (!!locals.ziociuX) { %>
   <tr>
     <td>Žiočių koordinatė X (LKS94):</td>
-    <td><%= roundNumber(locals.ziociuX, 0) %></td>
+    <td class="font-bold"><%= roundNumber(locals.ziociuX, 0) %></td>
   </tr>
   <% }; if (!!locals.ziociuY) { %>
   <tr>
     <td>Žiočių koordinatė Y (LKS94):</td>
-    <td><%= roundNumber(locals.ziociuY, 0) %></td>
+    <td class="font-bold"><%= roundNumber(locals.ziociuY, 0) %></td>
   </tr>
   <% }; if (!!locals.daugiametisDebitas) { %>
   <tr>
     <td>Vidutinis daugiametis vandens debitas žiotyse:</td>
-    <td><%= roundNumber(locals.daugiametisDebitas, 3) || '-' %> m<sup>3</sup>/s</td>
+    <td class="font-bold">
+      <%= roundNumber(locals.daugiametisDebitas, 3) || '-' %> m<sup>3</sup>/s
+    </td>
   </tr>
   <% }; if (!!locals.itekejimoEiliskumas) { %>
   <tr>
     <td>Įtekėjimo į Baltijos jūrą arba Kuršių marias eiliškumas:</td>
-    <td><%= locals.itekejimoEiliskumas %></td>
+    <td class="font-bold"><%= locals.itekejimoEiliskumas %></td>
   </tr>
   <% }; %>
 </table>

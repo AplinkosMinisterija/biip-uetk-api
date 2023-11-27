@@ -2,9 +2,9 @@
 
 import moleculer, { Context } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
+import moment from 'moment';
 import BullMqMixin from '../mixins/bullmq.mixin';
-import { User } from './users.service';
-import { Tenant } from './tenants.service';
+import { FILE_TYPES, throwNotFoundError } from '../types';
 import {
   addLeadingZeros,
   getRequestSecret,
@@ -13,10 +13,10 @@ import {
   toMD5Hash,
   toReadableStream,
 } from '../utils';
-import { FILE_TYPES, throwNotFoundError } from '../types';
-import { Request } from './requests.service';
 import { AuthType } from './api.service';
-import moment from 'moment';
+import { Request } from './requests.service';
+import { Tenant } from './tenants.service';
+import { User } from './users.service';
 
 @Service({
   name: 'jobs.requests',
@@ -209,8 +209,13 @@ export default class JobsRequestsService extends moleculer.Service {
         screenshot: screenshotsByHash?.[o.hash] || '',
       })),
       formatDate: (date: string, format = 'YYYY-MM-DD') => {
-        if (!date || date === ' ') return;
-        return moment(date).format(format);
+        if (!date?.trim()) return;
+
+        const momentDate = moment(date);
+
+        if (!momentDate.isValid()) return;
+
+        return momentDate.format(format);
       },
       roundNumber,
       fullData: !!request?.data?.extended,
