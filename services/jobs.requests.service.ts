@@ -209,7 +209,7 @@ export default class JobsRequestsService extends moleculer.Service {
         screenshot: screenshotsByHash?.[o.hash] || '',
       })),
       formatDate: (date: string, format = 'YYYY-MM-DD') => {
-        if (!date?.trim()) return;
+        if (!date?.toString()?.trim()) return;
 
         const momentDate = moment(date);
 
