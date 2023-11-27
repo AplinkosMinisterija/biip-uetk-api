@@ -213,7 +213,7 @@ export default class JobsRequestsService extends moleculer.Service {
 
         const momentDate = moment(date);
 
-        if (!momentDate.isValid()) return;
+        //if (!momentDate.isValid()) return;
 
         return momentDate.format(format);
       },
