@@ -5,36 +5,39 @@
   </tr>
   <tr>
     <td>Pavadinimas:</td>
-    <td><%= item.pavadinimas %></td>
+    <td class="font-bold"><%= item.pavadinimas %></td>
   </tr>
   <tr>
     <td>Koordinatė X (LKS94):</td>
-    <td><%= roundNumber(item.objekto_x, 0) || '' %></td>
+    <td class="font-bold"><%= roundNumber(item.objekto_x, 0) || '' %></td>
   </tr>
   <tr>
     <td>Koordinatė Y (LKS94):</td>
-    <td><%= roundNumber(item.objekto_y, 0) || '' %></td>
+    <td class="font-bold"><%= roundNumber(item.objekto_y, 0) || '' %></td>
   </tr>
   <tr>
     <td>Atstumas nuo upės žiočių:</td>
-    <td><%= roundNumber(item.atstumas_nuo_ziociu, 1) || '-' %> km</td>
+    <td class="font-bold">
+      <%= roundNumber(item.atstumas_nuo_ziociu, 1) || '-' %> km
+    </td>
   </tr>
   <tr>
     <td>Upės baseino plotas ties stotimi:</td>
-    <td><%= roundNumber(item.nulineAltitude, 1) || '-' %>  km<sup>2</sup></td>
+    <td class="font-bold">
+      <%= roundNumber(item.nulineAltitude, 1) || '-' %> km<sup>2</sup>
+    </td>
   </tr>
   <tr>
     <td>Stoties atskaitos nulinė altitudė:</td>
-    <td><%= roundNumber(item.altitude, 2) || '-' %> m</td>
+    <td class="font-bold"><%= roundNumber(item.altitude, 2) || '-' %> m</td>
   </tr>
   <tr>
     <td>Stebima nuo:</td>
-    <td><%= formatDate(item.stebejimu_pradzia) || '-' %></td>
+    <td class="font-bold"><%= formatDate(item.stebejimu_pradzia) || '-' %></td>
   </tr>
   <tr>
-    <td>Šaltinis:</td>
-    <td><b><%= item.saltinis %></b></td>
+    <td>Duomenų teikėjas:</td>
+    <td class="font-bold"><%= item.saltinis %></td>
   </tr>
   <% }); %>
 </table>
-

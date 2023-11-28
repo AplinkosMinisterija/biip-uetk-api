@@ -16,7 +16,7 @@ import {
   EntityChangedParams,
   FieldHookCallback,
   NOTIFY_ADMIN_EMAIL,
-  TENANT_FIELD
+  TENANT_FIELD,
 } from '../types';
 import { getObjectByCadastralId } from '../utils';
 import { emailCanBeSent, notifyOnFormUpdate } from '../utils/mails';

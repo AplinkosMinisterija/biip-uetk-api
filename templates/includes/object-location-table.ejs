@@ -2,57 +2,57 @@
   <% if (!!locals.coordinatesX) { %>
   <tr>
     <td>Centro koordinatė X (LKS94):</td>
-    <td><%= roundNumber(locals.coordinatesX, 0) %></td>
+    <td class="font-bold"><%= roundNumber(locals.coordinatesX, 0) %></td>
   </tr>
   <% }; if (!!locals.coordinatesY) { %>
   <tr>
     <td>Centro koordinatė Y (LKS94):</td>
-    <td><%= roundNumber(locals.coordinatesY, 0) %></td>
+    <td class="font-bold"><%= roundNumber(locals.coordinatesY, 0) %></td>
   </tr>
   <% }; if (!!locals.ezeroKvadratoNumeris) { %>
   <tr>
     <td>Ežero kvadrato numeris:</td>
-    <td><%= locals.ezeroKvadratoNumeris %></td>
+    <td class="font-bold"><%= locals.ezeroKvadratoNumeris %></td>
   </tr>
   <% }; if (!!locals.ezeroNumerisKvadrate) { %>
   <tr>
     <td>Ežero numeris kvadrate:</td>
-    <td><%= locals.ezeroNumerisKvadrate %></td>
+    <td class="font-bold"><%= locals.ezeroNumerisKvadrate %></td>
   </tr>
   <% }; if (!!locals.upesBaseinoRajonas) { %>
   <tr>
     <td>Upės baseino rajonas:</td>
-    <td><%= locals.upesBaseinoRajonas %></td>
+    <td class="font-bold"><%= locals.upesBaseinoRajonas %></td>
   </tr>
   <% }; if (!!locals.upesBaseinas) { %>
   <tr>
     <td>Upės baseinas:</td>
-    <td><%= locals.upesBaseinas %></td>
+    <td class="font-bold"><%= locals.upesBaseinas %></td>
   </tr>
   <% }; if (!!locals.upesPabaseinis) { %>
   <tr>
     <td>Upės pabaseinis:</td>
-    <td><%= locals.upesPabaseinis %></td>
+    <td class="font-bold"><%= locals.upesPabaseinis %></td>
   </tr>
   <% }; %>
   <tr>
     <td>Savivaldybė (-ės):</td>
-    <td><%= municipalities?.map(i => i.sav_pavadinimas).sort((name1, name2) => name1.localeCompare(name2)).join(", "); %></td>
+    <td class="font-bold"><%= municipalities?.map(i => i.sav_pavadinimas).sort((name1, name2) => name1.localeCompare(name2)).join(", "); %></td>
   </tr>
   <% if (!!locals.patvenktosUpesPavadinimas) { %>
   <tr>
     <td>Patvenktos upės pavadinimas:</td>
-    <td><%= patvenktosUpesPavadinimas %></td>
+    <td class="font-bold"><%= patvenktosUpesPavadinimas %></td>
   </tr>
   <% }; if (!!locals.patvenktosUpesID) { %>
   <tr>
     <td>Patvenktos upės identifikavimo kodas:</td>
-    <td><%= patvenktosUpesID %></td>
+    <td class="font-bold"><%= patvenktosUpesID %></td>
   </tr>
   <% }; if (!!locals.atstumasNuoPatvenktosUpesZiociu) { %>
   <tr>
     <td>Atstumas nuo patvenktos upės žiočių:</td>
-    <td><%= roundNumber(atstumasNuoPatvenktosUpesZiociu, 1) || '-' %> km</td>
+    <td class="font-bold"><%= roundNumber(atstumasNuoPatvenktosUpesZiociu, 1) || '-' %> km</td>
   </tr>
   <% }; %>
 </table>
