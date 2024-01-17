@@ -1,26 +1,27 @@
 'use strict';
 
 import moleculer, { Context } from 'moleculer';
-import { Action, Event, Method, Service } from 'moleculer-decorators';
+import { Action, Event, Service } from 'moleculer-decorators';
 
-import { UserAuthMeta } from './api.service';
 import DbConnection from '../mixins/database.mixin';
 import {
-  COMMON_FIELDS,
-  COMMON_DEFAULT_SCOPES,
-  COMMON_SCOPES,
-  FieldHookCallback,
   BaseModelInterface,
+  COMMON_DEFAULT_SCOPES,
+  COMMON_FIELDS,
+  COMMON_SCOPES,
   EndpointType,
-  throwUnauthorizedError,
+  FieldHookCallback,
   throwNotFoundError,
+  throwUnauthorizedError,
 } from '../types';
-import { TenantUserRole } from './tenantUsers.service';
+import { UserAuthMeta } from './api.service';
 import { Tenant } from './tenants.service';
+import { TenantUserRole } from './tenantUsers.service';
 
 export enum UserType {
   ADMIN = 'ADMIN',
   USER = 'USER',
+  SUPER_ADMIN = 'SUPER_ADMIN',
 }
 export interface User extends BaseModelInterface {
   firstName: string;
@@ -319,6 +320,10 @@ export default class UsersService extends moleculer.Service {
         type: 'boolean',
         default: false,
       },
+      hideAdmins: {
+        type: 'boolean',
+        default: true,
+      },
       firstName: {
         type: 'string',
         optional: true,
@@ -345,18 +350,20 @@ export default class UsersService extends moleculer.Service {
       email?: string;
       phone?: string;
       update?: boolean;
+      hideAdmins?: boolean;
     }>
   ) {
-    const { authUser, update, firstName, lastName, email, phone } = ctx.params;
+    const { authUser, update, firstName, lastName, email, phone, hideAdmins } =
+      ctx.params;
     if (!authUser || !authUser.id) return;
 
     const scope = [...USERS_WITHOUT_AUTH_SCOPES];
 
-    const authUserIsAdmin = ['SUPER_ADMIN', UserType.ADMIN].includes(
+    const authUserIsAdmin = [UserType.SUPER_ADMIN, UserType.ADMIN].includes(
       authUser.type
     );
 
-    if (authUserIsAdmin) {
+    if (hideAdmins && authUserIsAdmin) {
       scope.push(...USERS_WITHOUT_NOT_ADMINS_SCOPE);
     }
 
@@ -377,20 +384,20 @@ export default class UsersService extends moleculer.Service {
       phone: phone || authUser.phone,
     };
 
-    if (user?.id) {
-      return ctx.call('users.update', {
-        id: user.id,
-        ...dataToSave,
-        scope,
-      });
-    }
-
     // let user to customize his phone and email
     if (user?.email) {
       delete dataToSave.email;
     }
     if (user?.phone) {
       delete dataToSave.phone;
+    }
+
+    if (user?.id) {
+      return ctx.call('users.update', {
+        id: user.id,
+        ...dataToSave,
+        scope,
+      });
     }
 
     return ctx.call('users.create', {

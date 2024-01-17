@@ -12,11 +12,23 @@ const sender = 'noreply@biip.lt';
 export function emailCanBeSent() {
   if (!client) return false;
 
-  return ['production'].includes(process.env.NODE_ENV);
+  return true;
+  //return ['production'].includes(process.env.NODE_ENV);
 }
 
 function hostUrl(isAdmin: boolean = false) {
   return isAdmin ? process.env.ADMIN_HOST : process.env.APP_HOST;
+}
+
+export function notifyFormAssignee(email: string, formId: number | string) {
+  return client.sendEmailWithTemplate({
+    From: sender,
+    To: email.toLowerCase(),
+    TemplateId: 34487978,
+    TemplateModel: {
+      actionUrl: `${hostUrl()}/uetk/teikimo-anketos/${formId}`,
+    },
+  });
 }
 
 export function notifyOnFormUpdate(
