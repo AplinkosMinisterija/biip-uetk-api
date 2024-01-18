@@ -211,13 +211,15 @@ const populatePermissions = (field: string) => {
 
           if (!entity?.id || !user?.id || !value) return null;
 
-          const assigneeList: { rows: User[] } = await ctx.call(
+          const availableAssigneeList: { rows: User[] } = await ctx.call(
             'forms.getAssignees'
           );
 
           if (
             user.type === UserType.USER ||
-            !assigneeList.rows.find((assignee) => assignee.id === Number(value))
+            !availableAssigneeList.rows.find(
+              (assignee) => assignee.id === Number(value)
+            )
           ) {
             throwBadRequestError('Assignee cannot be set.');
           }
@@ -412,7 +414,7 @@ export default class FormsService extends moleculer.Service {
       query: {
         type: UserType.ADMIN,
         group: {
-          $in: 1455,
+          $in: authUser?.adminOfGroups,
         },
       },
       fields: ['id', 'firstName', 'lastName', 'phone', 'email'],
