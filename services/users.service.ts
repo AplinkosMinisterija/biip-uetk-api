@@ -320,7 +320,6 @@ export default class UsersService extends moleculer.Service {
         type: 'boolean',
         default: false,
       },
-
       firstName: {
         type: 'string',
         optional: true,
@@ -339,16 +338,7 @@ export default class UsersService extends moleculer.Service {
       },
     },
   })
-  async findOrCreate(
-    ctx: Context<{
-      authUser: any;
-      firstName?: string;
-      lastName?: string;
-      email?: string;
-      phone?: string;
-      update?: boolean;
-    }>
-  ) {
+  async findOrCreate(ctx: any) {
     const { authUser, update, firstName, lastName, email, phone } = ctx.params;
     if (!authUser || !authUser.id) return;
 
@@ -380,8 +370,8 @@ export default class UsersService extends moleculer.Service {
     };
 
     if (user?.id) {
-      return this.updateEntity(
-        ctx,
+      return ctx.call(
+        'users.update',
         {
           id: user.id,
           ...dataToSave,

@@ -1,11 +1,11 @@
 'use strict';
 
 import _ from 'lodash';
-const DbService = require('@moleculer/database').Service;
-import { config } from '../knexfile';
-import filtersMixin from 'moleculer-knex-filters';
 import { Context } from 'moleculer';
+import filtersMixin from 'moleculer-knex-filters';
+import { config } from '../knexfile';
 import { parseToJsonIfNeeded } from '../utils';
+const DbService = require('@moleculer/database').Service;
 
 export default function (opts: any = {}) {
   const adapter: any = {
@@ -44,6 +44,18 @@ export default function (opts: any = {}) {
         const result: any[] = await this.actions.find(ctx.params);
         if (result.length) return result[0];
         return;
+      },
+
+      async update(ctx: any) {
+        return this.updateEntity(
+          ctx,
+          {
+            ...ctx.params,
+          },
+          {
+            ...ctx.options,
+          }
+        );
       },
 
       async removeAllEntities(ctx: any) {

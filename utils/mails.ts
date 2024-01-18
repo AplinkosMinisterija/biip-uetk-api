@@ -12,8 +12,7 @@ const sender = 'noreply@biip.lt';
 export function emailCanBeSent() {
   if (!client) return false;
 
-  return true;
-  //return ['production'].includes(process.env.NODE_ENV);
+  return ['production'].includes(process.env.NODE_ENV);
 }
 
 function hostUrl(isAdmin: boolean = false) {

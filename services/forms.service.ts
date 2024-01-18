@@ -233,7 +233,6 @@ const populatePermissions = (field: string) => {
           const localUser: User = await ctx.call('users.findOrCreate', {
             authUser: assigneeAuthUser,
             update: true,
-            hideAdmins: false,
           });
 
           return localUser.id;
