@@ -33,7 +33,13 @@ import { UserAuthMeta } from './api.service';
 import { FormHistoryTypes } from './forms.histories.service';
 import { UETKObjectType } from './objects.service';
 import { Tenant } from './tenants.service';
-import { User, USERS_DEFAULT_SCOPES, UserType } from './users.service';
+import {
+  User,
+  USERS_DEFAULT_SCOPES,
+  USERS_WITHOUT_AUTH_SCOPES,
+  USERS_WITHOUT_NOT_ADMINS_SCOPE,
+  UserType,
+} from './users.service';
 
 type FormStatusChanged = { statusChanged: boolean };
 
@@ -207,60 +213,22 @@ const populatePermissions = (field: string) => {
           value,
           entity,
         }: FieldHookCallback & ContextMeta<FormStatusChanged>) => {
-          const { user, authUser } = ctx?.meta;
+          const { user } = ctx?.meta;
 
           if (!entity?.id || !user?.id || !value) return null;
+
+          if (entity.assigneeId === value) return value;
 
           const availableAssigneeList: { rows: User[] } = await ctx.call(
             'forms.getAssignees'
           );
+          const assigneeAuthUser = availableAssigneeList.rows.find(
+            (assignee) => assignee.id === Number(value)
+          );
 
-          if (
-            user.type === UserType.USER ||
-            !availableAssigneeList.rows.find(
-              (assignee) => assignee.id === Number(value)
-            )
-          ) {
+          if (user.type === UserType.USER || !assigneeAuthUser) {
             throwBadRequestError('Assignee cannot be set.');
           }
-
-          const createdBy: User = await ctx.call('users.resolve', {
-            id: entity.createdBy,
-          });
-
-          let prevAssignee = null;
-          if (!!entity.assigneeId) {
-            prevAssignee = (await ctx.call('users.resolve', {
-              id: entity.assigneeId,
-            })) as User;
-          }
-
-          const newAssignee = Number(value);
-          const prevAssigneeId = Number(prevAssignee?.authUser);
-          const userIsCreator = Number(createdBy.authUser) === newAssignee;
-
-          if (
-            authUser.type === UserType.ADMIN &&
-            !authUser.adminOfGroups.length
-          ) {
-            const assignedToHimself =
-              Number(authUser.id) === Number(prevAssigneeId);
-
-            if (!!newAssignee && !!prevAssigneeId) {
-              throwBadRequestError('Assignee already exists.');
-            } else if (!newAssignee && !assignedToHimself) {
-              throwBadRequestError('Cannot unassign others.');
-            }
-          }
-
-          if (!newAssignee && !prevAssigneeId) {
-            throwBadRequestError('Already unassigned.');
-          } else if (!!newAssignee && userIsCreator) {
-            throwBadRequestError('Cannot assign to creator.');
-          }
-          const assigneeAuthUser: any = await ctx.call('auth.users.get', {
-            id: value,
-          });
 
           const localUser: User = await ctx.call('users.findOrCreate', {
             authUser: assigneeAuthUser,
@@ -268,12 +236,9 @@ const populatePermissions = (field: string) => {
             hideAdmins: false,
           });
 
-          if (emailCanBeSent() && localUser.email) {
-            notifyFormAssignee(localUser.email, entity.id);
-          }
-
           return localUser.id;
         },
+        validate: 'validateAssignee',
         columnName: 'assigneeId',
       },
 
@@ -387,22 +352,52 @@ export default class FormsService extends moleculer.Service {
     });
   }
 
+  @Method
+  async validateAssignee({ ctx, value, entity }: FieldHookCallback) {
+    const { user, authUser } = ctx?.meta;
+
+    if (!entity?.id || !user?.id || entity.assigneeId === value) return true;
+
+    const newAssignee = Number(value);
+    const prevAssigneeId = Number(entity.assigneeId);
+    const userIsCreator = Number(entity.createdBy) === newAssignee;
+
+    if (authUser.type === UserType.ADMIN && !authUser.adminOfGroups.length) {
+      const assignedToHimself = Number(user.id) === Number(prevAssigneeId);
+
+      if (!!newAssignee && !!prevAssigneeId) {
+        return 'Assignee already exists.';
+      } else if (!newAssignee && !assignedToHimself) {
+        return 'Cannot unassign others.';
+      }
+    }
+
+    if (!newAssignee && !prevAssigneeId) {
+      return 'Already unassigned.';
+    } else if (!!newAssignee && userIsCreator) {
+      return 'Cannot assign to creator.';
+    }
+
+    return true;
+  }
+
   @Action({
     rest: 'GET /assignees',
     auth: EndpointType.ADMIN,
   })
   async getAssignees(ctx: Context<{}, UserAuthMeta>) {
-    const { authUser, user } = ctx.meta;
+    const { authUser } = ctx.meta;
 
     if (authUser?.type === UserType.ADMIN && isEmpty(authUser?.adminOfGroups))
       return {
         rows: [
           {
-            id: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: user.phone,
-            email: user.email,
+            id: authUser.id,
+            firstName: authUser.firstName,
+            lastName: authUser.lastName,
+            phone: authUser.phone,
+            email: authUser.email,
+            type: authUser?.type,
           },
         ],
         total: 1,
@@ -417,7 +412,7 @@ export default class FormsService extends moleculer.Service {
           $in: authUser?.adminOfGroups,
         },
       },
-      fields: ['id', 'firstName', 'lastName', 'phone', 'email'],
+      fields: ['id', 'firstName', 'lastName', 'phone', 'email', 'type'],
       pageSize: 99999,
     });
   }
@@ -558,7 +553,7 @@ export default class FormsService extends moleculer.Service {
     return {
       edit: canEdit,
       validate: canValidate,
-      assign: canAssign,
+      assign: true,
     };
   }
 
@@ -612,14 +607,8 @@ export default class FormsService extends moleculer.Service {
       form.objectName
     );
 
-    if (
-      !emailCanBeSent() ||
-      !object?.name ||
-      [FormStatus.SUBMITTED].includes(form.status)
-    )
-      return;
+    if (!emailCanBeSent() || !object?.name) return;
 
-    // TODO: send email for admins / assignees.
     if ([FormStatus.CREATED].includes(form.status)) {
       return notifyOnFormUpdate(
         NOTIFY_ADMIN_EMAIL,
@@ -635,7 +624,7 @@ export default class FormsService extends moleculer.Service {
     if ([FormStatus.SUBMITTED].includes(form.status)) {
       const assignee: User = await this.broker.call('users.resolve', {
         id: form.assignee,
-        scope: USERS_DEFAULT_SCOPES,
+        scope: USERS_WITHOUT_NOT_ADMINS_SCOPE,
       });
 
       if (!assignee?.email) return;
@@ -678,6 +667,28 @@ export default class FormsService extends moleculer.Service {
   @Event()
   async 'forms.updated'(ctx: Context<EntityChangedParams<Form>>) {
     const { oldData: prevForm, data: form } = ctx.params;
+
+    if (!!form?.assignee && prevForm?.assignee !== form?.assignee) {
+      const assignee: User = await ctx.call('users.resolve', {
+        id: form.assignee,
+        scope: USERS_WITHOUT_NOT_ADMINS_SCOPE,
+      });
+
+      if (!emailCanBeSent() || !assignee?.email) return;
+
+      const object = await this.getObjectFromCadastralId(
+        form.cadastralId,
+        form.objectName
+      );
+
+      notifyFormAssignee(
+        assignee.email,
+        form.id,
+        form.type,
+        form.objectName,
+        object.id
+      );
+    }
 
     if (prevForm?.status !== form.status) {
       const { comment } = ctx.options?.parentCtx?.params as any;

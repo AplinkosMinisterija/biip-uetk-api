@@ -20,13 +20,31 @@ function hostUrl(isAdmin: boolean = false) {
   return isAdmin ? process.env.ADMIN_HOST : process.env.APP_HOST;
 }
 
-export function notifyFormAssignee(email: string, formId: number | string) {
+export function notifyFormAssignee(
+  email: string,
+  formId: number | string,
+  formType: string,
+  objectName: string,
+  objectId: string
+) {
+  if (objectId) {
+    objectName = `${objectName}, ${objectId}`;
+  }
+
+  const formTypeTranslates: any = {
+    [FormType.NEW]: 'įregistravimo',
+    [FormType.EDIT]: 'redagavimo',
+    [FormType.REMOVE]: 'išregistravimo',
+  };
+
   return client.sendEmailWithTemplate({
     From: sender,
     To: email.toLowerCase(),
     TemplateId: 34487978,
     TemplateModel: {
       actionUrl: `${hostUrl()}/uetk/teikimo-anketos/${formId}`,
+      typeText: formTypeTranslates[formType] || 'teikimo',
+      objectName,
     },
   });
 }
@@ -48,12 +66,6 @@ export function notifyOnFormUpdate(
     [FormStatus.RETURNED]: 'Grąžintas taisymui',
   };
 
-  const formTypeTranlates: any = {
-    [FormType.NEW]: 'įregistravimo',
-    [FormType.EDIT]: 'redagavimo',
-    [FormType.REMOVE]: 'išregistravimo',
-  };
-
   const updateType = updateTypes[status] || '';
 
   if (!updateType) return;
@@ -64,6 +76,12 @@ export function notifyOnFormUpdate(
     objectName = `${objectName}, ${objectId}`;
   }
 
+  const formTypeTranslates: any = {
+    [FormType.NEW]: 'įregistravimo',
+    [FormType.EDIT]: 'redagavimo',
+    [FormType.REMOVE]: 'išregistravimo',
+  };
+
   return client.sendEmailWithTemplate({
     From: sender,
     To: email.toLowerCase(),
@@ -71,7 +89,7 @@ export function notifyOnFormUpdate(
     TemplateModel: {
       title: updateType,
       titleText: updateType.toLowerCase(),
-      typeText: formTypeTranlates[formType] || 'teikimo',
+      typeText: formTypeTranslates[formType] || 'teikimo',
       objectName,
       actionUrl: `${hostUrl(isAdmin)}/${path}/${formId}`,
     },

@@ -42,7 +42,7 @@ const AUTH_PROTECTED_SCOPES = [
 ];
 
 export const USERS_WITHOUT_AUTH_SCOPES = [`-${VISIBLE_TO_USER_SCOPE}`];
-const USERS_WITHOUT_NOT_ADMINS_SCOPE = [`-${NOT_ADMINS_SCOPE}`];
+export const USERS_WITHOUT_NOT_ADMINS_SCOPE = [`-${NOT_ADMINS_SCOPE}`];
 export const USERS_DEFAULT_SCOPES = [
   ...USERS_WITHOUT_AUTH_SCOPES,
   ...USERS_WITHOUT_NOT_ADMINS_SCOPE,
@@ -320,10 +320,7 @@ export default class UsersService extends moleculer.Service {
         type: 'boolean',
         default: false,
       },
-      hideAdmins: {
-        type: 'boolean',
-        default: true,
-      },
+
       firstName: {
         type: 'string',
         optional: true,
@@ -350,11 +347,9 @@ export default class UsersService extends moleculer.Service {
       email?: string;
       phone?: string;
       update?: boolean;
-      hideAdmins?: boolean;
     }>
   ) {
-    const { authUser, update, firstName, lastName, email, phone, hideAdmins } =
-      ctx.params;
+    const { authUser, update, firstName, lastName, email, phone } = ctx.params;
     if (!authUser || !authUser.id) return;
 
     const scope = [...USERS_WITHOUT_AUTH_SCOPES];
@@ -363,7 +358,7 @@ export default class UsersService extends moleculer.Service {
       authUser.type
     );
 
-    if (hideAdmins && authUserIsAdmin) {
+    if (authUserIsAdmin) {
       scope.push(...USERS_WITHOUT_NOT_ADMINS_SCOPE);
     }
 
@@ -384,20 +379,23 @@ export default class UsersService extends moleculer.Service {
       phone: phone || authUser.phone,
     };
 
+    if (user?.id) {
+      return this.updateEntity(
+        ctx,
+        {
+          id: user.id,
+          ...dataToSave,
+        },
+        { scope }
+      );
+    }
+
     // let user to customize his phone and email
     if (user?.email) {
       delete dataToSave.email;
     }
     if (user?.phone) {
       delete dataToSave.phone;
-    }
-
-    if (user?.id) {
-      return ctx.call('users.update', {
-        id: user.id,
-        ...dataToSave,
-        scope,
-      });
     }
 
     return ctx.call('users.create', {
