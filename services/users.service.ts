@@ -338,7 +338,16 @@ export default class UsersService extends moleculer.Service {
       },
     },
   })
-  async findOrCreate(ctx: any) {
+  async findOrCreate(
+    ctx: Context<{
+      authUser: any;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+      update?: boolean;
+    }>
+  ) {
     const { authUser, update, firstName, lastName, email, phone } = ctx.params;
     if (!authUser || !authUser.id) return;
 
@@ -376,7 +385,7 @@ export default class UsersService extends moleculer.Service {
           id: user.id,
           ...dataToSave,
         },
-        { scope }
+        { scope } as any
       );
     }
 
