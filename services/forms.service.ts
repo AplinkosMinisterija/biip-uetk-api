@@ -36,7 +36,6 @@ import { Tenant } from './tenants.service';
 import {
   User,
   USERS_DEFAULT_SCOPES,
-  USERS_WITHOUT_AUTH_SCOPES,
   USERS_WITHOUT_NOT_ADMINS_SCOPE,
   UserType,
 } from './users.service';
@@ -80,17 +79,24 @@ const VISIBLE_TO_USER_SCOPE = 'visibleToUser';
 const AUTH_PROTECTED_SCOPES = [...COMMON_DEFAULT_SCOPES, VISIBLE_TO_USER_SCOPE];
 
 const populatePermissions = (field: string) => {
-  return function (ctx: Context<{}, UserAuthMeta>, _values: any, forms: any[]) {
+  return async function (
+    ctx: Context<{}, UserAuthMeta>,
+    _values: any,
+    forms: any[]
+  ) {
     const { user, profile, authUser } = ctx?.meta;
-    return forms.map((form: any) => {
-      const editingPermissions = this.hasPermissionToEdit(
-        form,
-        user,
-        authUser,
-        profile
-      );
-      return !!editingPermissions[field];
-    });
+    return await Promise.all(
+      forms.map(async (form: any) => {
+        const editingPermissions = await this.hasPermissionToEdit(
+          ctx,
+          form,
+          user,
+          authUser,
+          profile
+        );
+        return !!editingPermissions[field];
+      })
+    );
   };
 };
 
@@ -353,28 +359,20 @@ export default class FormsService extends moleculer.Service {
 
   @Method
   async validateAssignee({ ctx, value, entity }: FieldHookCallback) {
-    const { user, authUser } = ctx?.meta;
+    const { user, authUser, profile } = ctx?.meta;
 
     if (!entity?.id || !user?.id || entity.assigneeId === value) return true;
 
-    const newAssignee = Number(value);
-    const prevAssigneeId = Number(entity.assigneeId);
-    const userIsCreator = Number(entity.createdBy) === newAssignee;
+    const editingPermissions = await this.hasPermissionToEdit(
+      ctx,
+      entity,
+      user,
+      authUser,
+      profile
+    );
 
-    if (authUser.type === UserType.ADMIN && !authUser.adminOfGroups.length) {
-      const assignedToHimself = Number(user.id) === Number(prevAssigneeId);
-
-      if (!!newAssignee && !!prevAssigneeId) {
-        return 'Assignee already exists.';
-      } else if (!newAssignee && !assignedToHimself) {
-        return 'Cannot unassign others.';
-      }
-    }
-
-    if (!newAssignee && !prevAssigneeId) {
-      return 'Already unassigned.';
-    } else if (!!newAssignee && userIsCreator) {
-      return 'Cannot assign to creator.';
+    if (!editingPermissions.assign) {
+      return 'Assignee cannot be set.';
     }
 
     return true;
@@ -465,7 +463,7 @@ export default class FormsService extends moleculer.Service {
   }
 
   @Method
-  validateStatus({ ctx, value, entity }: FieldHookCallback) {
+  async validateStatus({ ctx, value, entity }: FieldHookCallback) {
     const { user, profile, authUser } = ctx.meta;
     if (!value || !user?.id) return true;
 
@@ -482,7 +480,8 @@ export default class FormsService extends moleculer.Service {
       return newStatuses.includes(value) || error;
     }
 
-    const editingPermissions = this.hasPermissionToEdit(
+    const editingPermissions = await this.hasPermissionToEdit(
+      ctx,
       entity,
       user,
       authUser,
@@ -499,16 +498,17 @@ export default class FormsService extends moleculer.Service {
   }
 
   @Method
-  hasPermissionToEdit(
+  async hasPermissionToEdit(
+    ctx: any,
     form: any,
     user?: User,
     authUser?: any,
     profile?: Tenant
-  ): {
+  ): Promise<{
     edit: boolean;
     validate: boolean;
     assign: boolean;
-  } {
+  }> {
     const invalid = { edit: false, validate: false, assign: false };
 
     const tenant = form.tenant || form.tenantId;
@@ -536,23 +536,41 @@ export default class FormsService extends moleculer.Service {
       (isCreatedByTenant || isCreatedByUser);
 
     const isSuperAdminOrAssignee =
-      authUser.type === UserType.SUPER_ADMIN || form.assigneeId === user.id;
+      authUser?.type === UserType.SUPER_ADMIN || form.assigneeId === user.id;
 
     const canValidate =
       isSuperAdminOrAssignee &&
       [FormStatus.CREATED, FormStatus.SUBMITTED].includes(form.status);
 
-    const canAssign =
-      !isCreatedByUser &&
-      authUser.type !== UserType.USER &&
-      (!isEmpty(authUser.adminOfGroups) ||
-        !form?.assigneeId ||
-        isSuperAdminOrAssignee);
+    let canAssign = true;
+
+    if (isCreatedByUser || authUser?.type === UserType.USER) {
+      canAssign = false;
+    }
+
+    if (canAssign && !!form?.assigneeId) {
+      const assignee: User = await ctx.call('users.resolve', {
+        id: form.assigneeId,
+        scope: USERS_WITHOUT_NOT_ADMINS_SCOPE,
+      });
+
+      const availableAssigneeList: { rows: User[] } = await ctx.call(
+        'forms.getAssignees'
+      );
+
+      const assigneeAuthUser = availableAssigneeList.rows.find(
+        (availableAssignee) => availableAssignee.id === assignee?.authUser
+      );
+
+      if (!assigneeAuthUser && authUser.type !== UserType.SUPER_ADMIN) {
+        canAssign = false;
+      }
+    }
 
     return {
       edit: canEdit,
       validate: canValidate,
-      assign: true,
+      assign: canAssign,
     };
   }
 
