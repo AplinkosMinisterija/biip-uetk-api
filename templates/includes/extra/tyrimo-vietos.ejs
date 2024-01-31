@@ -18,12 +18,9 @@
   <% if (locals.showDistance) { %>
   <tr>
     <td>Atstumas nuo upės žiočių:</td>
-    <td class="font-bold"><%= roundNumber(item.atstumas_nuo_ziociu, 1) || '-' %> km</td>
+    <td class="font-bold">
+      <%= roundNumber(item.atstumas_nuo_ziociu, 1) || '-' %> km
+    </td>
   </tr>
-  <% } %>
-  <tr>
-    <td>Duomenų teikėjas:</td>
-    <td class="font-bold"><%= item.saltinis || '' %></td>
-  </tr>
-  <% }); %>
+  <% } %> <% }); %>
 </table>
