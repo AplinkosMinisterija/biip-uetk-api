@@ -5,110 +5,142 @@
 </tr>
 <% }; if (!!locals.kodas) { %>
 <tr>
-  <td>Hidrotechnikos statinio kodas:</td>
-  <td><%= locals.kodas %></td>
+  <td>Hidrotechninio statinio kodas:</td>
+  <td class="font-bold"><%= locals.kodas %></td>
 </tr>
 <% }; if (!!locals.registravimoData) { %>
 <tr>
   <td>Įrašymo data:</td>
-  <td><%= formatDate(locals.registravimoData) || '-' %></td>
+  <td class="font-bold"><%= formatDate(locals.registravimoData) || '-' %></td>
 </tr>
 <% }; if (!!locals.tipas) { %>
 <tr>
   <td>Tipas:</td>
-  <td><%= locals.tipas %></td>
+  <td class="font-bold"><%= locals.tipas %></td>
 </tr>
 <% }; if (!!locals.pastatymoMetai) { %>
 <tr>
   <td>Pastatymo metai:</td>
-  <td><%= formatDate(locals.pastatymoMetai, 'YYYY') || '-' %></td>
+  <td class="font-bold">
+    <%= formatDate(locals.pastatymoMetai, 'YYYY') || '-' %>
+  </td>
 </tr>
 <% }; if (!!locals.patvankosAukstis) { %>
 <tr>
   <td>Patvankos aukštis:</td>
-  <td><%= roundNumber(locals.patvankosAukstis, 1) || '-' %> m</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.patvankosAukstis, 1) || '-' %> m
+  </td>
 </tr>
 <% }; if (!!locals.maxPatvankosAukstis) { %>
 <tr>
   <td>Maksimalus patvankos aukštis:</td>
-  <td><%= roundNumber(locals.maxPatvankosAukstis, 1) || '-' %> m</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.maxPatvankosAukstis, 1) || '-' %> m
+  </td>
 </tr>
 <% }; if (!!locals.ilgis) { %>
 <tr>
   <td>Žemių užtvankos ilgis:</td>
-  <td><%= roundNumber(locals.ilgis, 1) || '-' %> m</td>
+  <td class="font-bold"><%= roundNumber(locals.ilgis, 1) || '-' %> m</td>
 </tr>
 <% }; if (!!locals.plotis) { %>
 <tr>
   <td>Žemių užtvankos plotis:</td>
-  <td><%= roundNumber(locals.plotis, 1) || '-' %> m</td>
+  <td class="font-bold"><%= roundNumber(locals.plotis, 1) || '-' %> m</td>
 </tr>
 <% }; if (!!locals.gamtosauginisDebitas) { %>
 <tr>
   <td>Gamtosauginis vandens debitas:</td>
-  <td><%= roundNumber(locals.gamtosauginisDebitas, 3) || '-' %> m<sup>3</sup>/s</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.gamtosauginisDebitas, 3) || '-' %> m<sup>3</sup>/s
+  </td>
 </tr>
 <% }; if (!!locals.vidDaugiametisDebitas) { %>
 <tr>
   <td>Vidutinis daugiametis vandens debitas Qvid:</td>
-  <td><%= roundNumber(locals.vidDaugiametisDebitas, 3) || '-' %> m<sup>3</sup>/s</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.vidDaugiametisDebitas, 3) || '-' %> m<sup>3</sup>/s
+  </td>
 </tr>
 <% }; if (!!locals.vidDaugiametisDebitas95) { %>
 <tr>
   <td>Vidutinis daugiametis vandens debitas Q95%:</td>
-  <td><%= roundNumber(locals.vidDaugiametisDebitas95, 3) || '-' %> m<sup>3</sup>/s</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.vidDaugiametisDebitas95, 3) || '-' %> m<sup>3</sup>/s
+  </td>
 </tr>
 <% }; if (!!locals.maxPavasarioPotvynioDeb1) { %>
 <tr>
   <td>Maksimalus pavasario potvynio vandens debitas Q1%:</td>
-  <td><%= roundNumber(locals.maxPavasarioPotvynioDeb1, 3) || '-' %> m<sup>3</sup>/s</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.maxPavasarioPotvynioDeb1, 3) || '-' %>
+    m<sup>3</sup>/s
+  </td>
 </tr>
 <% }; if (!!locals.maxPavasarioPotvynioDeb5) { %>
 <tr>
   <td>Maksimalus pavasario potvynio vandens debitas Q5%:</td>
-  <td><%= roundNumber(locals.maxPavasarioPotvynioDeb5, 3) || '-' %> m<sup>3</sup>/s</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.maxPavasarioPotvynioDeb5, 3) || '-' %>
+    m<sup>3</sup>/s
+  </td>
 </tr>
 <% }; if (!!locals.minVasarosRudens30ParuDebitas95) { %>
 <tr>
   <td>Minimalus vasaros-rudens 30 sausiausių parų laikotarpio debitas Q95%:</td>
-  <td><%= roundNumber(locals.minVasarosRudens30ParuDebitas95, 3) || '-' %> m<sup>3</sup>/s</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.minVasarosRudens30ParuDebitas95, 3) || '-' %>
+    m<sup>3</sup>/s
+  </td>
 </tr>
 <% }; if (!!locals.maxDebitas) { %>
 <tr>
-  <td>Maksimalus vandens debitas, esant maksimaliai (skaičiuotinai) debito tikimybei:</td>
-  <td><%= roundNumber(locals.maxDebitas, 3) || '-' %> m<sup>3</sup>/s</td>
+  <td>
+    Maksimalus vandens debitas, esant maksimaliai (skaičiuotinai) debito
+    tikimybei:
+  </td>
+  <td class="font-bold">
+    <%= roundNumber(locals.maxDebitas, 3) || '-' %> m<sup>3</sup>/s
+  </td>
 </tr>
 <% }; if (!!locals.galia) { %>
 <tr>
   <td>Galia:</td>
-  <td><%= roundNumber(locals.galia, 0) || '-' %> kW</td>
+  <td class="font-bold"><%= roundNumber(locals.galia, 0) || '-' %> kW</td>
 </tr>
 <% }; if (!!locals.maxSlegioAukstis) { %>
 <tr>
   <td>Maksimalus slėgio aukštis:</td>
-  <td><%= roundNumber(locals.maxSlegioAukstis, 1) || '-' %> m</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.maxSlegioAukstis, 1) || '-' %> m
+  </td>
 </tr>
 <% }; if (!!locals.zuvuPralaidosDebitas) { %>
 <tr>
   <td>Žuvų pralaidos debitas:</td>
-  <td><%= roundNumber(locals.zuvuPralaidosDebitas, 3) || '-' %> m<sup>3</sup>/s</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.zuvuPralaidosDebitas, 3) || '-' %> m<sup>3</sup>/s
+  </td>
 </tr>
 <% }; %>
 <tr>
   <td>Koordinatė X (LKS94):</td>
-  <td><%= roundNumber(locals.coordinatesX, 0) || '-' %></td>
+  <td class="font-bold"><%= roundNumber(locals.coordinatesX, 0) || '-' %></td>
 </tr>
 <tr>
   <td>Koordinatė Y (LKS94):</td>
-  <td><%= roundNumber(locals.coordinatesY, 0) || '-' %></td>
+  <td class="font-bold"><%= roundNumber(locals.coordinatesY, 0) || '-' %></td>
 </tr>
 <% if (!!locals.atstumasNuoZiociu) { %>
 <tr>
   <td>Atstumas nuo upės žiočių:</td>
-  <td><%= roundNumber(locals.atstumasNuoZiociu, 1) || '-' %> km</td>
+  <td class="font-bold">
+    <%= roundNumber(locals.atstumasNuoZiociu, 1) || '-' %> km
+  </td>
 </tr>
 <% }; %>
 <tr>
   <td>Savivaldybė:</td>
-  <td><%= locals.savivaldybe || '-' %></td>
+  <td class="font-bold"><%= locals.savivaldybe || '-' %></td>
 </tr>

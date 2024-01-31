@@ -5,23 +5,23 @@
   </tr>
   <tr>
     <td>Pavadinimas:</td>
-    <td><%= item.pavadinimas %></td>
+    <td class="font-bold"><%= item.pavadinimas %></td>
   </tr>
   <tr>
     <td>Identifikavimo kodas:</td>
-    <td><%= item.kodas %></td>
+    <td class="font-bold"><%= item.kodas %></td>
   </tr>
   <tr>
     <td>Kategorija:</td>
-    <td><%= item.kategorija %></td>
+    <td class="font-bold"><%= item.kategorija %></td>
   </tr>
   <tr>
     <td>Atstumas nuo upės žiočių:</td>
-    <td><%= roundNumber(item.atstumas_nuo_upes_ziociu, 1) || '-' %> km</td>
+    <td class="font-bold"><%= roundNumber(item.atstumas_nuo_upes_ziociu, 1) || '-' %> km</td>
   </tr>
   <tr>
     <td>Įtekėjimo krantas:</td>
-    <td><%= item.itekejimo_vyr_upes_krantas %></td>
+    <td class="font-bold"><%= item.itekejimo_vyr_upes_krantas %></td>
   </tr>
   <% }); %>
 </table>

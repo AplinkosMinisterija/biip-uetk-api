@@ -5,26 +5,25 @@
   </tr>
   <tr>
     <td>Pavadinimas:</td>
-    <td><%= item.pavadinimas || '' %></td>
+    <td class="font-bold"><%= item.pavadinimas || '' %></td>
   </tr>
   <tr>
     <td>Koordinatė X (LKS94):</td>
-    <td><%= roundNumber(item.objekto_x, 0) || '' %></td>
+    <td class="font-bold"><%= roundNumber(item.objekto_x, 0) || '' %></td>
   </tr>
   <tr>
     <td>Koordinatė Y (LKS94):</td>
-    <td><%= roundNumber(item.objekto_y, 0) || '' %></td>
+    <td class="font-bold"><%= roundNumber(item.objekto_y, 0) || '' %></td>
   </tr>
   <% if (locals.showDistance) { %>
   <tr>
     <td>Atstumas nuo upės žiočių:</td>
-    <td><%= roundNumber(item.atstumas_nuo_ziociu, 1) || '-' %> km</td>
+    <td class="font-bold"><%= roundNumber(item.atstumas_nuo_ziociu, 1) || '-' %> km</td>
   </tr>
   <% } %>
   <tr>
-    <td>Šaltinis:</td>
-    <td><b><%= item.saltinis || '' %></b></td>
+    <td>Duomenų teikėjas:</td>
+    <td class="font-bold"><%= item.saltinis || '' %></td>
   </tr>
   <% }); %>
 </table>
-

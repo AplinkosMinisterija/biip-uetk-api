@@ -8,7 +8,7 @@
     <div>
       <div class="flex items-center justify-center">
         <div>
-          <img src="https://s3.biip.lt/uetk-wp/app/uploads/AAA-Zenklas-RGB-1-300x300.png" class="w-20"/>
+          <img src="https://s3.biip.lt/uetk-wp/app/uploads/AAA-Zenklas-RGB-1-300x300.png" class="w-16"/>
         </div>
         <div class="flex flex-col items-center w-full mr-20 text-center">
           <p class="font-bold text-2xl">APLINKOS APSAUGOS AGENTŪRA</p>
@@ -27,7 +27,7 @@
       <% objects.forEach(function(item, index) { %>
         <div class="flex flex-col items-center">
           <p>LIETUVOS RESPUBLIKOS UPIŲ, EŽERŲ IR TVENKINIŲ KADASTRO IŠRAŠAS</p>
-          <p>Išrašo unikalus numeris <b><%= id %></b>, suformavimo data <b><%= formatDate(locals.date) %></b></p>
+          <p>Išrašo unikalus numeris <b><%= id %></b>, suformavimo data <b><%= formatDate(new Date()) %></b></p>
         </div>
 
         <hr />
