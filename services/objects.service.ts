@@ -271,32 +271,32 @@ export default class ObjectsService extends moleculer.Service {
   async publicStatistics(ctx: Context<{}>) {
     const UETKObjects: UETKObject[] = await ctx.call('objects.find');
 
-    return UETKObjects.reduce((UETKObjects, currentUETKObject) => {
-      UETKObjects[currentUETKObject?.category] =
-        UETKObjects?.[currentUETKObject?.category] || {};
+    return UETKObjects.reduce((groupedUETKObjects, currentUETKObject) => {
+      groupedUETKObjects[currentUETKObject?.category] =
+        groupedUETKObjects?.[currentUETKObject?.category] || {};
 
-      UETKObjects[currentUETKObject?.category].count =
-        (UETKObjects[currentUETKObject.category]?.count || 0) + 1;
+      groupedUETKObjects[currentUETKObject?.category].count =
+        (groupedUETKObjects[currentUETKObject.category]?.count || 0) + 1;
 
       if (currentUETKObject?.area) {
-        UETKObjects[currentUETKObject?.category].area = Number(
+        groupedUETKObjects[currentUETKObject?.category].area = Number(
           (
-            (UETKObjects[currentUETKObject.category]?.area || 0) +
+            (groupedUETKObjects[currentUETKObject.category]?.area || 0) +
             currentUETKObject.area / 10000
           ).toFixed(2)
         ); // convert to ha
       }
 
       if (currentUETKObject?.length) {
-        UETKObjects[currentUETKObject?.category].length = Number(
+        groupedUETKObjects[currentUETKObject?.category].length = Number(
           (
-            (UETKObjects[currentUETKObject.category]?.length || 0) +
+            (groupedUETKObjects[currentUETKObject.category]?.length || 0) +
             currentUETKObject.length / 1000
           ).toFixed(2)
         ); // convert to km
       }
 
-      return UETKObjects;
+      return groupedUETKObjects;
     }, {} as { [key: string]: { count?: number; length?: number; area?: number } });
   }
 }
