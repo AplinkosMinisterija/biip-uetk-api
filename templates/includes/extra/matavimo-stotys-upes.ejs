@@ -23,7 +23,9 @@
   </tr>
   <tr>
     <td>Upės baseino plotas ties stotimi:</td>
-    <td class="font-bold"><%= item.nulineAltitude || '-' %> km<sup>2</sup></td>
+    <td class="font-bold">
+      <%= item?.nulineAltitude || 'test' %> km<sup>2</sup>
+    </td>
   </tr>
   <tr>
     <td>Stoties atskaitos nulinė altitudė:</td>
