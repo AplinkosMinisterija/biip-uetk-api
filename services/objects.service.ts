@@ -1,13 +1,15 @@
 'use strict';
 
-import moleculer, { Context } from 'moleculer';
+import moleculer, { Context, RestSchema } from 'moleculer';
 import { Action, Service } from 'moleculer-decorators';
 
-import DbConnection from '../mixins/database.mixin';
-import { gisConfig } from '../knexfile';
-import { throwBadRequestError } from '../types';
 import { FeatureCollection } from 'geojsonjs';
+import { gisConfig } from '../knexfile';
+import DbConnection from '../mixins/database.mixin';
+import { throwBadRequestError } from '../types';
 
+import { snakeCase } from 'lodash';
+import PostgisMixin from 'moleculer-postgis';
 import {
   getDamOfLandsQuery,
   getExcessWaterCulvertQuery,
@@ -18,8 +20,6 @@ import {
   parseToJsonIfNeeded,
 } from '../utils';
 import { AuthType } from './api.service';
-import { snakeCase } from 'lodash';
-import PostgisMixin from 'moleculer-postgis';
 const tableName = 'publishing.uetkMerged';
 
 export type UETKObject = {
@@ -257,5 +257,46 @@ export default class ObjectsService extends moleculer.Service {
       query: { ...(query || {}), ...(search ? { $raw: textQuery } : {}) },
       sort: 'name',
     });
+  }
+
+  @Action({
+    rest: <RestSchema>{
+      method: 'GET',
+      basePath: '/public/statistics',
+      path: '/',
+    },
+    auth: AuthType.PUBLIC,
+    // todo cache
+  })
+  async publicStatistics(ctx: Context<{}>) {
+    const UETKObjects: UETKObject[] = await ctx.call('objects.find');
+
+    return UETKObjects.reduce((UETKObjects, currentUETKObject) => {
+      UETKObjects[currentUETKObject?.category] =
+        UETKObjects?.[currentUETKObject?.category] || {};
+
+      UETKObjects[currentUETKObject?.category].count =
+        (UETKObjects[currentUETKObject.category]?.count || 0) + 1;
+
+      if (currentUETKObject?.area) {
+        UETKObjects[currentUETKObject?.category].area = Number(
+          (
+            (UETKObjects[currentUETKObject.category]?.area || 0) +
+            currentUETKObject.area / 10000
+          ).toFixed(2)
+        ); // convert to ha
+      }
+
+      if (currentUETKObject?.length) {
+        UETKObjects[currentUETKObject?.category].length = Number(
+          (
+            (UETKObjects[currentUETKObject.category]?.length || 0) +
+            currentUETKObject.length / 1000
+          ).toFixed(2)
+        ); // convert to km
+      }
+
+      return UETKObjects;
+    }, {} as { [key: string]: { count?: number; length?: number; area?: number } });
   }
 }
