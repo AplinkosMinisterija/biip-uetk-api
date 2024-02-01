@@ -45,6 +45,7 @@ export function getObjectByCadastralId(
 
 export function roundNumber(number: string, digits: number = 2) {
   if (!number) return;
+
   let numberParsed = parseFloat(number);
 
   if (Number.isNaN(numberParsed)) return;
