@@ -46,18 +46,6 @@ export default function (opts: any = {}) {
         return;
       },
 
-      async update(ctx: any) {
-        return this.updateEntity(
-          ctx,
-          {
-            ...ctx.params,
-          },
-          {
-            ...ctx.options,
-          }
-        );
-      },
-
       async removeAllEntities(ctx: any) {
         return await this.clearEntities(ctx);
       },

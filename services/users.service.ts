@@ -379,14 +379,9 @@ export default class UsersService extends moleculer.Service {
     };
 
     if (user?.id) {
-      return ctx.call(
-        'users.update',
-        {
-          id: user.id,
-          ...dataToSave,
-        },
-        { scope } as any
-      );
+      return this.updateEntity(ctx, dataToSave, {
+        scope,
+      });
     }
 
     // let user to customize his phone and email

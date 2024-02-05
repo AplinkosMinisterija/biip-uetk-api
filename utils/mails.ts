@@ -41,7 +41,7 @@ export function notifyFormAssignee(
     To: email.toLowerCase(),
     TemplateId: 34487978,
     TemplateModel: {
-      actionUrl: `${hostUrl()}/uetk/teikimo-anketos/${formId}`,
+      actionUrl: `${hostUrl(true)}/uetk/teikimo-anketos/${formId}`,
       typeText: formTypeTranslates[formType] || 'teikimo',
       objectName,
     },

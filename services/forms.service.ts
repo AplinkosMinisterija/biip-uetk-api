@@ -225,6 +225,12 @@ const populatePermissions = (field: string) => {
 
           if (entity.assigneeId === value) return value;
 
+          const error = 'Assignee cannot be set.';
+
+          if (user.type === UserType.USER) {
+            throwBadRequestError(error);
+          }
+
           const availableAssigneeList: { rows: User[] } = await ctx.call(
             'forms.getAssignees'
           );
@@ -232,8 +238,8 @@ const populatePermissions = (field: string) => {
             (assignee) => assignee.id === Number(value)
           );
 
-          if (user.type === UserType.USER || !assigneeAuthUser) {
-            throwBadRequestError('Assignee cannot be set.');
+          if (!assigneeAuthUser) {
+            throwBadRequestError(error);
           }
 
           const localUser: User = await ctx.call('users.findOrCreate', {
@@ -399,6 +405,8 @@ export default class FormsService extends moleculer.Service {
         ],
         total: 1,
         page: 1,
+        pageSize: 10,
+        totalPages: 1,
       };
 
     return await ctx.call('auth.users.list', {
@@ -410,7 +418,6 @@ export default class FormsService extends moleculer.Service {
         },
       },
       fields: ['id', 'firstName', 'lastName', 'phone', 'email', 'type'],
-      pageSize: 99999,
     });
   }
 
@@ -544,7 +551,7 @@ export default class FormsService extends moleculer.Service {
 
     let canAssign = true;
 
-    if (isCreatedByUser || authUser?.type === UserType.USER) {
+    if (isCreatedByUser || user?.type === UserType.USER) {
       canAssign = false;
     }
 
@@ -685,6 +692,24 @@ export default class FormsService extends moleculer.Service {
   async 'forms.updated'(ctx: Context<EntityChangedParams<Form>>) {
     const { oldData: prevForm, data: form } = ctx.params;
 
+    if (prevForm?.status !== form.status) {
+      const { comment } = ctx.options?.parentCtx?.params as any;
+      const typesByStatus = {
+        [FormStatus.SUBMITTED]: FormHistoryTypes.UPDATED,
+        [FormStatus.REJECTED]: FormHistoryTypes.REJECTED,
+        [FormStatus.RETURNED]: FormHistoryTypes.RETURNED,
+        [FormStatus.APPROVED]: FormHistoryTypes.APPROVED,
+      };
+
+      await ctx.call('forms.histories.create', {
+        form: form.id,
+        comment,
+        type: typesByStatus[form.status],
+      });
+
+      await this.sendNotificationOnStatusChange(form);
+    }
+
     if (!!form?.assignee && prevForm?.assignee !== form?.assignee) {
       const assignee: User = await ctx.call('users.resolve', {
         id: form.assignee,
@@ -705,24 +730,6 @@ export default class FormsService extends moleculer.Service {
         form.objectName,
         object.id
       );
-    }
-
-    if (prevForm?.status !== form.status) {
-      const { comment } = ctx.options?.parentCtx?.params as any;
-      const typesByStatus = {
-        [FormStatus.SUBMITTED]: FormHistoryTypes.UPDATED,
-        [FormStatus.REJECTED]: FormHistoryTypes.REJECTED,
-        [FormStatus.RETURNED]: FormHistoryTypes.RETURNED,
-        [FormStatus.APPROVED]: FormHistoryTypes.APPROVED,
-      };
-
-      await ctx.call('forms.histories.create', {
-        form: form.id,
-        comment,
-        type: typesByStatus[form.status],
-      });
-
-      await this.sendNotificationOnStatusChange(form);
     }
   }
 
