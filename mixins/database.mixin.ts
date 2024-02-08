@@ -1,11 +1,11 @@
 'use strict';
 
 import _ from 'lodash';
-const DbService = require('@moleculer/database').Service;
-import { config } from '../knexfile';
-import filtersMixin from 'moleculer-knex-filters';
 import { Context } from 'moleculer';
+import filtersMixin from 'moleculer-knex-filters';
+import { config } from '../knexfile';
 import { parseToJsonIfNeeded } from '../utils';
+const DbService = require('@moleculer/database').Service;
 
 export default function (opts: any = {}) {
   const adapter: any = {
