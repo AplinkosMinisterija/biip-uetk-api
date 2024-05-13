@@ -434,15 +434,10 @@ export default class FormsService extends moleculer.Service {
       form.objectName
     );
 
-    if (
-      !emailCanBeSent() ||
-      !object?.name ||
-      [FormStatus.SUBMITTED].includes(form.status)
-    )
-      return;
+    if (!emailCanBeSent() || !object?.name) return;
 
     // TODO: send email for admins / assignees.
-    if ([FormStatus.CREATED].includes(form.status)) {
+    if ([FormStatus.CREATED, FormStatus.SUBMITTED].includes(form.status)) {
       return notifyOnFormUpdate(
         NOTIFY_ADMIN_EMAIL,
         form.status,
