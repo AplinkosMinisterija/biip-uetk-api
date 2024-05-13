@@ -528,14 +528,16 @@ export default class RequestsService extends moleculer.Service {
   async sendNotificationOnStatusChange(request: Request) {
     if (
       !emailCanBeSent() ||
-      [RequestStatus.SUBMITTED, RequestStatus.APPROVED].includes(request.status)
+      [RequestStatus.APPROVED].includes(request.status)
     ) {
       // Do not send when approved - when file will be generated email will be sent
       return;
     }
 
     // TODO: send email for admins using settings.
-    if ([RequestStatus.CREATED].includes(request.status)) {
+    if (
+      [RequestStatus.CREATED, RequestStatus.SUBMITTED].includes(request.status)
+    ) {
       return notifyOnRequestUpdate(
         NOTIFY_ADMIN_EMAIL,
         request.status,
