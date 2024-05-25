@@ -411,10 +411,7 @@ export default class FormsService extends moleculer.Service {
         query: { cadastralId: form.cadastralId },
       });
     } else {
-      object = {
-        cadastralId: `${form.cadastralId}`,
-        name: form.objectName,
-      };
+      object = { name: form.objectName };
     }
 
     if (!emailCanBeSent() || !object?.name) return;
