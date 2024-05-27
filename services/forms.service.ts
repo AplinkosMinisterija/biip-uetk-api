@@ -18,11 +18,10 @@ import {
   NOTIFY_ADMIN_EMAIL,
   TENANT_FIELD,
 } from '../types';
-import { getObjectByCadastralId } from '../utils';
 import { emailCanBeSent, notifyOnFormUpdate } from '../utils/mails';
 import { UserAuthMeta } from './api.service';
 import { FormHistoryTypes } from './forms.histories.service';
-import { UETKObjectType } from './objects.service';
+import { UETKObject, UETKObjectType } from './objects.service';
 import { Tenant } from './tenants.service';
 import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
 
@@ -179,22 +178,6 @@ const populatePermissions = (field: string) => {
           const { user, statusChanged } = ctx?.meta;
           if (user?.type !== UserType.ADMIN || !statusChanged) return;
           return new Date();
-        },
-      },
-
-      object: {
-        type: 'object',
-        virtual: true,
-        populate: function (
-          ctx: Context<{}, UserAuthMeta>,
-          _values: any,
-          forms: Form[]
-        ) {
-          return Promise.all(
-            forms.map(async (form) =>
-              this.getObjectFromCadastralId(form.cadastralId, form.objectName)
-            )
-          );
         },
       },
 
@@ -420,19 +403,16 @@ export default class FormsService extends moleculer.Service {
   }
 
   @Method
-  async getObjectFromCadastralId(id?: number | string, name?: string) {
-    const objects = await getObjectByCadastralId(id, { name });
-    if (!objects?.length) return;
-
-    return objects[0];
-  }
-
-  @Method
   async sendNotificationOnStatusChange(form: Form) {
-    const object = await this.getObjectFromCadastralId(
-      form.cadastralId,
-      form.objectName
-    );
+    let object: Partial<UETKObject>;
+
+    if (form.cadastralId) {
+      object = await this.broker.call('objects.findOne', {
+        query: { cadastralId: form.cadastralId },
+      });
+    } else {
+      object = { name: form.objectName };
+    }
 
     if (!emailCanBeSent() || !object?.name) return;
 
@@ -444,7 +424,7 @@ export default class FormsService extends moleculer.Service {
         form.id,
         form.type,
         object.name,
-        object.id,
+        object.cadastralId,
         true
       );
     }
