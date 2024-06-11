@@ -341,7 +341,7 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
       },
     },
 
-    defaultScopes: AUTH_PROTECTED_SCOPES,
+    defaultScopes: [...AUTH_PROTECTED_SCOPES, 'filterJson'],
   },
 
   hooks: {
