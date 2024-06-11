@@ -292,15 +292,23 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
       },
 
       async filterJson(query: any, ctx: any) {
+        const filter: any = {};
+
         if (query.objectName) {
+          filter.name = query.objectName;
+        }
+
+        if (query.objectCode) {
+          filter.cadastralId = query.objectCode;
+        }
+
+        if (Object.keys(filter).length) {
           const objects: UETKObject[] = await ctx.call('objects.find', {
-            filter: {
-              name: query.objectName,
-            },
+            filter,
           });
           const cadastralIds = objects.map((obj) => obj.cadastralId);
 
-          query.objectName = {
+          query.objects = {
             $raw: {
               condition: `requests.id IN (
                 SELECT requests.id
@@ -311,21 +319,9 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
               bindings: cadastralIds.map((id: string) => Number(id)),
             },
           };
-        }
 
-        if (query.objectCode) {
-          query.objectCode = {
-            $raw: {
-              condition: `
-              requests.id IN (
-                SELECT requests.id
-                FROM jsonb_array_elements("objects") AS obj
-                WHERE obj->>'id'  ilike ?
-            )
-          `,
-              bindings: [`%${Number(query.objectCode)}%`],
-            },
-          };
+          delete query.objectCode;
+          delete query.objectName;
         }
 
         if (query.extended) {
