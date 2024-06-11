@@ -36,7 +36,7 @@ import {
 import { UETKObject } from './objects.service';
 import { RequestHistoryType } from './requests.histories.service';
 import { Tenant } from './tenants.service';
-import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
+import { User, USERS_DEFAULT_SCOPES, UserType } from './users.service';
 
 type RequestStatusChanged = { statusChanged: boolean };
 type RequestAutoApprove = { autoApprove: boolean };
@@ -286,6 +286,55 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
         if (query.createdBy === user.id) {
           return { ...query, ...createdByUserQuery };
+        }
+
+        return query;
+      },
+
+      async filterJson(query: any, ctx: any) {
+        if (query.objectName) {
+          const objects: UETKObject[] = await ctx.call('objects.find', {
+            filter: {
+              name: query.objectName,
+            },
+          });
+          const cadastralIds = objects.map((obj) => obj.cadastralId);
+
+          query.objectName = {
+            $raw: {
+              condition: `requests.id IN (
+                SELECT requests.id
+                FROM jsonb_array_elements("objects") AS obj
+                WHERE obj->>'id' IN (${cadastralIds
+                  .map((_) => '?')
+                  .join(',')}))`,
+              bindings: cadastralIds.map((id: string) => Number(id)),
+            },
+          };
+        }
+
+        if (query.objectCode) {
+          query.objectCode = {
+            $raw: {
+              condition: `
+              requests.id IN (
+                SELECT requests.id
+                FROM jsonb_array_elements("objects") AS obj
+                WHERE obj->>'id'  ilike ?
+            )
+          `,
+              bindings: [`%${Number(query.objectCode)}%`],
+            },
+          };
+        }
+
+        if (query.extended) {
+          query.extended = {
+            $raw: {
+              condition: `"data"::jsonb->>'extended' = ?`,
+              bindings: [Boolean(query.extended)],
+            },
+          };
         }
 
         return query;
