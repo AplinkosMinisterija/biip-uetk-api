@@ -9,8 +9,8 @@
     upesBaseinas: item.baseinoPavadinimas || ' ',
     upesPabaseinis: item.pabaseinioPavadinimas || ' ',
     municipalities: item.savivaldybes,
-    patvenktosUpesPavadinimas: item.patvenktaUpe?.[0]?.upes_pavadinimas || ' ',
-    patvenktosUpesID: item.patvenktaUpe?.[0]?.upes_kodas || ' ',
+    patvenktosUpesPavadinimas: item.patvenktaUpe?.[0]?.upes_pavadinimas || '-',
+    patvenktosUpesID: item.patvenktaUpe?.[0]?.upes_kodas || '-',
     atstumasNuoPatvenktosUpesZiociu: item.patvenktaUpe?.[0]?.atstumas_nuo_ziociu || '-',
   }); %>
 </div>
