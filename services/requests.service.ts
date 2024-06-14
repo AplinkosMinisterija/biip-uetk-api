@@ -36,7 +36,7 @@ import {
 import { UETKObject } from './objects.service';
 import { RequestHistoryType } from './requests.histories.service';
 import { Tenant } from './tenants.service';
-import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
+import { User, USERS_DEFAULT_SCOPES, UserType } from './users.service';
 
 type RequestStatusChanged = { statusChanged: boolean };
 type RequestAutoApprove = { autoApprove: boolean };
@@ -290,9 +290,58 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
         return query;
       },
+
+      async filterJson(query: any, ctx: any) {
+        const filter: any = {};
+
+        if (query.objectName) {
+          filter.name = query.objectName;
+        }
+
+        if (query.objectCode) {
+          filter.cadastralId = query.objectCode;
+        }
+        if (query.objectCategory) {
+          filter.category = query.objectCategory;
+        }
+
+        if (Object.keys(filter).length) {
+          const objects: UETKObject[] = await ctx.call('objects.find', {
+            filter,
+          });
+          const cadastralIds = objects.map((obj) => obj.cadastralId);
+
+          query.objects = {
+            $raw: {
+              condition: `requests.id IN (
+                SELECT requests.id
+                FROM jsonb_array_elements("objects") AS obj
+                WHERE obj->>'id' IN (${cadastralIds
+                  .map((_) => '?')
+                  .join(',')}))`,
+              bindings: cadastralIds.map((id: string) => Number(id)),
+            },
+          };
+
+          delete query.objectCode;
+          delete query.objectName;
+          delete query.objectCategory;
+        }
+
+        if (query.extended) {
+          query.extended = {
+            $raw: {
+              condition: `"data"::jsonb->>'extended' = ?`,
+              bindings: [Boolean(query.extended)],
+            },
+          };
+        }
+
+        return query;
+      },
     },
 
-    defaultScopes: AUTH_PROTECTED_SCOPES,
+    defaultScopes: [...AUTH_PROTECTED_SCOPES, 'filterJson'],
   },
 
   hooks: {
