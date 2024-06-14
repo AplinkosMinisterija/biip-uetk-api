@@ -325,6 +325,7 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
           delete query.objectCode;
           delete query.objectName;
+          delete query.objectCategory;
         }
 
         if (query.extended) {
