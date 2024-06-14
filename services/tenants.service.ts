@@ -3,18 +3,18 @@
 import moleculer, { Context } from 'moleculer';
 import { Action, Service } from 'moleculer-decorators';
 
-import { UserAuthMeta } from './api.service';
 import DbConnection from '../mixins/database.mixin';
 import {
-  COMMON_FIELDS,
-  COMMON_DEFAULT_SCOPES,
-  COMMON_SCOPES,
-  FieldHookCallback,
   BaseModelInterface,
+  COMMON_DEFAULT_SCOPES,
+  COMMON_FIELDS,
+  COMMON_SCOPES,
   EndpointType,
-  throwUnauthorizedError,
+  FieldHookCallback,
   throwNotFoundError,
+  throwUnauthorizedError,
 } from '../types';
+import { UserAuthMeta } from './api.service';
 import { TenantUser, TenantUserRole } from './tenantUsers.service';
 import { User, UserType } from './users.service';
 
@@ -295,7 +295,7 @@ export default class TenantsService extends moleculer.Service {
       'tenantUsers.createRelationshipsIfNeeded',
       {
         companyName,
-        authGroup,
+        authGroup: { ...authGroup, role: authUser?.role },
         companyEmail,
         companyPhone,
         userId: user.id,

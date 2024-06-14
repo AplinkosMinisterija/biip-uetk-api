@@ -23,7 +23,7 @@ import {
   USER_PUBLIC_GET,
   USER_PUBLIC_POPULATE,
 } from '../types';
-import { getObjectByCadastralId } from '../utils';
+
 import {
   emailCanBeSent,
   notifyFormAssignee,
@@ -31,7 +31,7 @@ import {
 } from '../utils/mails';
 import { UserAuthMeta } from './api.service';
 import { FormHistoryTypes } from './forms.histories.service';
-import { UETKObjectType } from './objects.service';
+import { UETKObject, UETKObjectType } from './objects.service';
 import { Tenant } from './tenants.service';
 import {
   User,
@@ -251,22 +251,6 @@ const populatePermissions = (field: string) => {
         },
         validate: 'validateAssignee',
         columnName: 'assigneeId',
-      },
-
-      object: {
-        type: 'object',
-        virtual: true,
-        populate: function (
-          ctx: Context<{}, UserAuthMeta>,
-          _values: any,
-          forms: Form[]
-        ) {
-          return Promise.all(
-            forms.map(async (form) =>
-              this.getObjectFromCadastralId(form.cadastralId, form.objectName)
-            )
-          );
-        },
       },
 
       canEdit: {
@@ -617,30 +601,30 @@ export default class FormsService extends moleculer.Service {
   }
 
   @Method
-  async getObjectFromCadastralId(id?: number | string, name?: string) {
-    const objects = await getObjectByCadastralId(id, { name });
-    if (!objects?.length) return;
-
-    return objects[0];
-  }
-
-  @Method
   async sendNotificationOnStatusChange(form: Form) {
-    const object = await this.getObjectFromCadastralId(
-      form.cadastralId,
-      form.objectName
-    );
+    let object: Partial<UETKObject>;
 
     if (!emailCanBeSent() || !object?.name) return;
 
-    if ([FormStatus.CREATED].includes(form.status)) {
+    if (form.cadastralId) {
+      object = await this.broker.call('objects.findOne', {
+        query: { cadastralId: form.cadastralId },
+      });
+    } else {
+      object = { name: form.objectName };
+    }
+
+    if (!emailCanBeSent() || !object?.name) return;
+
+    // TODO: send email for admins / assignees.
+    if ([FormStatus.CREATED, FormStatus.SUBMITTED].includes(form.status)) {
       return notifyOnFormUpdate(
         NOTIFY_ADMIN_EMAIL,
         form.status,
         form.id,
         form.type,
         object.name,
-        object.id,
+        object.cadastralId,
         true
       );
     }

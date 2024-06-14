@@ -24,7 +24,7 @@
   <tr>
     <td>Upės baseino plotas ties stotimi:</td>
     <td class="font-bold">
-      <%= roundNumber(item.nulineAltitude, 1) || '-' %> km<sup>2</sup>
+      <%= roundNumber(item.baseino_plotas, 1) || '-' %> km<sup>2</sup>
     </td>
   </tr>
   <tr>
@@ -33,11 +33,11 @@
   </tr>
   <tr>
     <td>Stebima nuo:</td>
-    <td class="font-bold"><%= formatDate(item.stebejimu_pradzia) || '-' %></td>
+    <td class="font-bold"><%= item.stebejimu_pradzia || '-' %></td>
   </tr>
   <tr>
     <td>Duomenų teikėjas:</td>
-    <td class="font-bold"><%= item.saltinis %></td>
+    <td class="font-bold"><%= item.saltinis || '-' %></td>
   </tr>
   <% }); %>
 </table>
