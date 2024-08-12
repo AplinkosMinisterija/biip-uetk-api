@@ -2,6 +2,8 @@
 
 import moleculer, { Context } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
+import { toReadableStream } from '../utils';
+import { AuthType } from './api.service';
 
 @Service({
   name: 'tools',
@@ -104,6 +106,45 @@ export default class ToolsService extends moleculer.Service {
         .catch((err) => {
           console.error(err);
           reject(err?.message || 'Error while getting pdf');
+        });
+    });
+  }
+
+  @Action({
+    params: {
+      url: 'string',
+      name: 'string',
+    },
+    rest: 'GET /download',
+    auth: AuthType.PUBLIC,
+    timeout: 0,
+  })
+  async download(
+    ctx: Context<
+      { url: string; name: string },
+      { $responseType: string; $statusCode: number; $responseHeaders: any }
+    >
+  ) {
+    const { url, name } = ctx.params;
+
+    const downloadEndpoint = `${this.toolsHost()}/download`;
+
+    const query = new URLSearchParams({ name, url }).toString();
+    return new Promise(async (resolve, reject) => {
+      fetch(`${downloadEndpoint}?${query}`, { method: 'GET' })
+        .then((response) => {
+          ctx.meta.$responseType = response.headers.get('Content-Type');
+          ctx.meta.$statusCode = response.status;
+          ctx.meta.$responseHeaders = {
+            'Content-Disposition': `attachment; filename="${name}"`,
+          };
+          return response;
+        })
+        .then((r) => toReadableStream(r.body?.getReader()))
+        .then(resolve)
+        .catch((err) => {
+          console.error(err);
+          reject(err?.message || 'Error while downloading');
         });
     });
   }
