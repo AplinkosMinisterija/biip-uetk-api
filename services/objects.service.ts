@@ -63,7 +63,7 @@ export const UETKObjectTypeTranslates = {
   [UETKObjectType.EARTH_DAM]: 'Žemių užtvanka',
   [UETKObjectType.WATER_EXCESS_CULVERT]: 'Vandens pertekliaus pralaida',
   [UETKObjectType.HYDRO_POWER_PLANT]: 'Hidroelektrinė',
-  [UETKObjectType.FISH_PASS]: 'Žuvų perlaida',
+  [UETKObjectType.FISH_PASS]: 'Žuvų pralaida',
 };
 
 // Kategoriju ID
