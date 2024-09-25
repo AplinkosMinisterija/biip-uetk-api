@@ -89,13 +89,18 @@
   
   <hr />
   <div>
+    <% const hidrotechnikosStatiniaiNotExist = !item?.zemiuUztvankos?.length && 
+    !item?.vandensPertekliausPralaidos?.length && 
+    !item?.hidroelektrines?.length && 
+    !item?.zuvuPralaidos?.length; 
+    %>
     <p class="font-bold">8. Hidrotechnikos statiniai:
-      <% if (!item?.zemiuUztvankos?.length) { %>
+      <% if (hidrotechnikosStatiniaiNotExist) { %>
         įrašų nėra
       <% }; %>
     </p>
   
-    <% if (!!item?.zemiuUztvankos?.length) { %>
+    <% if (!hidrotechnikosStatiniaiNotExist) { %>
     <%- include('includes/hidrotechnikos-statiniai', {
       id: 8,
       zemiuUztvankos: item.zemiuUztvankos,

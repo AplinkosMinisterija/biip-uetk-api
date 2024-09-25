@@ -1,10 +1,3 @@
-<% 
-  const noRecords = !item?.zemiuUztvankos?.length && 
-                    !item?.vandensPertekliausPralaidos?.length && 
-                    !item?.hidroelektrines?.length && 
-                    !item?.zuvuPralaidos?.length; 
-%>
-
 <div>
   <p class="font-bold">2. Kadastro objekto vietos aprašymas:</p>
   <%- include('includes/object-location-table', {
@@ -89,13 +82,18 @@
 
 <hr />
 <div>
+  <% const hidrotechnikosStatiniaiNotExist = !item?.zemiuUztvankos?.length && 
+  !item?.vandensPertekliausPralaidos?.length && 
+  !item?.hidroelektrines?.length && 
+  !item?.zuvuPralaidos?.length; 
+  %>
   <p class="font-bold">7. Hidrotechnikos statiniai:
-    <% if (noRecords) { %>
+    <% if (hidrotechnikosStatiniaiNotExist) { %>
       įrašų nėra
     <% }; %>
   </p>
 
-  <% if (!noRecords) { %>
+  <% if (!hidrotechnikosStatiniaiNotExist) { %>
   <%- include('includes/hidrotechnikos-statiniai', {
     id: 7,
     zemiuUztvankos: item.zemiuUztvankos,
