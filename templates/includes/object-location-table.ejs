@@ -39,15 +39,15 @@
     <td>Savivaldybė (-ės):</td>
     <td class="font-bold"><%= municipalities?.map(i => i.sav_pavadinimas).sort((name1, name2) => name1.localeCompare(name2)).join(", "); %></td>
   </tr>
-  <% if (!!locals.patvenktosUpesPavadinimas?.trim()) { %>
+  <% if (!!locals.patvenktosUpesPavadinimas) { %>
   <tr>
     <td>Patvenktos upės pavadinimas:</td>
-    <td class="font-bold"><%= patvenktosUpesPavadinimas  || '-' %></td>
+    <td class="font-bold"><%= trimValue(patvenktosUpesPavadinimas)  || '-' %></td>
   </tr>
-  <% }; if (!!locals.patvenktosUpesID?.trim()) { %>
+  <% }; if (!!locals.patvenktosUpesID) { %>
   <tr>
     <td>Patvenktos upės identifikavimo kodas:</td>
-    <td class="font-bold"><%= patvenktosUpesID || '-' %></td>
+    <td class="font-bold"><%= trimValue(patvenktosUpesID) || '-' %></td>
   </tr>
   <% }; if (!!locals.atstumasNuoPatvenktosUpesZiociu) { %>
   <tr>
