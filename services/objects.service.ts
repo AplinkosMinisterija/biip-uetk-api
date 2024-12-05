@@ -29,6 +29,7 @@ export type UETKObject = {
   category: string;
   categoryTranslate: string;
   municipality: string;
+  municipalityCode: number;
   area: number;
   length: number;
   lat: number;
@@ -113,6 +114,7 @@ export const UETKObjectTypeTranslates = {
         },
       },
       municipality: 'string',
+      municipalityCode: 'number',
       area: {
         type: 'number',
         get: ({ value }: any) => Number(value),
