@@ -6,25 +6,25 @@
   </head>
   <body>
     <div>
-      <div class="flex items-center justify-center">
-        <div>
-          <img src="https://s3.biip.lt/uetk-wp/app/uploads/AAA-Zenklas-RGB-1-300x300.png" class="w-16"/>
-        </div>
-        <div class="flex flex-col items-center w-full mr-20 text-center">
-          <p class="font-bold text-2xl">APLINKOS APSAUGOS AGENTŪRA</p>
-          <p>
-            Biudžetinė įstaiga, A. Juozapavičiaus g. 9, LT-09311 Vilnius, tel.
-            <a href="tel:+37068292653">+370 682 92653</a>, el.p. <a href="mailto:aaa@gamta.lt">aaa@gamta.lt</a>, <a href="https://aaa.lrv.lt">https://aaa.lrv.lt</a>.
-          </p>
-          <p>
-            Duomenys kaupiami ir saugojami Juridinių asmenų registre, kodas
-            188784898
-          </p>
-        </div>
-      </div>
-      <hr />
-
+     
       <% objects.forEach(function(item, index) { %>
+        <div class="flex items-center justify-center">
+          <div>
+            <img src="https://s3.biip.lt/uetk-wp/app/uploads/AAA-Zenklas-RGB-1-300x300.png" class="w-16"/>
+          </div>
+          <div class="flex flex-col items-center w-full mr-20 text-center">
+            <p class="font-bold text-2xl">APLINKOS APSAUGOS AGENTŪRA</p>
+            <p>
+              Biudžetinė įstaiga, A. Juozapavičiaus g. 9, LT-09311 Vilnius, tel.
+              <a href="tel:+37068292653">+370 682 92653</a>, el.p. <a href="mailto:aaa@gamta.lt">aaa@gamta.lt</a>, <a href="https://aaa.lrv.lt">https://aaa.lrv.lt</a>.
+            </p>
+            <p>
+              Duomenys kaupiami ir saugojami Juridinių asmenų registre, kodas
+              188784898
+            </p>
+          </div>
+        </div>
+        <hr />
         <div class="flex flex-col items-center">
           <p>LIETUVOS RESPUBLIKOS UPIŲ, EŽERŲ IR TVENKINIŲ KADASTRO IŠRAŠAS</p>
           <p>Išrašo unikalus numeris <b><%= id %></b>, suformavimo data <b><%= formatDate(new Date()) %></b></p>

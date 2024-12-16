@@ -218,6 +218,11 @@ export default class JobsRequestsService extends moleculer.Service {
         return momentDate.format(format);
       },
       roundNumber,
+      trimValue: (value?: string) => {
+        if (!value) return '';
+
+        return value?.trim();
+      },
       fullData: !!request?.data?.extended,
     });
   }
