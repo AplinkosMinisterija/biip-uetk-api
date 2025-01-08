@@ -117,11 +117,12 @@ export function notifyOnRequestUpdate(
   return client.sendEmailWithTemplate({
     From: sender,
     To: email.toLowerCase(),
-    TemplateId: 32594663,
+    TemplateId: 37004046,
     TemplateModel: {
       title: updateType,
-      titleText: updateType.toLowerCase(),
+      titleText: updateType,
       actionUrl: `${hostUrl(isAdmin)}/${path}/${requestId}`,
+      requestId,
     },
   });
 }

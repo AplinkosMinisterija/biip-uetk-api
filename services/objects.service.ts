@@ -29,6 +29,7 @@ export type UETKObject = {
   category: string;
   categoryTranslate: string;
   municipality: string;
+  municipalityCode: number;
   area: number;
   length: number;
   lat: number;
@@ -63,7 +64,7 @@ export const UETKObjectTypeTranslates = {
   [UETKObjectType.EARTH_DAM]: 'Žemių užtvanka',
   [UETKObjectType.WATER_EXCESS_CULVERT]: 'Vandens pertekliaus pralaida',
   [UETKObjectType.HYDRO_POWER_PLANT]: 'Hidroelektrinė',
-  [UETKObjectType.FISH_PASS]: 'Žuvų perlaida',
+  [UETKObjectType.FISH_PASS]: 'Žuvų pralaida',
 };
 
 // Kategoriju ID
@@ -113,6 +114,7 @@ export const UETKObjectTypeTranslates = {
         },
       },
       municipality: 'string',
+      municipalityCode: 'number',
       area: {
         type: 'number',
         get: ({ value }: any) => Number(value),
