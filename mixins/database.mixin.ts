@@ -1,7 +1,7 @@
 'use strict';
 
 import _ from 'lodash';
-const DbService = require('@moleculer/database').Service;
+import { DatabaseMixin } from '@aplinkosministerija/moleculer-accounts';
 import { config } from '../knexfile';
 import filtersMixin from 'moleculer-knex-filters';
 import { Context } from 'moleculer';
@@ -33,7 +33,7 @@ export default function (opts: any = {}) {
   }
 
   const schema = {
-    mixins: [DbService(opts), filtersMixin()],
+    mixins: [DatabaseMixin(opts.config || config, opts), filtersMixin()],
 
     async started() {},
 
