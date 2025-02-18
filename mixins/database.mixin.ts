@@ -1,11 +1,12 @@
 'use strict';
 
+import { DeepQueryMixin } from '@aplinkosministerija/moleculer-accounts';
 import _ from 'lodash';
-import { DatabaseMixin } from '@aplinkosministerija/moleculer-accounts';
-import { config } from '../knexfile';
-import filtersMixin from 'moleculer-knex-filters';
 import { Context } from 'moleculer';
+import filtersMixin from 'moleculer-knex-filters';
+import { config } from '../knexfile';
 import { parseToJsonIfNeeded } from '../utils';
+const DbService = require('@moleculer/database').Service;
 
 export default function (opts: any = {}) {
   const adapter: any = {
@@ -33,7 +34,7 @@ export default function (opts: any = {}) {
   }
 
   const schema = {
-    mixins: [DatabaseMixin(opts.config || config, opts), filtersMixin()],
+    mixins: [DeepQueryMixin(), DbService(opts), filtersMixin()],
 
     async started() {},
 
