@@ -1,5 +1,6 @@
 'use strict';
 
+import { DeepQueryMixin } from '@aplinkosministerija/moleculer-accounts';
 import _ from 'lodash';
 import { Context } from 'moleculer';
 import filtersMixin from 'moleculer-knex-filters';
@@ -33,7 +34,7 @@ export default function (opts: any = {}) {
   }
 
   const schema = {
-    mixins: [DbService(opts), filtersMixin()],
+    mixins: [DeepQueryMixin(), DbService(opts), filtersMixin()],
 
     async started() {},
 
