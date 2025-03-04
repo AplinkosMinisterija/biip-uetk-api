@@ -296,13 +296,12 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
         const objectsQuery: Record<string, any> = { category: query.category };
 
         if (query.objects) {
-          query.cadastralId = query.objects;
+          objectsQuery.cadastralId = query.objects;
         }
 
-        const objects: UETKObject[] = await ctx.call(
-          'objects.find',
-          objectsQuery
-        );
+        const objects: UETKObject[] = await ctx.call('objects.find', {
+          query: objectsQuery,
+        });
 
         const cadastralIds = objects.map((obj) => obj.cadastralId);
 
