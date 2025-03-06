@@ -1,26 +1,27 @@
 'use strict';
 
 import moleculer, { Context } from 'moleculer';
-import { Action, Event, Method, Service } from 'moleculer-decorators';
+import { Action, Event, Service } from 'moleculer-decorators';
 
-import { UserAuthMeta } from './api.service';
 import DbConnection from '../mixins/database.mixin';
 import {
-  COMMON_FIELDS,
-  COMMON_DEFAULT_SCOPES,
-  COMMON_SCOPES,
-  FieldHookCallback,
   BaseModelInterface,
+  COMMON_DEFAULT_SCOPES,
+  COMMON_FIELDS,
+  COMMON_SCOPES,
   EndpointType,
-  throwUnauthorizedError,
+  FieldHookCallback,
   throwNotFoundError,
+  throwUnauthorizedError,
 } from '../types';
-import { TenantUserRole } from './tenantUsers.service';
+import { UserAuthMeta } from './api.service';
 import { Tenant } from './tenants.service';
+import { TenantUserRole } from './tenantUsers.service';
 
 export enum UserType {
   ADMIN = 'ADMIN',
   USER = 'USER',
+  SUPER_ADMIN = 'SUPER_ADMIN',
 }
 export interface User extends BaseModelInterface {
   firstName: string;
@@ -41,7 +42,7 @@ const AUTH_PROTECTED_SCOPES = [
 ];
 
 export const USERS_WITHOUT_AUTH_SCOPES = [`-${VISIBLE_TO_USER_SCOPE}`];
-const USERS_WITHOUT_NOT_ADMINS_SCOPE = [`-${NOT_ADMINS_SCOPE}`];
+export const USERS_WITHOUT_NOT_ADMINS_SCOPE = [`-${NOT_ADMINS_SCOPE}`];
 export const USERS_DEFAULT_SCOPES = [
   ...USERS_WITHOUT_AUTH_SCOPES,
   ...USERS_WITHOUT_NOT_ADMINS_SCOPE,
@@ -352,7 +353,7 @@ export default class UsersService extends moleculer.Service {
 
     const scope = [...USERS_WITHOUT_AUTH_SCOPES];
 
-    const authUserIsAdmin = ['SUPER_ADMIN', UserType.ADMIN].includes(
+    const authUserIsAdmin = [UserType.SUPER_ADMIN, UserType.ADMIN].includes(
       authUser.type
     );
 
@@ -378,11 +379,13 @@ export default class UsersService extends moleculer.Service {
     };
 
     if (user?.id) {
-      return ctx.call('users.update', {
-        id: user.id,
-        ...dataToSave,
-        scope,
-      });
+      return this.updateEntity(
+        ctx,
+        { id: user.id, ...dataToSave },
+        {
+          scope,
+        }
+      );
     }
 
     // let user to customize his phone and email

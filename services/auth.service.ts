@@ -4,14 +4,14 @@ import moleculer, { Context } from 'moleculer';
 import { Action, Event, Method, Service } from 'moleculer-decorators';
 
 import authMixin from 'biip-auth-nodejs/mixin';
-import { UserAuthMeta } from './api.service';
-import { User, UserType } from './users.service';
 import {
   AUTH_FREELANCERS_GROUP_ID,
   EndpointType,
   throwNotFoundError,
 } from '../types';
+import { UserAuthMeta } from './api.service';
 import { TenantUserRole } from './tenantUsers.service';
+import { User, UserType } from './users.service';
 
 @Service({
   name: 'auth',
@@ -65,12 +65,6 @@ export default class AuthService extends moleculer.Service {
       data.permissions = {
         UETK: authUser.permissions.UETK,
       };
-    }
-
-    if (user.type === UserType.ADMIN) {
-      data.tasks = await ctx.call('users.getTasksCounts', {
-        userId: user.id,
-      });
     }
 
     return data;
