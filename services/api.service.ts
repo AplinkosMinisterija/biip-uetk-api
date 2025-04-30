@@ -193,6 +193,18 @@ export default class ApiService extends moleculer.Service {
     };
   }
 
+  @Action({
+    rest: {
+      method: 'POST',
+      path: '/cache/clean',
+      basePath: '/public',
+    },
+    auth: AuthType.PUBLIC,
+  })
+  cleanCache() {
+    this.broker.cacher.clean();
+  }
+
   @Method
   async rejectAuth(
     ctx: Context<Record<string, unknown>, UserAuthMeta>,
