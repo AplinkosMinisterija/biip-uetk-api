@@ -36,7 +36,7 @@ import {
 import { UETKObject } from './objects.service';
 import { RequestHistoryType } from './requests.histories.service';
 import { Tenant } from './tenants.service';
-import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
+import { User, USERS_DEFAULT_SCOPES, UserType } from './users.service';
 
 type RequestStatusChanged = { statusChanged: boolean };
 type RequestAutoApprove = { autoApprove: boolean };
@@ -269,7 +269,7 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
     scopes: {
       ...COMMON_SCOPES,
-      visibleToUser(query: any, ctx: Context<null, UserAuthMeta>, params: any) {
+      visibleToUser(query: any, ctx: Context<null, UserAuthMeta>) {
         const { user, profile } = ctx?.meta;
         if (!user?.id) return query;
 
@@ -290,9 +290,30 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
         return query;
       },
+      async filterCategory(query: any, ctx: Context) {
+        if (!query.category) return query;
+
+        const objectsQuery: Record<string, any> = { category: query.category };
+
+        if (query.objects) {
+          objectsQuery.cadastralId = query.objects.id;
+        }
+
+        const objects: UETKObject[] = await ctx.call('objects.find', {
+          query: objectsQuery,
+        });
+
+        const cadastralIds = objects.map((obj) => obj.cadastralId);
+
+        query.objects = { id: { $in: cadastralIds } };
+
+        delete query.category;
+
+        return query;
+      },
     },
 
-    defaultScopes: AUTH_PROTECTED_SCOPES,
+    defaultScopes: [...AUTH_PROTECTED_SCOPES, 'filterCategory'],
   },
 
   hooks: {
