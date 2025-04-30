@@ -70,37 +70,33 @@ export default class JobsService extends moleculer.Service {
       return fileData.presignedUrl;
     }
 
-    let screenshotUrl = await getHashedFileUrl();
-
     job.updateProgress(50);
 
-    if (!screenshotUrl) {
-      const screenshot = await ctx.call('tools.makeScreenshot', {
-        url,
-        waitFor,
-        stream: true,
-      });
+    const screenshot = await ctx.call('tools.makeScreenshot', {
+      url,
+      waitFor,
+      stream: true,
+    });
 
-      await ctx.call(
-        'minio.uploadFile',
-        {
-          payload: toReadableStream(screenshot),
-          folder,
-          name: hash,
-          isPrivate: true,
+    await ctx.call(
+      'minio.uploadFile',
+      {
+        payload: toReadableStream(screenshot),
+        folder,
+        name: hash,
+        isPrivate: true,
+      },
+      {
+        meta: {
+          mimetype: 'image/jpeg',
+          filename: 'screenshot.jpeg',
         },
-        {
-          meta: {
-            mimetype: 'image/jpeg',
-            filename: 'screenshot.jpeg',
-          },
-        }
-      );
-
-      screenshotUrl = await getHashedFileUrl();
-      if (!screenshotUrl) {
-        throw new Error('Screenshot is emtpy');
       }
+    );
+
+    const screenshotUrl = await getHashedFileUrl();
+    if (!screenshotUrl) {
+      throw new Error('Screenshot is emtpy');
     }
 
     job.updateProgress(100);
