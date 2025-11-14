@@ -1,12 +1,16 @@
+import { Handlers } from '@sentry/node';
 import pick from 'lodash/pick';
 import moleculer, { Context, Errors } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
 import ApiGateway from 'moleculer-web';
-import { COMMON_DELETED_SCOPES, EndpointType, RequestMessage } from '../types';
+import {
+  COMMON_DELETED_SCOPES,
+  EndpointType,
+  RequestMessage,
+  throwUnauthorizedError,
+} from '../types';
 import { Tenant } from './tenants.service';
-import { User } from './users.service';
-import { throwUnauthorizedError } from '../types';
-import { Handlers } from '@sentry/node';
+import { User, UserType } from './users.service';
 export interface UserAuthMeta {
   user: User;
   profile?: Tenant;
@@ -277,7 +281,19 @@ export default class ApiService extends moleculer.Service {
           const app: any = await ctx.call('auth.apps.resolveToken');
 
           if (user && user.id) {
-            ctx.meta.authUser = authUser;
+            const authUserWithGroups: any = await ctx.call('auth.users.get', {
+              id: authUser.id,
+              populate: 'groups',
+            });
+
+            const adminOfGroups = authUserWithGroups.groups
+              .filter(
+                (group: any) =>
+                  group.apps.includes(app.id) && group.role === UserType.ADMIN
+              )
+              .map((group: any) => group.id);
+
+            ctx.meta.authUser = { ...authUser, adminOfGroups };
             ctx.meta.authToken = token;
             ctx.meta.app = app;
 

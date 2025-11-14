@@ -4,6 +4,7 @@ import moleculer, { Context, RestSchema } from 'moleculer';
 import { Action, Event, Method, Service } from 'moleculer-decorators';
 
 import { FeatureCollection } from 'geojsonjs';
+import { isEmpty } from 'lodash';
 import PostgisMixin from 'moleculer-postgis';
 import DbConnection from '../mixins/database.mixin';
 import {
@@ -13,17 +14,31 @@ import {
   COMMON_FIELDS,
   COMMON_SCOPES,
   ContextMeta,
+  EndpointType,
   EntityChangedParams,
   FieldHookCallback,
   NOTIFY_ADMIN_EMAIL,
   TENANT_FIELD,
+  throwBadRequestError,
+  USER_PUBLIC_GET,
+  USER_PUBLIC_POPULATE,
 } from '../types';
-import { emailCanBeSent, notifyOnFormUpdate } from '../utils/mails';
+
+import {
+  emailCanBeSent,
+  notifyFormAssignee,
+  notifyOnFormUpdate,
+} from '../utils/mails';
 import { UserAuthMeta } from './api.service';
 import { FormHistoryTypes } from './forms.histories.service';
 import { UETKObject, UETKObjectType } from './objects.service';
 import { Tenant } from './tenants.service';
-import { USERS_DEFAULT_SCOPES, User, UserType } from './users.service';
+import {
+  User,
+  USERS_DEFAULT_SCOPES,
+  USERS_WITHOUT_NOT_ADMINS_SCOPE,
+  UserType,
+} from './users.service';
 
 type FormStatusChanged = { statusChanged: boolean };
 
@@ -34,6 +49,7 @@ export interface Form extends BaseModelInterface {
   cadastralId: string | number;
   type: string;
   objectType: string;
+  assignee: number;
 }
 
 export const FormStatus = {
@@ -63,12 +79,24 @@ const VISIBLE_TO_USER_SCOPE = 'visibleToUser';
 const AUTH_PROTECTED_SCOPES = [...COMMON_DEFAULT_SCOPES, VISIBLE_TO_USER_SCOPE];
 
 const populatePermissions = (field: string) => {
-  return function (ctx: Context<{}, UserAuthMeta>, _values: any, forms: any[]) {
-    const { user, profile } = ctx?.meta;
-    return forms.map((form: any) => {
-      const editingPermissions = this.hasPermissionToEdit(form, user, profile);
-      return !!editingPermissions[field];
-    });
+  return async function (
+    ctx: Context<{}, UserAuthMeta>,
+    _values: any,
+    forms: any[]
+  ) {
+    const { user, profile, authUser } = ctx?.meta;
+    return await Promise.all(
+      forms.map(async (form: any) => {
+        const editingPermissions = await this.hasPermissionToEdit(
+          ctx,
+          form,
+          user,
+          authUser,
+          profile
+        );
+        return !!editingPermissions[field];
+      })
+    );
   };
 };
 
@@ -181,10 +209,60 @@ const populatePermissions = (field: string) => {
         },
       },
 
+      assignee: {
+        type: 'number',
+        columnType: 'integer',
+        populate: USER_PUBLIC_POPULATE,
+        get: USER_PUBLIC_GET,
+        set: async ({
+          ctx,
+          value,
+          entity,
+        }: FieldHookCallback & ContextMeta<FormStatusChanged>) => {
+          const { user } = ctx?.meta;
+
+          if (!entity?.id || !user?.id || !value) return null;
+
+          if (entity.assigneeId === value) return value;
+
+          const error = 'Assignee cannot be set.';
+
+          if (user.type === UserType.USER) {
+            throwBadRequestError(error);
+          }
+
+          const availableAssigneeList: { rows: User[] } = await ctx.call(
+            'forms.getAssignees'
+          );
+          const assigneeAuthUser = availableAssigneeList.rows.find(
+            (assignee) => assignee.id === Number(value)
+          );
+
+          if (!assigneeAuthUser) {
+            throwBadRequestError(error);
+          }
+
+          const localUser: User = await ctx.call('users.findOrCreate', {
+            authUser: assigneeAuthUser,
+            update: true,
+          });
+
+          return localUser.id;
+        },
+        validate: 'validateAssignee',
+        columnName: 'assigneeId',
+      },
+
       canEdit: {
         type: 'boolean',
         virtual: true,
         populate: populatePermissions('edit'),
+      },
+
+      canAssign: {
+        type: 'boolean',
+        virtual: true,
+        populate: populatePermissions('assign'),
       },
 
       canValidate: {
@@ -269,6 +347,90 @@ export default class FormsService extends moleculer.Service {
     });
   }
 
+  @Method
+  async validateAssignee({ ctx, value, entity }: FieldHookCallback) {
+    const { user, authUser, profile } = ctx?.meta;
+
+    if (!entity?.id || !user?.id || entity.assigneeId === value) return true;
+
+    const editingPermissions = await this.hasPermissionToEdit(
+      ctx,
+      entity,
+      user,
+      authUser,
+      profile
+    );
+
+    if (!editingPermissions.assign) {
+      return 'Assignee cannot be set.';
+    }
+
+    return true;
+  }
+
+  @Action({
+    rest: 'GET /assignees',
+    auth: EndpointType.ADMIN,
+  })
+  async getAssignees(ctx: Context<{}, UserAuthMeta>) {
+    const { authUser } = ctx.meta;
+
+    if (authUser?.type === UserType.ADMIN && isEmpty(authUser?.adminOfGroups))
+      return {
+        rows: [
+          {
+            id: authUser.id,
+            firstName: authUser.firstName,
+            lastName: authUser.lastName,
+            phone: authUser.phone,
+            email: authUser.email,
+            type: authUser?.type,
+          },
+        ],
+        total: 1,
+        page: 1,
+        pageSize: 10,
+        totalPages: 1,
+      };
+
+    return await ctx.call('auth.users.list', {
+      ...ctx.params,
+      query: {
+        type: UserType.ADMIN,
+        group: {
+          $in: authUser?.adminOfGroups,
+        },
+      },
+      fields: ['id', 'firstName', 'lastName', 'phone', 'email', 'type'],
+    });
+  }
+
+  @Action({
+    rest: 'PATCH /:id/assignee/:assignee?',
+    params: {
+      id: {
+        type: 'number',
+        convert: true,
+      },
+      assignee: {
+        optional: true,
+        type: 'number',
+        convert: true,
+      },
+    },
+    types: [EndpointType.ADMIN],
+  })
+  async setAssignee(
+    ctx: Context<{ id: number; assignee: number }, UserAuthMeta>
+  ) {
+    await this.updateEntity(ctx, {
+      id: ctx.params.id,
+      assignee: ctx.params.assignee || null,
+    });
+
+    return { success: true };
+  }
+
   @Action({
     rest: <RestSchema>{
       method: 'POST',
@@ -292,8 +454,8 @@ export default class FormsService extends moleculer.Service {
   }
 
   @Method
-  validateStatus({ ctx, value, entity }: FieldHookCallback) {
-    const { user, profile } = ctx.meta;
+  async validateStatus({ ctx, value, entity }: FieldHookCallback) {
+    const { user, profile, authUser } = ctx.meta;
     if (!value || !user?.id) return true;
 
     const adminStatuses = [
@@ -309,7 +471,13 @@ export default class FormsService extends moleculer.Service {
       return newStatuses.includes(value) || error;
     }
 
-    const editingPermissions = this.hasPermissionToEdit(entity, user, profile);
+    const editingPermissions = await this.hasPermissionToEdit(
+      ctx,
+      entity,
+      user,
+      authUser,
+      profile
+    );
 
     if (editingPermissions.edit) {
       return value === FormStatus.SUBMITTED || error;
@@ -321,15 +489,18 @@ export default class FormsService extends moleculer.Service {
   }
 
   @Method
-  hasPermissionToEdit(
+  async hasPermissionToEdit(
+    ctx: any,
     form: any,
     user?: User,
+    authUser?: any,
     profile?: Tenant
-  ): {
+  ): Promise<{
     edit: boolean;
     validate: boolean;
-  } {
-    const invalid = { edit: false, validate: false };
+    assign: boolean;
+  }> {
+    const invalid = { edit: false, validate: false, assign: false };
 
     const tenant = form.tenant || form.tenantId;
 
@@ -344,27 +515,54 @@ export default class FormsService extends moleculer.Service {
       return {
         edit: true,
         validate: true,
+        assign: true,
       };
     }
 
     const isCreatedByUser = !tenant && user && user.id === form.createdBy;
     const isCreatedByTenant = profile && profile.id === tenant;
 
-    if (isCreatedByTenant || isCreatedByUser) {
-      return {
-        validate: false,
-        edit: [FormStatus.RETURNED].includes(form.status),
-      };
-    } else if (user.type === UserType.ADMIN) {
-      return {
-        edit: false,
-        validate: [FormStatus.CREATED, FormStatus.SUBMITTED].includes(
-          form.status
-        ),
-      };
+    const canEdit =
+      [FormStatus.RETURNED].includes(form.status) &&
+      (isCreatedByTenant || isCreatedByUser);
+
+    const isSuperAdminOrAssignee =
+      authUser?.type === UserType.SUPER_ADMIN || form.assigneeId === user.id;
+
+    const canValidate =
+      isSuperAdminOrAssignee &&
+      [FormStatus.CREATED, FormStatus.SUBMITTED].includes(form.status);
+
+    let canAssign = true;
+
+    if (isCreatedByUser || user?.type === UserType.USER) {
+      canAssign = false;
     }
 
-    return invalid;
+    if (canAssign && !!form?.assigneeId) {
+      const assignee: User = await ctx.call('users.resolve', {
+        id: form.assigneeId,
+        scope: USERS_WITHOUT_NOT_ADMINS_SCOPE,
+      });
+
+      const availableAssigneeList: { rows: User[] } = await ctx.call(
+        'forms.getAssignees'
+      );
+
+      const assigneeAuthUser = availableAssigneeList.rows.find(
+        (availableAssignee) => availableAssignee.id === assignee?.authUser
+      );
+
+      if (!assigneeAuthUser && authUser.type !== UserType.SUPER_ADMIN) {
+        canAssign = false;
+      }
+    }
+
+    return {
+      edit: canEdit,
+      validate: canValidate,
+      assign: canAssign,
+    };
   }
 
   @Method
@@ -406,6 +604,8 @@ export default class FormsService extends moleculer.Service {
   async sendNotificationOnStatusChange(form: Form) {
     let object: Partial<UETKObject>;
 
+    if (!emailCanBeSent() || !object?.name) return;
+
     if (form.cadastralId) {
       object = await this.broker.call('objects.findOne', {
         query: { cadastralId: form.cadastralId },
@@ -429,22 +629,47 @@ export default class FormsService extends moleculer.Service {
       );
     }
 
-    const user: User = await this.broker.call('users.resolve', {
-      id: form.createdBy,
-      scope: USERS_DEFAULT_SCOPES,
-    });
+    if ([FormStatus.SUBMITTED].includes(form.status)) {
+      const assignee: User = await this.broker.call('users.resolve', {
+        id: form.assignee,
+        scope: USERS_WITHOUT_NOT_ADMINS_SCOPE,
+      });
 
-    if (!user?.email) return;
+      if (!assignee?.email) return;
 
-    notifyOnFormUpdate(
-      user.email,
-      form.status,
-      form.id,
-      form.type,
-      object.name,
-      object.id,
-      user.type === UserType.ADMIN
-    );
+      return notifyOnFormUpdate(
+        assignee.email,
+        form.status,
+        form.id,
+        form.type,
+        object.name,
+        object.id,
+        true
+      );
+    }
+
+    if (
+      [FormStatus.RETURNED, FormStatus.REJECTED, FormStatus.APPROVED].includes(
+        form.status
+      )
+    ) {
+      const user: User = await this.broker.call('users.resolve', {
+        id: form.createdBy,
+        scope: USERS_DEFAULT_SCOPES,
+      });
+
+      if (!user?.email) return;
+
+      return notifyOnFormUpdate(
+        user.email,
+        form.status,
+        form.id,
+        form.type,
+        object.name,
+        object.id,
+        user.type === UserType.ADMIN
+      );
+    }
   }
 
   @Event()
@@ -467,6 +692,28 @@ export default class FormsService extends moleculer.Service {
       });
 
       await this.sendNotificationOnStatusChange(form);
+    }
+
+    if (!!form?.assignee && prevForm?.assignee !== form?.assignee) {
+      const assignee: User = await ctx.call('users.resolve', {
+        id: form.assignee,
+        scope: USERS_WITHOUT_NOT_ADMINS_SCOPE,
+      });
+
+      if (!emailCanBeSent() || !assignee?.email) return;
+
+      const object = await this.getObjectFromCadastralId(
+        form.cadastralId,
+        form.objectName
+      );
+
+      notifyFormAssignee(
+        assignee.email,
+        form.id,
+        form.type,
+        form.objectName,
+        object.id
+      );
     }
   }
 
