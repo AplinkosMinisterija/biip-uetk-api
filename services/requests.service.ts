@@ -9,6 +9,7 @@ import DbConnection from '../mixins/database.mixin';
 import { AuthType, UserAuthMeta } from './api.service';
 
 import moment from 'moment';
+import { Readable } from 'stream';
 import {
   BaseModelInterface,
   COMMON_DEFAULT_SCOPES,
@@ -18,6 +19,7 @@ import {
   EndpointType,
   EntityChangedParams,
   FieldHookCallback,
+  GEOJSON_TYPES,
   NOTIFY_ADMIN_EMAIL,
   TENANT_FIELD,
   throwValidationError,
@@ -53,6 +55,7 @@ export interface Request extends BaseModelInterface {
   tenant: number | Tenant;
   data?: {
     extended?: boolean;
+    format?: string;
   };
 }
 
@@ -69,6 +72,11 @@ export const PurposeTypes = {
   TECHNICAL_PROJECT: 'TECHNICAL_PROJECT',
   SCIENTIFIC_INVESTIGATION: 'SCIENTIFIC_INVESTIGATION',
   OTHER: 'OTHER',
+};
+
+export const RequestFormat = {
+  PDF: 'PDF',
+  GEOJSON: 'GEOJSON',
 };
 
 const VISIBLE_TO_USER_SCOPE = 'visibleToUser';
@@ -259,6 +267,11 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
             required: false,
             default: false,
           },
+          format: {
+            type: 'string',
+            required: false,
+            enum: Object.values(RequestFormat),
+          },
         },
       },
 
@@ -392,6 +405,89 @@ export default class RequestsService extends moleculer.Service {
     return {
       generating: !!flow?.job?.id,
     };
+  }
+
+  @Action({
+    params: {
+      id: { type: 'number', convert: true },
+    },
+    timeout: 0,
+  })
+  async generateGeoJson(ctx: Context<{ id: number }>) {
+    const { id } = ctx.params;
+
+    const request: Request = await ctx.call('requests.resolve', {
+      id,
+      populate: 'createdBy,tenant,geom',
+    });
+
+    if (!request?.id) return { generating: false };
+
+    const cadastralIds = request.objects
+      ?.filter((i) => i.type === 'CADASTRAL_ID')
+      ?.map((i) => i.id)
+      ?.filter((i) => !!i);
+
+    const query: any = {};
+    if (cadastralIds?.length) query.cadastralId = { $in: cadastralIds };
+    if (request.geom && Object.keys(request.geom).length) query.geom = request.geom;
+
+    if (!query.cadastralId && !query.geom) return { generating: false };
+
+    const objects: UETKObject[] = await ctx.call('objects.find', {
+      query,
+      populate: 'geom',
+    });
+
+    const features = objects
+      .map((obj: any) => {
+        const geometry =
+          obj.geom?.features?.[0]?.geometry || obj.geom?.geometry || obj.geom;
+        if (!geometry?.type) return null;
+        return {
+          type: 'Feature',
+          geometry,
+          properties: {
+            cadastralId: obj.cadastralId,
+            name: obj.name,
+            category: obj.category,
+            categoryTranslate: obj.categoryTranslate,
+            municipality: obj.municipality,
+            municipalityCode: obj.municipalityCode,
+            area: obj.area,
+            length: obj.length,
+          },
+        };
+      })
+      .filter(Boolean);
+
+    const featureCollection = {
+      type: 'FeatureCollection',
+      crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:EPSG::3346' } },
+      features,
+    };
+
+    const folder = `uploads/requests/${
+      (request.tenant as Tenant)?.id || 'private'
+    }/${(request.createdBy as any as User)?.id || 'user'}`;
+
+    const buffer = Buffer.from(JSON.stringify(featureCollection));
+    const stream = Readable.from(buffer);
+
+    const result: any = await ctx.call(
+      'minio.uploadFile',
+      { payload: stream, folder, isPrivate: true, types: GEOJSON_TYPES },
+      {
+        meta: {
+          mimetype: 'application/geo+json',
+          filename: `israsas-${request.id}.geojson`,
+        },
+      }
+    );
+
+    await ctx.call('requests.saveGeneratedPdf', { id, url: result.url });
+
+    return { generating: true };
   }
 
   @Action({
@@ -594,7 +690,11 @@ export default class RequestsService extends moleculer.Service {
 
     if (request.generatedFile) return;
 
-    this.broker.call('requests.generatePdf', { id: request.id });
+    if (request.data?.format === RequestFormat.GEOJSON) {
+      this.broker.call('requests.generateGeoJson', { id: request.id });
+    } else {
+      this.broker.call('requests.generatePdf', { id: request.id });
+    }
     return request;
   }
 
