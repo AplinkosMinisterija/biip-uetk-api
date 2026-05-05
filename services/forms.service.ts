@@ -35,7 +35,7 @@ export interface Form extends BaseModelInterface {
   cadastralId: string | number;
   type: string;
   objectType: string;
-  assignedTo?: number | User;
+  assignee?: number | User;
 }
 
 export const FormStatus = {
@@ -195,9 +195,10 @@ const populatePermissions = (field: string) => {
         populate: populatePermissions('validate'),
       },
 
-      assignedTo: {
+      assignee: {
         type: 'number',
         columnType: 'integer',
+        columnName: 'assigneeId',
         populate: 'users.resolve',
       },
 
@@ -222,7 +223,7 @@ const populatePermissions = (field: string) => {
         } else if (user.type === UserType.USER) {
           return {
             ...query,
-            $or: [createdByUserQuery, { assignedTo: user.id }],
+            $or: [createdByUserQuery, { assignee: user.id }],
           };
         }
 
@@ -303,36 +304,31 @@ export default class FormsService extends moleculer.Service {
   }
 
   @Action({
+    rest: 'POST /:id/assignee/:assignee?',
     params: {
       id: { type: 'number', convert: true },
-      assignedTo: { type: 'number', convert: true, optional: true },
+      assignee: { type: 'number', convert: true, optional: true },
     },
-    rest: 'POST /:id/assign',
     types: [EndpointType.ADMIN],
   })
-  async assign(
-    ctx: Context<
-      { id: number; assignedTo?: number | null },
-      UserAuthMeta
-    >
+  async setAssignee(
+    ctx: Context<{ id: number; assignee?: number }, UserAuthMeta>
   ) {
-    const { id, assignedTo } = ctx.params;
+    const { id, assignee } = ctx.params;
 
     const form: Form = await ctx.call('forms.resolve', {
       id,
       throwIfNotExist: true,
     });
 
-    const previousAssignee = form.assignedTo
-      ? Number(form.assignedTo)
-      : null;
-    const nextAssignee = assignedTo ?? null;
+    const previousAssignee = form.assignee ? Number(form.assignee) : null;
+    const nextAssignee = assignee ?? null;
 
     if (previousAssignee === nextAssignee) return form;
 
     const updated: Form = await this.updateEntity(ctx, {
       id,
-      assignedTo: nextAssignee,
+      assignee: nextAssignee,
     });
 
     if (emailCanBeSent()) {
@@ -347,13 +343,13 @@ export default class FormsService extends moleculer.Service {
 
       if (object?.name) {
         if (nextAssignee) {
-          const assignee: User = await ctx.call('users.resolve', {
+          const assigneeUser: User = await ctx.call('users.resolve', {
             id: nextAssignee,
             scope: USERS_DEFAULT_SCOPES,
           });
-          if (assignee?.email) {
+          if (assigneeUser?.email) {
             notifyOnFormUpdate(
-              assignee.email,
+              assigneeUser.email,
               updated.status,
               updated.id,
               updated.type,
@@ -451,8 +447,8 @@ export default class FormsService extends moleculer.Service {
         ),
       };
     } else if (
-      form.assignedTo &&
-      Number(form.assignedTo) === Number(user.id)
+      form.assignee &&
+      Number(form.assignee) === Number(user.id)
     ) {
       return {
         edit: false,
@@ -517,13 +513,13 @@ export default class FormsService extends moleculer.Service {
     if ([FormStatus.CREATED, FormStatus.SUBMITTED].includes(form.status)) {
       let recipientEmail = NOTIFY_ADMIN_EMAIL;
 
-      if (form.assignedTo) {
-        const assignee: User = await this.broker.call('users.resolve', {
-          id: form.assignedTo,
+      if (form.assignee) {
+        const assigneeUser: User = await this.broker.call('users.resolve', {
+          id: form.assignee,
           scope: USERS_DEFAULT_SCOPES,
         });
-        if (assignee?.email) {
-          recipientEmail = assignee.email;
+        if (assigneeUser?.email) {
+          recipientEmail = assigneeUser.email;
         }
       }
 

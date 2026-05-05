@@ -5,10 +5,10 @@
 exports.up = function (knex) {
   return knex.schema
     .alterTable('requests', (table) => {
-      table.integer('assignedTo').unsigned();
+      table.integer('assigneeId').unsigned();
     })
     .alterTable('forms', (table) => {
-      table.integer('assignedTo').unsigned();
+      table.integer('assigneeId').unsigned();
     });
 };
 
@@ -19,9 +19,9 @@ exports.up = function (knex) {
 exports.down = function (knex) {
   return knex.schema
     .alterTable('requests', (table) => {
-      table.dropColumn('assignedTo');
+      table.dropColumn('assigneeId');
     })
     .alterTable('forms', (table) => {
-      table.dropColumn('assignedTo');
+      table.dropColumn('assigneeId');
     });
 };
