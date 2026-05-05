@@ -13,6 +13,7 @@ import {
   COMMON_FIELDS,
   COMMON_SCOPES,
   ContextMeta,
+  EndpointType,
   EntityChangedParams,
   FieldHookCallback,
   NOTIFY_ADMIN_EMAIL,
@@ -34,6 +35,7 @@ export interface Form extends BaseModelInterface {
   cadastralId: string | number;
   type: string;
   objectType: string;
+  assignedTo?: number | User;
 }
 
 export const FormStatus = {
@@ -193,6 +195,12 @@ const populatePermissions = (field: string) => {
         populate: populatePermissions('validate'),
       },
 
+      assignedTo: {
+        type: 'number',
+        columnType: 'integer',
+        populate: 'users.resolve',
+      },
+
       ...TENANT_FIELD,
 
       ...COMMON_FIELDS,
@@ -212,7 +220,10 @@ const populatePermissions = (field: string) => {
         if (profile?.id) {
           return { ...query, tenant: profile.id };
         } else if (user.type === UserType.USER) {
-          return { ...query, ...createdByUserQuery };
+          return {
+            ...query,
+            $or: [createdByUserQuery, { assignedTo: user.id }],
+          };
         }
 
         if (query.createdBy === user.id) {
@@ -291,6 +302,83 @@ export default class FormsService extends moleculer.Service {
     });
   }
 
+  @Action({
+    params: {
+      id: { type: 'number', convert: true },
+      assignedTo: { type: 'number', convert: true, optional: true },
+    },
+    rest: 'POST /:id/assign',
+    types: [EndpointType.ADMIN],
+  })
+  async assign(
+    ctx: Context<
+      { id: number; assignedTo?: number | null },
+      UserAuthMeta
+    >
+  ) {
+    const { id, assignedTo } = ctx.params;
+
+    const form: Form = await ctx.call('forms.resolve', {
+      id,
+      throwIfNotExist: true,
+    });
+
+    const previousAssignee = form.assignedTo
+      ? Number(form.assignedTo)
+      : null;
+    const nextAssignee = assignedTo ?? null;
+
+    if (previousAssignee === nextAssignee) return form;
+
+    const updated: Form = await this.updateEntity(ctx, {
+      id,
+      assignedTo: nextAssignee,
+    });
+
+    if (emailCanBeSent()) {
+      let object: Partial<UETKObject>;
+      if (updated.cadastralId) {
+        object = await ctx.call('objects.findOne', {
+          query: { cadastralId: updated.cadastralId },
+        });
+      } else {
+        object = { name: updated.objectName };
+      }
+
+      if (object?.name) {
+        if (nextAssignee) {
+          const assignee: User = await ctx.call('users.resolve', {
+            id: nextAssignee,
+            scope: USERS_DEFAULT_SCOPES,
+          });
+          if (assignee?.email) {
+            notifyOnFormUpdate(
+              assignee.email,
+              updated.status,
+              updated.id,
+              updated.type,
+              object.name,
+              object.cadastralId,
+              true
+            );
+          }
+        } else if (previousAssignee) {
+          notifyOnFormUpdate(
+            NOTIFY_ADMIN_EMAIL,
+            updated.status,
+            updated.id,
+            updated.type,
+            object.name,
+            object.cadastralId,
+            true
+          );
+        }
+      }
+    }
+
+    return updated;
+  }
+
   @Method
   validateStatus({ ctx, value, entity }: FieldHookCallback) {
     const { user, profile } = ctx.meta;
@@ -362,6 +450,16 @@ export default class FormsService extends moleculer.Service {
           form.status
         ),
       };
+    } else if (
+      form.assignedTo &&
+      Number(form.assignedTo) === Number(user.id)
+    ) {
+      return {
+        edit: false,
+        validate: [FormStatus.CREATED, FormStatus.SUBMITTED].includes(
+          form.status
+        ),
+      };
     }
 
     return invalid;
@@ -416,10 +514,21 @@ export default class FormsService extends moleculer.Service {
 
     if (!emailCanBeSent() || !object?.name) return;
 
-    // TODO: send email for admins / assignees.
     if ([FormStatus.CREATED, FormStatus.SUBMITTED].includes(form.status)) {
+      let recipientEmail = NOTIFY_ADMIN_EMAIL;
+
+      if (form.assignedTo) {
+        const assignee: User = await this.broker.call('users.resolve', {
+          id: form.assignedTo,
+          scope: USERS_DEFAULT_SCOPES,
+        });
+        if (assignee?.email) {
+          recipientEmail = assignee.email;
+        }
+      }
+
       return notifyOnFormUpdate(
-        NOTIFY_ADMIN_EMAIL,
+        recipientEmail,
         form.status,
         form.id,
         form.type,
