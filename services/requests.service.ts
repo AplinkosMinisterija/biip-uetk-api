@@ -324,9 +324,32 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
         return query;
       },
+      filterRequestData(query: any) {
+        // The web filter sends data: { format: 'GEOJSON' } (or { extended: bool }),
+        // but jsonb '=' would only match rows whose data column has exactly that
+        // shape. Rewrite to a JSONB containment so partial-key filters work for
+        // rows that carry the new format key alongside extended.
+        if (!query.data) return query;
+        let value = query.data;
+        if (typeof value === 'string') {
+          try { value = JSON.parse(value); } catch (_) { return query; }
+        }
+        delete query.data;
+        return {
+          ...query,
+          $raw: {
+            condition: `data @> ?::jsonb`,
+            bindings: [JSON.stringify(value)],
+          },
+        };
+      },
     },
 
-    defaultScopes: [...AUTH_PROTECTED_SCOPES, 'filterCategory'],
+    defaultScopes: [
+      ...AUTH_PROTECTED_SCOPES,
+      'filterCategory',
+      'filterRequestData',
+    ],
   },
 
   hooks: {
@@ -439,31 +462,37 @@ export default class RequestsService extends moleculer.Service {
       populate: 'geom',
     });
 
-    const features = objects
-      .map((obj: any) => {
-        const geometry =
-          obj.geom?.features?.[0]?.geometry || obj.geom?.geometry || obj.geom;
-        if (!geometry?.type) return null;
-        return {
-          type: 'Feature',
-          geometry,
-          properties: {
-            cadastralId: obj.cadastralId,
-            name: obj.name,
-            category: obj.category,
-            categoryTranslate: obj.categoryTranslate,
-            municipality: obj.municipality,
-            municipalityCode: obj.municipalityCode,
-            area: obj.area,
-            length: obj.length,
-          },
-        };
-      })
-      .filter(Boolean);
+    const features = objects.flatMap((obj: any) => {
+      const baseProps = {
+        cadastralId: obj.cadastralId,
+        name: obj.name,
+        category: obj.category,
+        categoryTranslate: obj.categoryTranslate,
+        municipality: obj.municipality,
+        municipalityCode: obj.municipalityCode,
+        area: obj.area,
+        length: obj.length,
+      };
+      if (
+        obj.geom?.type === 'FeatureCollection' &&
+        Array.isArray(obj.geom.features)
+      ) {
+        return obj.geom.features
+          .filter((f: any) => f?.geometry?.type)
+          .map((f: any) => ({
+            type: 'Feature',
+            geometry: f.geometry,
+            properties: { ...baseProps, ...(f.properties || {}) },
+          }));
+      }
+      const geometry =
+        obj.geom?.geometry || (obj.geom?.type ? obj.geom : null);
+      if (!geometry?.type) return [];
+      return [{ type: 'Feature', geometry, properties: baseProps }];
+    });
 
     const featureCollection = {
       type: 'FeatureCollection',
-      crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:EPSG::3346' } },
       features,
     };
 
@@ -476,7 +505,13 @@ export default class RequestsService extends moleculer.Service {
 
     const result: any = await ctx.call(
       'minio.uploadFile',
-      { payload: stream, folder, isPrivate: true, types: GEOJSON_TYPES },
+      {
+        payload: stream,
+        folder,
+        isPrivate: true,
+        types: GEOJSON_TYPES,
+        name: `israsas-${request.id}`,
+      },
       {
         meta: {
           mimetype: 'application/geo+json',
