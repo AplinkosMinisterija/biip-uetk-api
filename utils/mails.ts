@@ -115,3 +115,21 @@ export function notifyOnFileGenerated(
     },
   });
 }
+
+export function notifyOnFileGeneratedForForm(
+  email: string,
+  formId: number | string,
+  isAdmin: boolean = false
+) {
+  const path = isAdmin ? 'uetk/teikimo-anketos' : 'duomenu-teikimas';
+
+  return client.sendEmailWithTemplate({
+    From: sender,
+    To: email.toLowerCase(),
+    TemplateId: 32594847,
+    TemplateModel: {
+      requestId: formId,
+      actionUrl: `${hostUrl(isAdmin)}/${path}/${formId}`,
+    },
+  });
+}
