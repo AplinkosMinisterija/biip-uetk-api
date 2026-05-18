@@ -162,6 +162,10 @@
               <% if (item.extendedData?.kadastroId || item.cadastralId) { %>
                 <p>Identifikavimo kodas: <b><%= item.extendedData?.kadastroId || item.cadastralId %></b></p>
               <% } %>
+              <% var parentRiver = (item.extendedData?.vyrUpes || []).find(function(r) { return r && (r.pavadinimas || r.kodas); }); %>
+              <% if (parentRiver) { %>
+                <p class="mt-2">Vyresnioji upė: <b><%= parentRiver.pavadinimas || '-' %></b><% if (parentRiver.kodas) { %>, kodas <b><%= parentRiver.kodas %></b><% } %></p>
+              <% } %>
             </div>
           <% } %>
           <img src="<%= item.screenshot %>" class="w-full my-4" />
