@@ -167,7 +167,7 @@
                    ...(item.extendedData?.vyrEzeraiTvenkiniai || [])
                  ].find(function(r) { return r && (r.pavadinimas || r.kodas); }); %>
               <% if (downstream) { %>
-                <p class="mt-2">Įteka į <%= (downstream.kategorija || 'vandens telkinį').toLowerCase() %>: <b><%= downstream.pavadinimas || '-' %></b><% if (downstream.kodas) { %>, kodas <b><%= downstream.kodas %></b><% } %></p>
+                <p class="mt-2">Vandens telkinys, į kurį įteka: <b><%= downstream.pavadinimas || '-' %></b><% if (downstream.kategorija) { %> (<%= downstream.kategorija.toLowerCase() %>)<% } %><% if (downstream.kodas) { %>, kodas <b><%= downstream.kodas %></b><% } %></p>
               <% } %>
             </div>
           <% } %>
