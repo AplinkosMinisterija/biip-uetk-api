@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import Moleculer, { Context, Errors } from 'moleculer';
 import { UserAuthMeta } from '../services/api.service';
+import { FormType } from '../services/forms.service';
 import { FieldHookCallback } from './';
 
 export const NOTIFY_ADMIN_EMAIL = 'viktorija.ramune@gamta.lt';
