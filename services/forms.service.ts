@@ -149,6 +149,31 @@ const populatePermissions = (field: string) => {
         type: 'array',
         columnType: 'json',
         items: { type: 'object' },
+        // Reject client-supplied file URLs that point outside the caller's own
+        // upload folder. Without this an attacker could submit a form with
+        // files[].url referencing another tenant's object and then read it
+        // back to obtain a fresh presigned URL via the get hook below.
+        // (minio.signStoredUrl also enforces ownership on read as defense-in-depth.)
+        set: ({ ctx, value }: FieldHookCallback) => {
+          if (!Array.isArray(value)) return value;
+          const meta = ctx?.meta as UserAuthMeta | undefined;
+          if (!meta?.user?.id || meta.user.type === UserType.ADMIN) return value;
+          const ownedPrefix = `uploads/forms/${
+            meta.profile?.id || 'private'
+          }/${meta.user.id}/`;
+          return value.filter((item: any) => {
+            if (!item?.url || typeof item.url !== 'string') return true;
+            const idx = item.url.indexOf('/minio/');
+            if (idx === -1) return true; // not one of our managed URLs
+            const rest = item.url.slice(idx + '/minio/'.length);
+            const [, ...objectParts] = rest.split('/');
+            const objectName = objectParts.join('/');
+            if (objectName.includes('..') || objectName.includes('\\')) {
+              return false;
+            }
+            return objectName.startsWith(ownedPrefix);
+          });
+        },
         // Sign each file URL on read (same rationale as requests.generatedFile)
         async get({ ctx, value }: FieldHookCallback) {
           if (!Array.isArray(value)) return value;

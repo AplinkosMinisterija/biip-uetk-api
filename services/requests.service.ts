@@ -251,6 +251,17 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
       generatedFile: {
         type: 'string',
+        // Block client writes — generatedFile is system-managed (populated by
+        // jobs.requests.generateAndSavePdf). Without this guard a regular user
+        // could PATCH /requests/:id with generatedFile pointing at another
+        // tenant's PDF; combined with the get hook below that would have
+        // returned a presigned URL even for objects the user doesn't own.
+        // (signStoredUrl now also blocks non-owners as defense-in-depth.)
+        set: ({ ctx, value, entity }: FieldHookCallback) => {
+          const meta = ctx?.meta as UserAuthMeta | undefined;
+          if (!meta?.user?.id || meta.user.type === UserType.ADMIN) return value;
+          return entity?.generatedFile;
+        },
         // Sign on read so FE can keep using <a href={url}> downloads without
         // sending an Authorization header. The stored value is a relative
         // private-proxy URL; minio.signStoredUrl issues a fresh presigned URL

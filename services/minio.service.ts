@@ -94,14 +94,18 @@ export default class MinioService extends Moleculer.Service {
   /**
    * Convert a stored "private" object URL into a freshly-signed presigned URL.
    * Returns the input unchanged when the stored value is not one of our private
-   * proxy URLs (e.g. already absolute MinIO public URL, external string).
-   * Lets FE keep using `<a href={url}>` without sending an Authorization header.
+   * proxy URLs (e.g. already absolute MinIO public URL, external string), OR
+   * when the caller does not own the underlying object — without this last
+   * check the action becomes a presigned-URL oracle for arbitrary MinIO objects
+   * (attacker writes /minio/uetk/uploads/requests/private/<victim>/file.pdf
+   * into forms.files[].url or requests.generatedFile, reads it back, and gets
+   * a signed URL they can hit directly against MinIO).
    */
   @Action({
     params: { url: 'string' },
     visibility: 'protected',
   })
-  async signStoredUrl(ctx: Context<{ url: string }>) {
+  async signStoredUrl(ctx: Context<{ url: string }, UserAuthMeta>) {
     const { url } = ctx.params;
     if (!url || typeof url !== 'string') return url;
 
@@ -113,6 +117,14 @@ export default class MinioService extends Moleculer.Service {
     const [bucketName, ...objectParts] = rest.split('/');
     const objectName = objectParts.join('/');
     if (!bucketName || !objectName) return url;
+
+    // Ownership check. isFolderOwnedByCaller already returns true for system
+    // (no user meta) and ADMIN callers, so background workers and admins still
+    // get signed URLs. Regular users only get signing for objects in their own
+    // tenant/user folder.
+    if (!isFolderOwnedByCaller(objectName, ctx.meta)) {
+      return url;
+    }
 
     try {
       return await this.getPresignedUrl(ctx, objectName, bucketName);
