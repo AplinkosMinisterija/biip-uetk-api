@@ -152,6 +152,19 @@ const objectsStub: ServiceSchema = {
   },
 };
 
+// Background-jobs stub. requests.updated event handler invokes
+// requests.generatePdf -> jobs.requests.initiatePdfGenerate when the status
+// transitions to APPROVED. The real service uses BullMQ + Redis; we don't
+// need the side-effect for security testing, just the action to exist.
+const jobsRequestsStub: ServiceSchema = {
+  name: 'jobs.requests',
+  actions: {
+    initiatePdfGenerate: { handler: () => ({ job: { id: 'stub-job' } }) },
+    generateAndSavePdf: { handler: () => ({ job: { id: 'stub-job' } }) },
+    getRequestHtml: { handler: () => '<html></html>' },
+  },
+};
+
 // Tools stub for SSRF allowlist tests we exercise through the real
 // tools.service action — see search.spec.ts. Not used by default.
 
@@ -174,6 +187,7 @@ export function buildBroker() {
   broker.createService(authStub);
   broker.createService(minioStub);
   broker.createService(objectsStub);
+  broker.createService(jobsRequestsStub);
 
   broker.createService(UsersService);
   broker.createService(TenantsService);
