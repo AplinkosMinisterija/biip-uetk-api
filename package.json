@@ -9,6 +9,7 @@
     "cli": "moleculer connect NATS",
     "ci": "jest --watch",
     "test": "jest --coverage --passWithNoTests",
+    "test:ci": "jest --runInBand --forceExit",
     "lint": "eslint --ext .js,.ts .",
     "lint:sarif": "set SARIF_ESLINT_EMBED=true && yarn run lint --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif",
     "dc:up": "docker-compose -p biip-uetk-api up --build -d",

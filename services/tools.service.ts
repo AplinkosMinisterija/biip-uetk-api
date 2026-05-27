@@ -36,7 +36,7 @@ function allowedToolHosts(): Set<string> {
   return hosts;
 }
 
-function assertSafeToolUrl(url: string) {
+export function assertSafeToolUrl(url: string) {
   let parsed: URL;
   try {
     parsed = new URL(url);
