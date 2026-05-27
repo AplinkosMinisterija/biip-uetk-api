@@ -474,21 +474,43 @@ export default class RequestsService extends moleculer.Service {
       url: 'string',
     },
     // System-only: called by jobs.requests.generateAndSavePdf in a background
-    // worker context with no user meta. visibleToUser scope deny-by-default
-    // would now block that path, so we pass an explicit scope list that keeps
-    // soft-delete protection but skips per-user visibility.
+    // worker context with no user meta. visibility: 'protected' keeps it off
+    // the API gateway entirely so the scope override below cannot be reached
+    // by an external caller — only by another in-broker service. Combined
+    // with the state assertion below, a misbehaving sibling service still
+    // can't overwrite a finalized PDF URL.
     visibility: 'protected',
   })
-  saveGeneratedPdf(ctx: Context<{ id: number; url: string }>) {
+  async saveGeneratedPdf(ctx: Context<{ id: number; url: string }>) {
     const { id, url: generatedFile } = ctx.params;
 
-    return this.updateEntity(ctx, {
-      id,
-      generatedFile,
-      // Drop visibleToUser from defaultScopes — keep notDeleted in place.
-      // @moleculer/database reads `-<scopeName>` as "remove from defaults".
-      scope: ['-visibleToUser'],
-    });
+    // Independent ownership / state check before bypassing visibleToUser.
+    // PDF generation is only legitimate for requests the system has decided
+    // to process (status APPROVED via auto-approve or admin approval). Block
+    // writes to any other state so a stray service-to-service call can't be
+    // used as an overwrite oracle.
+    const entity: Request = await this.resolveEntities(
+      ctx,
+      { id, scope: ['-visibleToUser'] },
+      { throwIfNotExist: false }
+    );
+    if (!entity) {
+      return throwValidationError('Request not found');
+    }
+    if (entity.status !== RequestStatus.APPROVED) {
+      return throwValidationError(
+        `Cannot persist generated file for status ${entity.status}`
+      );
+    }
+
+    // updateEntity reads `scope` from its third (opts) argument, not from
+    // params. Pass `-visibleToUser` there so the internal pre-resolve also
+    // skips the deny-by-default filter.
+    return this.updateEntity(
+      ctx,
+      { id, generatedFile },
+      { scope: ['-visibleToUser'] }
+    );
   }
 
   @Action({
