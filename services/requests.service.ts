@@ -6,7 +6,7 @@ import { Action, Event, Method, Service } from 'moleculer-decorators';
 import { FeatureCollection } from 'geojsonjs';
 import PostgisMixin, { GeometryType } from 'moleculer-postgis';
 import DbConnection from '../mixins/database.mixin';
-import { AuthType, UserAuthMeta } from './api.service';
+import { UserAuthMeta } from './api.service';
 
 import moment from 'moment';
 import { Readable } from 'stream';
@@ -249,7 +249,28 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
         populate: populatePermissions('validate'),
       },
 
-      generatedFile: 'string',
+      generatedFile: {
+        type: 'string',
+        // Block client writes — generatedFile is system-managed (populated by
+        // jobs.requests.generateAndSavePdf). Without this guard a regular user
+        // could PATCH /requests/:id with generatedFile pointing at another
+        // tenant's PDF; combined with the get hook below that would have
+        // returned a presigned URL even for objects the user doesn't own.
+        // (signStoredUrl now also blocks non-owners as defense-in-depth.)
+        set: ({ ctx, value, entity }: FieldHookCallback) => {
+          const meta = ctx?.meta as UserAuthMeta | undefined;
+          if (!meta?.user?.id || meta.user.type === UserType.ADMIN) return value;
+          return entity?.generatedFile;
+        },
+        // Sign on read so FE can keep using <a href={url}> downloads without
+        // sending an Authorization header. The stored value is a relative
+        // private-proxy URL; minio.signStoredUrl issues a fresh presigned URL
+        // that hits MinIO directly with the embedded signature.
+        async get({ ctx, value }: FieldHookCallback) {
+          if (!value || typeof value !== 'string') return value;
+          return ctx.call('minio.signStoredUrl', { url: value });
+        },
+      },
 
       notifyEmail: {
         type: 'string',
@@ -284,7 +305,16 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
       ...COMMON_SCOPES,
       visibleToUser(query: any, ctx: Context<null, UserAuthMeta>) {
         const { user, profile } = ctx?.meta;
-        if (!user?.id) return query;
+        // Deny-by-default for unauthenticated callers: scope used to return the
+        // raw query, which made any internal ctx.call('requests.resolve') from
+        // a PUBLIC action expose every request. The route-level auth still
+        // gates HTTP, but defense-in-depth matters when actions invoke each
+        // other via ctx.call.
+        //
+        // We use createdBy: -1 rather than id: -1 because resolve()'s explicit
+        // params.id wins over a scope-supplied id filter — a sentinel on a
+        // non-PK field always applies.
+        if (!user?.id) return { ...query, createdBy: -1 };
 
         const createdByUserQuery = {
           createdBy: user?.id,
@@ -360,10 +390,47 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
   },
 
   actions: {
+    // Authorization: any authenticated user can hit the CRUD routes, but the
+    // visibleToUser scope ensures USERs only see their own and TENANT_USERs
+    // only see their tenant's. Admins see everything. Public callers blocked
+    // at the auth layer.
+    create: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
+    },
+    list: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
+    },
+    get: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
+    },
     update: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
       additionalParams: {
         comment: { type: 'string', optional: true },
       },
+    },
+    remove: {
+      types: [EndpointType.ADMIN],
     },
   },
 })
@@ -376,6 +443,12 @@ export default class RequestsService extends moleculer.Service {
         convert: true,
       },
     },
+    types: [
+      EndpointType.ADMIN,
+      EndpointType.USER,
+      EndpointType.TENANT_USER,
+      EndpointType.TENANT_ADMIN,
+    ],
   })
   async getHistory(
     ctx: Context<{
@@ -400,14 +473,44 @@ export default class RequestsService extends moleculer.Service {
       id: 'number',
       url: 'string',
     },
+    // System-only: called by jobs.requests.generateAndSavePdf in a background
+    // worker context with no user meta. visibility: 'protected' keeps it off
+    // the API gateway entirely so the scope override below cannot be reached
+    // by an external caller — only by another in-broker service. Combined
+    // with the state assertion below, a misbehaving sibling service still
+    // can't overwrite a finalized PDF URL.
+    visibility: 'protected',
   })
-  saveGeneratedPdf(ctx: Context<{ id: number; url: string }>) {
+  async saveGeneratedPdf(ctx: Context<{ id: number; url: string }>) {
     const { id, url: generatedFile } = ctx.params;
 
-    return this.updateEntity(ctx, {
-      id,
-      generatedFile,
-    });
+    // Independent ownership / state check before bypassing visibleToUser.
+    // PDF generation is only legitimate for requests the system has decided
+    // to process (status APPROVED via auto-approve or admin approval). Block
+    // writes to any other state so a stray service-to-service call can't be
+    // used as an overwrite oracle.
+    const entity: Request = await this.resolveEntities(
+      ctx,
+      { id, scope: ['-visibleToUser'] },
+      { throwIfNotExist: false }
+    );
+    if (!entity) {
+      return throwValidationError('Request not found');
+    }
+    if (entity.status !== RequestStatus.APPROVED) {
+      return throwValidationError(
+        `Cannot persist generated file for status ${entity.status}`
+      );
+    }
+
+    // updateEntity reads `scope` from its third (opts) argument, not from
+    // params. Pass `-visibleToUser` there so the internal pre-resolve also
+    // skips the deny-by-default filter.
+    return this.updateEntity(
+      ctx,
+      { id, generatedFile },
+      { scope: ['-visibleToUser'] }
+    );
   }
 
   @Action({
@@ -419,6 +522,12 @@ export default class RequestsService extends moleculer.Service {
     },
     rest: 'POST /:id/generate',
     timeout: 0,
+    types: [
+      EndpointType.ADMIN,
+      EndpointType.USER,
+      EndpointType.TENANT_USER,
+      EndpointType.TENANT_ADMIN,
+    ],
   })
   async generatePdf(ctx: Context<{ id: number }>) {
     const flow: any = await ctx.call('jobs.requests.initiatePdfGenerate', {
@@ -532,8 +641,13 @@ export default class RequestsService extends moleculer.Service {
         convert: true,
       },
     },
-    auth: AuthType.PUBLIC,
     rest: 'GET /:id/geom',
+    types: [
+      EndpointType.ADMIN,
+      EndpointType.USER,
+      EndpointType.TENANT_USER,
+      EndpointType.TENANT_ADMIN,
+    ],
   })
   async getRequestGeom(ctx: Context<{ id: number }>) {
     const request: Request = await ctx.call('requests.resolve', {

@@ -89,6 +89,7 @@ export default class TenantUsersService extends moleculer.Service {
         convert: true,
       },
     },
+    visibility: 'protected',
   })
   async getRole(ctx: Context<{ tenant: number; user: number }>) {
     const tenantUser: TenantUser = await ctx.call('tenantUsers.findOne', {
@@ -190,6 +191,7 @@ export default class TenantUsersService extends moleculer.Service {
         convert: true,
       },
     },
+    visibility: 'protected',
   })
   async findByUser(ctx: Context<{ id: number }>) {
     const tenantUsers: TenantUser[] = await ctx.call('tenantUsers.find', {
@@ -212,6 +214,7 @@ export default class TenantUsersService extends moleculer.Service {
         convert: true,
       },
     },
+    visibility: 'protected',
   })
   async findIdsByUser(ctx: Context<{ id: number }>) {
     const tenantUsers: TenantUser[] = await ctx.call('tenantUsers.find', {
@@ -234,6 +237,7 @@ export default class TenantUsersService extends moleculer.Service {
         optional: true,
       },
     },
+    visibility: 'protected',
   })
   async findIdsByTenant(ctx: Context<{ id: number; role?: string }>) {
     const { id, role } = ctx.params;
@@ -263,6 +267,7 @@ export default class TenantUsersService extends moleculer.Service {
         convert: true,
       },
     },
+    visibility: 'protected',
   })
   async userExistsInTenant(ctx: Context<{ userId: number; tenantId: number }>) {
     const tenantUser: TenantUser = await ctx.call('tenantUsers.findOne', {
@@ -295,6 +300,7 @@ export default class TenantUsersService extends moleculer.Service {
         optional: true,
       },
     },
+    visibility: 'protected',
   })
   async createRelationshipsIfNeeded(
     ctx: Context<{
@@ -408,6 +414,7 @@ export default class TenantUsersService extends moleculer.Service {
         convert: true,
       },
     },
+    visibility: 'protected',
   })
   async removeUsers(ctx: Context<{ tenantId: number }, UserAuthMeta>) {
     const { tenantId } = ctx.params;
@@ -461,6 +468,7 @@ export default class TenantUsersService extends moleculer.Service {
         convert: true,
       },
     },
+    visibility: 'protected',
   })
   async removeTenants(ctx: Context<{ userId: number }, UserAuthMeta>) {
     const { userId } = ctx.params;
@@ -648,6 +656,7 @@ export default class TenantUsersService extends moleculer.Service {
     cache: {
       keys: ['id', 'profile'],
     },
+    visibility: 'protected',
   })
   async getProfile(ctx: Context<{ id: number; profile: number }>) {
     const tenantUser: TenantUser = await ctx.call('tenantUsers.findOne', {

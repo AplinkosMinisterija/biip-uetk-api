@@ -65,16 +65,14 @@ export default class SearchService extends moleculer.Service {
     let rows: any[] = await this.getGisData();
 
     if (!!search) {
+      const needle = String(search).toLowerCase();
       rows = rows.filter((f: any) => {
         const props = f.properties;
 
         return searchFields.some((sField) => {
-          if (!props[sField]) return false;
-
-          if (typeof props[sField] === 'string') {
-            const regex = new RegExp(`${search}`, 'gi');
-            return regex.test(props[sField]);
-          }
+          const value = props[sField];
+          if (!value || typeof value !== 'string') return false;
+          return value.toLowerCase().includes(needle);
         });
       });
     }

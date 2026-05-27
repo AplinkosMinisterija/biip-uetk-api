@@ -303,6 +303,7 @@ export default class UsersService extends moleculer.Service {
     cache: {
       keys: ['authUser.id'],
     },
+    visibility: 'protected',
   })
   async resolveByAuthUser(ctx: Context<{ authUser: any }>) {
     const user: User = await ctx.call('users.findOrCreate', {
@@ -336,6 +337,7 @@ export default class UsersService extends moleculer.Service {
         optional: true,
       },
     },
+    visibility: 'protected',
   })
   async findOrCreate(
     ctx: Context<{
@@ -453,6 +455,7 @@ export default class UsersService extends moleculer.Service {
         optional: true,
       },
     },
+    types: [EndpointType.ADMIN, EndpointType.TENANT_ADMIN],
   })
   async updateUser(
     ctx: Context<

@@ -38,6 +38,59 @@ jobs:
           wait-for-processing: true
           category: ESLint
 
+  validate:
+    name: Build & test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgis/postgis:14-master
+        ports: ['5436:5432']
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: uetk_test
+          TZ: 'Etc/GMT'
+          PGTZ: 'Etc/GMT'
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 30
+
+      redis:
+        image: redis:7
+        ports: ['6671:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: package.json
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --immutable --immutable-cache --check-cache
+
+      - name: Build
+        run: yarn build
+
+      - name: Test
+        run: yarn test:ci
+        env:
+          DB_CONNECTION: postgresql://postgres:postgres@localhost:5436/uetk_test
+          GIS_DB_CONNECTION: postgresql://postgres:postgres@localhost:5436/uetk_test
+          REDIS_CONNECTION: redis://localhost:6671
+
   validate-docker-build:
     name: Validate if docker image builds
     uses: AplinkosMinisterija/reusable-workflows/.github/workflows/docker-build-push.yml@main
