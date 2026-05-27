@@ -212,12 +212,24 @@ export async function runMigrations() {
     for (const t of tablesInReverseOrder) {
       await k.schema.dropTableIfExists(t);
     }
-    // Drop enum types created by 20230503114642_setup.js so re-running
-    // migrations within a single Jest process doesn't error out.
-    const enums = ['user_type', 'request_status', 'form_status', 'form_type'];
-    for (const e of enums) {
-      await k.raw(`DROP TYPE IF EXISTS ?? CASCADE`, [e]);
-    }
+    // Drop every user-defined enum in the public schema so re-running
+    // migrations within a single Jest process doesn't trip on
+    // `type "..." already exists`. Hard-coding the list is fragile — new
+    // migrations add new enums (tenant_user_role was the one we missed).
+    await k.raw(`
+      DO $$
+      DECLARE r RECORD;
+      BEGIN
+        FOR r IN (
+          SELECT t.typname
+          FROM pg_type t
+          JOIN pg_namespace n ON n.oid = t.typnamespace
+          WHERE n.nspname = 'public' AND t.typtype = 'e'
+        ) LOOP
+          EXECUTE 'DROP TYPE IF EXISTS public.' || quote_ident(r.typname) || ' CASCADE';
+        END LOOP;
+      END $$;
+    `);
     await k.migrate.latest();
   } finally {
     await k.destroy();
