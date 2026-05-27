@@ -100,7 +100,7 @@ describe('IDOR write-side defenses', () => {
       expect(updated.generatedFile).toBeFalsy();
     });
 
-    it("allows system context (no user meta) to set generatedFile", async () => {
+    it("allows system context (no user meta) to set generatedFile via saveGeneratedPdf", async () => {
       const own: any = await broker.call(
         'requests.create',
         {
@@ -111,15 +111,25 @@ describe('IDOR write-side defenses', () => {
         { meta: userMeta(userA) }
       );
 
-      // Mimic jobs.requests.generateAndSavePdf -> ctx.call without user meta
+      // This is the real prod path: jobs.requests.generateAndSavePdf calls
+      // requests.saveGeneratedPdf in a background worker context with empty
+      // ctx.meta. saveGeneratedPdf passes scope: 'notDeleted' so visibleToUser
+      // deny-by-default doesn't block its own job.
       const systemUrl =
         `http://localhost:3000/minio/uetk-test/uploads/requests/private/${userA.id}/job.pdf`;
-      const updated: any = await broker.call('requests.update', {
+      await broker.call('requests.saveGeneratedPdf', {
         id: own.id,
-        generatedFile: systemUrl,
+        url: systemUrl,
       });
 
-      expect(updated.generatedFile).toContain('/uploads/requests/private/');
+      // Verify via admin read since the user's visibleToUser scope sees only
+      // their own records — admin sees everyone.
+      const reread: any = await broker.call(
+        'requests.resolve',
+        { id: own.id },
+        { meta: adminMeta(admin.id) }
+      );
+      expect(reread.generatedFile).toContain('/uploads/requests/private/');
     });
 
     it("allows admin to set generatedFile via an APPROVE transition", async () => {

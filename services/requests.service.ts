@@ -473,14 +473,23 @@ export default class RequestsService extends moleculer.Service {
       id: 'number',
       url: 'string',
     },
+    // System-only: called by jobs.requests.generateAndSavePdf in a background
+    // worker context with no user meta. visibleToUser scope deny-by-default
+    // would now block that path, so we pass an explicit scope list that keeps
+    // soft-delete protection but skips per-user visibility.
+    visibility: 'protected',
   })
   saveGeneratedPdf(ctx: Context<{ id: number; url: string }>) {
     const { id, url: generatedFile } = ctx.params;
 
-    return this.updateEntity(ctx, {
-      id,
-      generatedFile,
-    });
+    return this.updateEntity(
+      ctx,
+      {
+        id,
+        generatedFile,
+        scope: 'notDeleted',
+      }
+    );
   }
 
   @Action({
