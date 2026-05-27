@@ -101,6 +101,8 @@ describe('IDOR write-side defenses', () => {
     });
 
     it("allows system context (no user meta) to set generatedFile via saveGeneratedPdf", async () => {
+      // saveGeneratedPdf only writes for status=APPROVED — admin approves
+      // the request first, then the background worker calls saveGeneratedPdf.
       const own: any = await broker.call(
         'requests.create',
         {
@@ -110,11 +112,12 @@ describe('IDOR write-side defenses', () => {
         },
         { meta: userMeta(userA) }
       );
+      await broker.call(
+        'requests.update',
+        { id: own.id, status: 'APPROVED' },
+        { meta: adminMeta(admin.id) }
+      );
 
-      // This is the real prod path: jobs.requests.generateAndSavePdf calls
-      // requests.saveGeneratedPdf in a background worker context with empty
-      // ctx.meta. saveGeneratedPdf passes scope: 'notDeleted' so visibleToUser
-      // deny-by-default doesn't block its own job.
       const systemUrl =
         `http://localhost:3000/minio/uetk-test/uploads/requests/private/${userA.id}/job.pdf`;
       await broker.call('requests.saveGeneratedPdf', {
@@ -122,14 +125,31 @@ describe('IDOR write-side defenses', () => {
         url: systemUrl,
       });
 
-      // Verify via admin read since the user's visibleToUser scope sees only
-      // their own records — admin sees everyone.
       const reread: any = await broker.call(
         'requests.resolve',
         { id: own.id },
         { meta: adminMeta(admin.id) }
       );
       expect(reread.generatedFile).toContain('/uploads/requests/private/');
+    });
+
+    it("rejects saveGeneratedPdf on a non-APPROVED request", async () => {
+      const own: any = await broker.call(
+        'requests.create',
+        {
+          purpose: 'OTHER',
+          purposeValue: 'wrong-state',
+          objects: [{ id: '88', type: 'CADASTRAL_ID' }],
+        },
+        { meta: userMeta(userA) }
+      );
+
+      await expect(
+        broker.call('requests.saveGeneratedPdf', {
+          id: own.id,
+          url: 'http://localhost:3000/minio/uetk-test/uploads/requests/private/4/x.pdf',
+        })
+      ).rejects.toThrow();
     });
 
     it("allows admin to set generatedFile via an APPROVE transition", async () => {
