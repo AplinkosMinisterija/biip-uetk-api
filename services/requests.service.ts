@@ -482,14 +482,13 @@ export default class RequestsService extends moleculer.Service {
   saveGeneratedPdf(ctx: Context<{ id: number; url: string }>) {
     const { id, url: generatedFile } = ctx.params;
 
-    return this.updateEntity(
-      ctx,
-      {
-        id,
-        generatedFile,
-        scope: 'notDeleted',
-      }
-    );
+    return this.updateEntity(ctx, {
+      id,
+      generatedFile,
+      // Drop visibleToUser from defaultScopes — keep notDeleted in place.
+      // @moleculer/database reads `-<scopeName>` as "remove from defaults".
+      scope: ['-visibleToUser'],
+    });
   }
 
   @Action({
