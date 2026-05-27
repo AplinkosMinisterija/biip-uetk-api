@@ -189,12 +189,15 @@ export function buildBroker() {
 /**
  * Wipe + migrate the test database. Idempotent. Run once before broker.start
  * in beforeAll.
+ *
+ * Each spec file gets a fresh broker + fresh migrations; we drop all known
+ * tables AND the enum types created by migrations (user_type etc.), otherwise
+ * the second migrate.latest() in the same Jest run hits
+ * `type "user_type" already exists`.
  */
 export async function runMigrations() {
   const k = knex(knexConfig);
   try {
-    // Drop+recreate test tables. We only touch tables we know about so a
-    // shared dev DB doesn't get nuked.
     const tablesInReverseOrder = [
       'forms_histories',
       'requests_histories',
@@ -208,6 +211,12 @@ export async function runMigrations() {
     ];
     for (const t of tablesInReverseOrder) {
       await k.schema.dropTableIfExists(t);
+    }
+    // Drop enum types created by 20230503114642_setup.js so re-running
+    // migrations within a single Jest process doesn't error out.
+    const enums = ['user_type', 'request_status', 'form_status', 'form_type'];
+    for (const e of enums) {
+      await k.raw(`DROP TYPE IF EXISTS ?? CASCADE`, [e]);
     }
     await k.migrate.latest();
   } finally {

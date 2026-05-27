@@ -122,7 +122,7 @@ describe('IDOR write-side defenses', () => {
       expect(updated.generatedFile).toContain('/uploads/requests/private/');
     });
 
-    it("allows admin to set generatedFile", async () => {
+    it("allows admin to set generatedFile via an APPROVE transition", async () => {
       const own: any = await broker.call(
         'requests.create',
         {
@@ -137,11 +137,13 @@ describe('IDOR write-side defenses', () => {
         `http://localhost:3000/minio/uetk-test/uploads/requests/private/${userA.id}/admin.pdf`;
       const updated: any = await broker.call(
         'requests.update',
-        { id: own.id, generatedFile: adminUrl },
+        { id: own.id, generatedFile: adminUrl, status: 'APPROVED' },
         { meta: adminMeta(admin.id) }
       );
 
-      // Admin set is allowed; read may have a stub-signed suffix appended
+      // Admin set is allowed; the stub minio.signStoredUrl appends a fake
+      // X-Amz-Signature=... so the substring containing the original path is
+      // enough to confirm the field was written.
       expect(updated.generatedFile).toContain('admin.pdf');
     });
   });
@@ -162,7 +164,16 @@ describe('IDOR write-side defenses', () => {
           objectName: 'IDOR forms test',
           providerType: 'OWNER',
           description: 'x',
-          geom: null,
+          geom: {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [500000, 6000000] },
+                properties: {},
+              },
+            ],
+          },
           files: [
             { url: ownUrl, filename: 'own.pdf' },
             { url: victimUrl, filename: 'stolen.pdf' },
@@ -190,7 +201,16 @@ describe('IDOR write-side defenses', () => {
           objectName: 'traversal test',
           providerType: 'OWNER',
           description: 'x',
-          geom: null,
+          geom: {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [500000, 6000000] },
+                properties: {},
+              },
+            ],
+          },
           files: [{ url: traversal, filename: 'escape.pdf' }],
         },
         { meta: userMeta(userA) }
@@ -211,7 +231,16 @@ describe('IDOR write-side defenses', () => {
           objectName: 'tenant test',
           providerType: 'OWNER',
           description: 'x',
-          geom: null,
+          geom: {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [500000, 6000000] },
+                properties: {},
+              },
+            ],
+          },
           files: [{ url: tenantUrl, filename: 'tenant-file.pdf' }],
         },
         { meta: tenantMeta(userA, { id: tenant.id, role: 'ADMIN' }) }
