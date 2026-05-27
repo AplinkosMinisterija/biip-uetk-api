@@ -198,28 +198,22 @@ export function buildBroker() {
 export async function runMigrations() {
   const k = knex(knexConfig);
   try {
-    const tablesInReverseOrder = [
-      'forms_histories',
-      'requests_histories',
-      'forms',
-      'requests',
-      'tenant_users',
-      'tenants',
-      'users',
-      'migrations',
-      'migrations_lock',
-    ];
-    for (const t of tablesInReverseOrder) {
-      await k.schema.dropTableIfExists(t);
-    }
-    // Drop every user-defined enum in the public schema so re-running
-    // migrations within a single Jest process doesn't trip on
-    // `type "..." already exists`. Hard-coding the list is fragile — new
-    // migrations add new enums (tenant_user_role was the one we missed).
+    // Drop every non-PostGIS table + enum in the public schema. Hard-coding
+    // the lists kept missing new tables / types when migrations grow (we hit
+    // form_histories, tenant_user_role). PostGIS owns spatial_ref_sys + its
+    // helper tables under public — skip those, dropping them breaks the
+    // extension.
     await k.raw(`
       DO $$
       DECLARE r RECORD;
       BEGIN
+        FOR r IN (
+          SELECT tablename FROM pg_tables
+          WHERE schemaname = 'public'
+            AND tablename NOT IN ('spatial_ref_sys', 'geography_columns', 'geometry_columns', 'raster_columns', 'raster_overviews')
+        ) LOOP
+          EXECUTE 'DROP TABLE IF EXISTS public.' || quote_ident(r.tablename) || ' CASCADE';
+        END LOOP;
         FOR r IN (
           SELECT t.typname
           FROM pg_type t
