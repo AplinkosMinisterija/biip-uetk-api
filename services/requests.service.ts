@@ -6,7 +6,7 @@ import { Action, Event, Method, Service } from 'moleculer-decorators';
 import { FeatureCollection } from 'geojsonjs';
 import PostgisMixin, { GeometryType } from 'moleculer-postgis';
 import DbConnection from '../mixins/database.mixin';
-import { AuthType, UserAuthMeta } from './api.service';
+import { UserAuthMeta } from './api.service';
 
 import moment from 'moment';
 import { Readable } from 'stream';
@@ -249,7 +249,17 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
         populate: populatePermissions('validate'),
       },
 
-      generatedFile: 'string',
+      generatedFile: {
+        type: 'string',
+        // Sign on read so FE can keep using <a href={url}> downloads without
+        // sending an Authorization header. The stored value is a relative
+        // private-proxy URL; minio.signStoredUrl issues a fresh presigned URL
+        // that hits MinIO directly with the embedded signature.
+        async get({ ctx, value }: FieldHookCallback) {
+          if (!value || typeof value !== 'string') return value;
+          return ctx.call('minio.signStoredUrl', { url: value });
+        },
+      },
 
       notifyEmail: {
         type: 'string',
@@ -284,7 +294,12 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
       ...COMMON_SCOPES,
       visibleToUser(query: any, ctx: Context<null, UserAuthMeta>) {
         const { user, profile } = ctx?.meta;
-        if (!user?.id) return query;
+        // Deny-by-default for unauthenticated callers: scope used to return the
+        // raw query, which made any internal ctx.call('requests.resolve') from
+        // a PUBLIC action expose every request. The route-level auth still
+        // gates HTTP, but defense-in-depth matters when actions invoke each
+        // other via ctx.call.
+        if (!user?.id) return { ...query, id: -1 };
 
         const createdByUserQuery = {
           createdBy: user?.id,
@@ -360,10 +375,47 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
   },
 
   actions: {
+    // Authorization: any authenticated user can hit the CRUD routes, but the
+    // visibleToUser scope ensures USERs only see their own and TENANT_USERs
+    // only see their tenant's. Admins see everything. Public callers blocked
+    // at the auth layer.
+    create: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
+    },
+    list: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
+    },
+    get: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
+    },
     update: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
       additionalParams: {
         comment: { type: 'string', optional: true },
       },
+    },
+    remove: {
+      types: [EndpointType.ADMIN],
     },
   },
 })
@@ -376,6 +428,12 @@ export default class RequestsService extends moleculer.Service {
         convert: true,
       },
     },
+    types: [
+      EndpointType.ADMIN,
+      EndpointType.USER,
+      EndpointType.TENANT_USER,
+      EndpointType.TENANT_ADMIN,
+    ],
   })
   async getHistory(
     ctx: Context<{
@@ -419,6 +477,12 @@ export default class RequestsService extends moleculer.Service {
     },
     rest: 'POST /:id/generate',
     timeout: 0,
+    types: [
+      EndpointType.ADMIN,
+      EndpointType.USER,
+      EndpointType.TENANT_USER,
+      EndpointType.TENANT_ADMIN,
+    ],
   })
   async generatePdf(ctx: Context<{ id: number }>) {
     const flow: any = await ctx.call('jobs.requests.initiatePdfGenerate', {
@@ -532,8 +596,13 @@ export default class RequestsService extends moleculer.Service {
         convert: true,
       },
     },
-    auth: AuthType.PUBLIC,
     rest: 'GET /:id/geom',
+    types: [
+      EndpointType.ADMIN,
+      EndpointType.USER,
+      EndpointType.TENANT_USER,
+      EndpointType.TENANT_ADMIN,
+    ],
   })
   async getRequestGeom(ctx: Context<{ id: number }>) {
     const request: Request = await ctx.call('requests.resolve', {

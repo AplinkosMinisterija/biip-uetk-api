@@ -28,15 +28,14 @@ export const AuthType = {
     port: process.env.PORT || 3000,
     path: '/uetk',
 
-    // Global CORS settings for all routes
+    // Global CORS settings for all routes. We keep origin: '*' on purpose —
+    // the API is Bearer-token based (no cookies), so classic CSRF doesn't apply
+    // and the wildcard keeps public endpoints reachable from third parties.
     cors: {
-      // Configures the Access-Control-Allow-Origin CORS header.
       origin: '*',
-      // Configures the Access-Control-Allow-Methods CORS header.
-      methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'DELETE'],
-      // Configures the Access-Control-Allow-Headers CORS header.
+      methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE'],
       allowedHeaders: '*',
-      // Configures the Access-Control-Max-Age CORS header.
+      credentials: false,
       maxAge: 3600,
     },
 
@@ -162,8 +161,10 @@ export const AuthType = {
           },
         },
 
-        // Mapping policy setting. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Mapping-policy
-        mappingPolicy: 'all', // Available values: "all", "restrict"
+        // Restrict to explicit aliases + autoAliases-generated REST routes. With
+        // 'all', any @Action could be reached via /<service>/<action>, exposing
+        // internal actions without types: [...] gates.
+        mappingPolicy: 'restrict',
 
         // Enable/disable logging
         logging: true,
@@ -197,9 +198,8 @@ export default class ApiService extends moleculer.Service {
     rest: {
       method: 'POST',
       path: '/cache/clean',
-      basePath: '/public',
     },
-    auth: AuthType.PUBLIC,
+    types: [EndpointType.ADMIN],
   })
   cleanCache() {
     this.broker.cacher.clean();

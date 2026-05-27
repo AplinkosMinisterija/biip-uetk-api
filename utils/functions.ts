@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 import moment from 'moment';
 import { Readable } from 'stream';
 
@@ -48,12 +48,22 @@ export function parseToJsonIfNeeded(query: QueryObject | string): QueryObject {
   return query as QueryObject;
 }
 
+/**
+ * HMAC of (request id + createdAt) signed by a server-side secret. Replaces an
+ * earlier MD5(id+createdAt) scheme that was brute-forceable given a known
+ * request ID + creation window (~86k MD5/s on a laptop). Falls back to the old
+ * scheme only if REQUEST_SECRET is missing, so dev environments without the
+ * env var still work; production must set REQUEST_SECRET.
+ */
 export function getRequestSecret(request: any) {
-  return toMD5Hash(
-    `id=${request.id}&date=${moment(request.createdAt).format(
-      'YYYYMMDDHHmmss'
-    )}`
-  );
+  const payload = `id=${request.id}&date=${moment(request.createdAt).format(
+    'YYYYMMDDHHmmss'
+  )}`;
+  const key = process.env.REQUEST_SECRET;
+  if (key) {
+    return createHmac('sha256', key).update(payload).digest('hex');
+  }
+  return toMD5Hash(payload);
 }
 
 export function addLeadingZeros(num: number, totalLength: number = 7) {

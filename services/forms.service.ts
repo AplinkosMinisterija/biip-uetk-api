@@ -13,6 +13,7 @@ import {
   COMMON_FIELDS,
   COMMON_SCOPES,
   ContextMeta,
+  EndpointType,
   EntityChangedParams,
   FieldHookCallback,
   NOTIFY_ADMIN_EMAIL,
@@ -148,6 +149,19 @@ const populatePermissions = (field: string) => {
         type: 'array',
         columnType: 'json',
         items: { type: 'object' },
+        // Sign each file URL on read (same rationale as requests.generatedFile)
+        async get({ ctx, value }: FieldHookCallback) {
+          if (!Array.isArray(value)) return value;
+          return Promise.all(
+            value.map(async (file: any) => {
+              if (!file?.url) return file;
+              const signed = await ctx.call('minio.signStoredUrl', {
+                url: file.url,
+              });
+              return { ...file, url: signed };
+            })
+          );
+        },
       },
 
       providerType: {
@@ -202,7 +216,8 @@ const populatePermissions = (field: string) => {
       ...COMMON_SCOPES,
       visibleToUser(query: any, ctx: Context<null, UserAuthMeta>, params: any) {
         const { user, profile } = ctx?.meta;
-        if (!user?.id) return query;
+        // Deny-by-default for unauthenticated callers (defense-in-depth).
+        if (!user?.id) return { ...query, id: -1 };
 
         const createdByUserQuery = {
           createdBy: user?.id,
@@ -234,10 +249,45 @@ const populatePermissions = (field: string) => {
   },
 
   actions: {
+    // Authorization: any authenticated user can hit the CRUD routes; the
+    // visibleToUser scope handles per-tenant / per-user data filtering.
+    create: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
+    },
+    list: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
+    },
+    get: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
+    },
     update: {
+      types: [
+        EndpointType.ADMIN,
+        EndpointType.USER,
+        EndpointType.TENANT_USER,
+        EndpointType.TENANT_ADMIN,
+      ],
       additionalParams: {
         comment: { type: 'string', optional: true },
       },
+    },
+    remove: {
+      types: [EndpointType.ADMIN],
     },
   },
 })
@@ -250,6 +300,12 @@ export default class FormsService extends moleculer.Service {
         convert: true,
       },
     },
+    types: [
+      EndpointType.ADMIN,
+      EndpointType.USER,
+      EndpointType.TENANT_USER,
+      EndpointType.TENANT_ADMIN,
+    ],
   })
   async getHistory(
     ctx: Context<{
@@ -280,6 +336,12 @@ export default class FormsService extends moleculer.Service {
         },
       },
     },
+    types: [
+      EndpointType.ADMIN,
+      EndpointType.USER,
+      EndpointType.TENANT_USER,
+      EndpointType.TENANT_ADMIN,
+    ],
   })
   async upload(ctx: Context<{}, UserAuthMeta>) {
     const folder = this.getFolderName(ctx.meta?.user, ctx.meta?.profile);

@@ -3,7 +3,67 @@
 import moleculer, { Context } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
 import { toReadableStream } from '../utils';
+import { throwBadRequestError } from '../types';
 import { AuthType } from './api.service';
+
+// Hosts the tools service is allowed to fetch on behalf of a caller. Anything
+// outside this set is rejected before we hand the URL to the screenshot/PDF
+// renderer — without it `tools.download` (PUBLIC) and `tools.makeScreenshot`
+// were a general-purpose SSRF reflector pointed at internal IPs.
+function allowedToolHosts(): Set<string> {
+  const hosts = new Set<string>();
+  const candidates = [
+    process.env.MAPS_HOST,
+    process.env.SERVER_HOST,
+    process.env.APP_HOST,
+    process.env.QGIS_SERVER_HOST,
+    process.env.TOOLS_ALLOWED_HOSTS, // comma-separated extra allowlist
+  ].filter(Boolean) as string[];
+
+  for (const raw of candidates) {
+    for (const entry of raw.split(',')) {
+      const trimmed = entry.trim();
+      if (!trimmed) continue;
+      try {
+        const u = new URL(trimmed);
+        hosts.add(u.host.toLowerCase());
+      } catch {
+        hosts.add(trimmed.toLowerCase());
+      }
+    }
+  }
+
+  return hosts;
+}
+
+function assertSafeToolUrl(url: string) {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throwBadRequestError('Invalid URL');
+  }
+
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throwBadRequestError('Only http(s) URLs are allowed');
+  }
+
+  const hosts = allowedToolHosts();
+  if (hosts.size === 0) {
+    // No allowlist configured — fail closed in production, allow in dev so
+    // local testing isn't blocked.
+    if (process.env.NODE_ENV === 'production') {
+      throwBadRequestError('Tools allowlist not configured');
+    }
+    return parsed;
+  }
+
+  if (!hosts.has(parsed.host.toLowerCase())) {
+    throwBadRequestError(`Host not allowed: ${parsed.host}`);
+  }
+
+  return parsed;
+}
 
 @Service({
   name: 'tools',
@@ -37,6 +97,7 @@ export default class ToolsService extends moleculer.Service {
     }>
   ) {
     const { url, stream, encoding, waitFor } = ctx.params;
+    assertSafeToolUrl(url);
     const searchParams = new URLSearchParams({
       quality: '75',
       url: url,
@@ -78,6 +139,7 @@ export default class ToolsService extends moleculer.Service {
     ctx: Context<{ url: string; header?: string; footer?: string }>
   ) {
     const { url, footer, header } = ctx.params;
+    assertSafeToolUrl(url);
 
     const pdfEndpoint = `${this.toolsHost()}/pdf`;
 
@@ -126,6 +188,7 @@ export default class ToolsService extends moleculer.Service {
     >
   ) {
     const { url, name } = ctx.params;
+    assertSafeToolUrl(url);
 
     const downloadEndpoint = `${this.toolsHost()}/download`;
 

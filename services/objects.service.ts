@@ -6,7 +6,6 @@ import { Action, Service } from 'moleculer-decorators';
 import { FeatureCollection } from 'geojsonjs';
 import { gisConfig } from '../knexfile';
 import DbConnection from '../mixins/database.mixin';
-import { throwBadRequestError } from '../types';
 
 import { snakeCase } from 'lodash';
 import PostgisMixin from 'moleculer-postgis';
@@ -222,6 +221,10 @@ export default class ObjectsService extends moleculer.Service {
         type: 'array',
         optional: true,
         items: 'string',
+        // Allowlist of columns the public search can hit. Used to be unconstrained
+        // which let a caller smuggle anything into the SQL ILIKE clause via the
+        // searchFields[] param.
+        enum: ['name', 'cadastralId', 'municipality'],
         default: ['name', 'cadastralId'],
       },
     },
@@ -238,25 +241,25 @@ export default class ObjectsService extends moleculer.Service {
     delete ctx.params.search;
     delete ctx.params.searchFields;
 
-    const searchValueFixed = search?.replace(
-      /([-[\]{}()*+?.,%\\^$|#\s;])/gi,
-      '\\$&'
-    );
+    let textRaw: { condition: string; bindings: any[] } | undefined;
 
-    if (/[;%]/gi.test(search)) {
-      throwBadRequestError('Invalid search', { search });
+    if (search) {
+      // Build a parameterized ILIKE per allowed column using knex bindings —
+      // the column identifiers are resolved against settings.fields so callers
+      // cannot inject arbitrary SQL through searchFields[].
+      const columns = searchFields
+        .map((field) => this.settings.fields?.[field]?.columnName || field)
+        .map((field) => snakeCase(field));
+
+      const condition = columns.map((c) => `"${c}" ILIKE ?`).join(' OR ');
+      const pattern = `%${search}%`;
+      const bindings = columns.map(() => pattern);
+      textRaw = { condition, bindings };
     }
-
-    const textQuery = searchFields
-      .map((field) => {
-        field = this.settings.fields?.[field]?.columnName || field;
-        return `"${snakeCase(field)}" ilike '%${searchValueFixed}%'`;
-      })
-      .join(' OR ');
 
     return ctx.call('objects.list', {
       ...ctx.params,
-      query: { ...(query || {}), ...(search ? { $raw: textQuery } : {}) },
+      query: { ...(query || {}), ...(textRaw ? { $raw: textRaw } : {}) },
       sort: 'name',
     });
   }

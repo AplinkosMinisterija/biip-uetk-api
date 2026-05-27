@@ -4,18 +4,51 @@
 import MinioMixin from 'moleculer-minio';
 import Moleculer, { Context } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
-import { UserAuthMeta, AuthType } from './api.service';
+import { UserAuthMeta } from './api.service';
 import {
+  EndpointType,
   getExtention,
   getMimetype,
   getPublicFileName,
   IMAGE_TYPES,
   MultipartMeta,
+  throwBadRequestError,
   throwNotFoundError,
   throwUnableToUploadError,
   throwUnsupportedMimetypeError,
 } from '../types';
 import moment from 'moment';
+
+// Folder prefixes a caller is allowed to write to / delete from. Computed
+// against the caller's identity (tenant profile or freelance user). Without
+// this check uploadFile's `folder` parameter let an authenticated user write
+// into someone else's private namespace.
+function callerOwnedFolders(meta: UserAuthMeta): string[] {
+  const userId = meta?.user?.id;
+  const tenantId = meta?.profile?.id;
+  const folders: string[] = [];
+  // Cover both upload prefixes used in the codebase (forms, requests).
+  for (const kind of ['forms', 'requests']) {
+    folders.push(`uploads/${kind}/private/${userId ?? 'user'}`);
+    if (tenantId) folders.push(`uploads/${kind}/${tenantId}/${userId ?? 'user'}`);
+  }
+  return folders;
+}
+
+function isFolderOwnedByCaller(folder: string, meta: UserAuthMeta): boolean {
+  if (!folder || typeof folder !== 'string') return false;
+  const normalized = folder.replace(/^\/+|\/+$/g, '');
+  // Reject any path-traversal attempt before substring matching.
+  if (normalized.includes('..') || normalized.includes('\\')) return false;
+  // System / background worker context (no user identity) is trusted — the
+  // calling action (e.g. jobs.requests.generateAndSavePdf) computed the folder
+  // from validated request data, not from request params.
+  if (!meta?.user?.id) return true;
+  if (meta.user.type === 'ADMIN') return true;
+  return callerOwnedFolders(meta).some(
+    (owned) => normalized === owned || normalized.startsWith(`${owned}/`)
+  );
+}
 
 export const BUCKET_NAME = () => process.env.MINIO_BUCKET || 'uetk';
 
@@ -44,6 +77,7 @@ export default class MinioService extends Moleculer.Service {
         default: false,
       },
     },
+    visibility: 'protected',
   })
   getUrl(
     ctx: Context<{
@@ -55,6 +89,37 @@ export default class MinioService extends Moleculer.Service {
     const { bucketName, objectName, isPrivate } = ctx.params;
 
     return this.getObjectUrl(objectName, isPrivate, bucketName);
+  }
+
+  /**
+   * Convert a stored "private" object URL into a freshly-signed presigned URL.
+   * Returns the input unchanged when the stored value is not one of our private
+   * proxy URLs (e.g. already absolute MinIO public URL, external string).
+   * Lets FE keep using `<a href={url}>` without sending an Authorization header.
+   */
+  @Action({
+    params: { url: 'string' },
+    visibility: 'protected',
+  })
+  async signStoredUrl(ctx: Context<{ url: string }>) {
+    const { url } = ctx.params;
+    if (!url || typeof url !== 'string') return url;
+
+    const marker = '/minio/';
+    const idx = url.indexOf(marker);
+    if (idx === -1) return url;
+
+    const rest = url.slice(idx + marker.length);
+    const [bucketName, ...objectParts] = rest.split('/');
+    const objectName = objectParts.join('/');
+    if (!bucketName || !objectName) return url;
+
+    try {
+      return await this.getPresignedUrl(ctx, objectName, bucketName);
+    } catch (err) {
+      this.logger.warn('signStoredUrl failed, returning raw URL', err);
+      return url;
+    }
   }
 
   @Action({
@@ -80,6 +145,9 @@ export default class MinioService extends Moleculer.Service {
       },
     },
     timeout: 0,
+    // Not directly callable via API — go through forms.upload / requests flows
+    // which set folder/isPrivate from authenticated context.
+    visibility: 'protected',
   })
   async uploadFile(
     ctx: Context<
@@ -104,6 +172,10 @@ export default class MinioService extends Moleculer.Service {
       presign,
     } = ctx.params;
     const name = defaultName || getPublicFileName(50);
+
+    if (!isFolderOwnedByCaller(folder, ctx.meta)) {
+      throwBadRequestError('Folder not allowed for this caller');
+    }
 
     if (!types.includes(mimetype)) {
       throwUnsupportedMimetypeError();
@@ -169,13 +241,18 @@ export default class MinioService extends Moleculer.Service {
         },
       },
     },
-    auth: AuthType.PUBLIC,
     rest: 'GET /:bucket/:name+',
+    types: [
+      EndpointType.ADMIN,
+      EndpointType.USER,
+      EndpointType.TENANT_USER,
+      EndpointType.TENANT_ADMIN,
+    ],
   })
   async getFile(
     ctx: Context<
       { bucket: string; name: string[] },
-      {
+      UserAuthMeta & {
         $responseHeaders: any;
         $statusCode: number;
         $statusMessage: string;
@@ -184,11 +261,20 @@ export default class MinioService extends Moleculer.Service {
     >
   ) {
     const { bucket, name } = ctx.params;
+    const objectName = name.join('/');
+
+    // Admins read anything; everyone else must own the folder.
+    if (
+      ctx.meta?.user?.type !== 'ADMIN' &&
+      !isFolderOwnedByCaller(objectName, ctx.meta)
+    ) {
+      return throwNotFoundError('File not found.');
+    }
 
     try {
       const reader: NodeJS.ReadableStream = await ctx.call('minio.getObject', {
         bucketName: bucket,
-        objectName: name.join('/'),
+        objectName,
       });
 
       const filename = name[name.length - 1];
@@ -211,6 +297,7 @@ export default class MinioService extends Moleculer.Service {
         default: BUCKET_NAME(),
       },
     },
+    visibility: 'protected',
   })
   async fileStat(ctx: Context<{ bucketName: string; objectName: string }>) {
     const { bucketName, objectName } = ctx.params;
@@ -249,16 +336,30 @@ export default class MinioService extends Moleculer.Service {
     params: {
       path: 'string',
     },
+    types: [
+      EndpointType.ADMIN,
+      EndpointType.USER,
+      EndpointType.TENANT_USER,
+      EndpointType.TENANT_ADMIN,
+    ],
   })
-  async removeFile(ctx: Context<{ path: string }>) {
+  async removeFile(ctx: Context<{ path: string }, UserAuthMeta>) {
     const { path } = ctx.params;
 
     const [bucket, ...paths] = path.split('/');
+    const objectName = paths.join('/');
+
+    if (
+      ctx.meta?.user?.type !== 'ADMIN' &&
+      !isFolderOwnedByCaller(objectName, ctx.meta)
+    ) {
+      return { success: false };
+    }
 
     try {
       const result = await ctx.call('minio.removeObject', {
         bucketName: bucket,
-        objectName: paths.join('/'),
+        objectName,
       });
       return { success: !result };
     } catch (err) {
