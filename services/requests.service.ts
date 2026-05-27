@@ -310,7 +310,11 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
         // a PUBLIC action expose every request. The route-level auth still
         // gates HTTP, but defense-in-depth matters when actions invoke each
         // other via ctx.call.
-        if (!user?.id) return { ...query, id: -1 };
+        //
+        // We use createdBy: -1 rather than id: -1 because resolve()'s explicit
+        // params.id wins over a scope-supplied id filter — a sentinel on a
+        // non-PK field always applies.
+        if (!user?.id) return { ...query, createdBy: -1 };
 
         const createdByUserQuery = {
           createdBy: user?.id,

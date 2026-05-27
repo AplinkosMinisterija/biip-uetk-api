@@ -242,7 +242,8 @@ const populatePermissions = (field: string) => {
       visibleToUser(query: any, ctx: Context<null, UserAuthMeta>, params: any) {
         const { user, profile } = ctx?.meta;
         // Deny-by-default for unauthenticated callers (defense-in-depth).
-        if (!user?.id) return { ...query, id: -1 };
+        // See requests.visibleToUser for why we use createdBy not id.
+        if (!user?.id) return { ...query, createdBy: -1 };
 
         const createdByUserQuery = {
           createdBy: user?.id,
