@@ -25,6 +25,16 @@ export default class ToolsService extends moleculer.Service {
         type: 'string',
         optional: true,
       },
+      width: {
+        type: 'number',
+        convert: true,
+        optional: true,
+      },
+      height: {
+        type: 'number',
+        convert: true,
+        optional: true,
+      },
     },
     timeout: 0,
   })
@@ -34,15 +44,24 @@ export default class ToolsService extends moleculer.Service {
       stream: boolean;
       encoding: string;
       waitFor: string;
+      width?: number;
+      height?: number;
     }>
   ) {
-    const { url, stream, encoding, waitFor } = ctx.params;
+    const { url, stream, encoding, waitFor, width, height } = ctx.params;
     const searchParams = new URLSearchParams({
       quality: '75',
       url: url,
       type: 'jpeg',
       encoding,
     });
+
+    // Only override the upstream biip-tools default viewport (1280x720) when
+    // the caller explicitly asks. The extract-PDF flow passes its own larger
+    // dimensions from jobs.requests.initiatePdfGenerate; everything else gets
+    // the unchanged default.
+    if (typeof width === 'number') searchParams.set('width', String(width));
+    if (typeof height === 'number') searchParams.set('height', String(height));
 
     if (waitFor) {
       searchParams.set('waitFor', waitFor);

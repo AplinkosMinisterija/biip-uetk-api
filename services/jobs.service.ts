@@ -34,6 +34,16 @@ export default class JobsService extends moleculer.Service {
         type: 'string',
         optional: true,
       },
+      width: {
+        type: 'number',
+        optional: true,
+        convert: true,
+      },
+      height: {
+        type: 'number',
+        optional: true,
+        convert: true,
+      },
     },
     timeout: 0,
   })
@@ -43,9 +53,11 @@ export default class JobsService extends moleculer.Service {
       hash: string;
       waitFor: string;
       data: { [key: string]: any };
+      width?: number;
+      height?: number;
     }>
   ) {
-    const { url, hash, data, waitFor } = ctx.params;
+    const { url, hash, data, waitFor, width, height } = ctx.params;
     const { job } = ctx.locals;
 
     const folder = 'temp/screenshots';
@@ -76,6 +88,8 @@ export default class JobsService extends moleculer.Service {
       url,
       waitFor,
       stream: true,
+      ...(typeof width === 'number' ? { width } : {}),
+      ...(typeof height === 'number' ? { height } : {}),
     });
 
     await ctx.call(
