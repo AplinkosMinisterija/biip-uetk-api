@@ -9,6 +9,7 @@ import DbConnection from '../mixins/database.mixin';
 import { AuthType, UserAuthMeta } from './api.service';
 
 import moment from 'moment';
+import { Readable } from 'stream';
 import {
   BaseModelInterface,
   COMMON_DEFAULT_SCOPES,
@@ -53,6 +54,7 @@ export interface Request extends BaseModelInterface {
   tenant: number | Tenant;
   data?: {
     extended?: boolean;
+    format?: string;
   };
 }
 
@@ -69,6 +71,11 @@ export const PurposeTypes = {
   TECHNICAL_PROJECT: 'TECHNICAL_PROJECT',
   SCIENTIFIC_INVESTIGATION: 'SCIENTIFIC_INVESTIGATION',
   OTHER: 'OTHER',
+};
+
+export const RequestFormat = {
+  PDF: 'PDF',
+  GDB: 'GDB',
 };
 
 const VISIBLE_TO_USER_SCOPE = 'visibleToUser';
@@ -259,6 +266,11 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
             required: false,
             default: false,
           },
+          format: {
+            type: 'string',
+            required: false,
+            enum: Object.values(RequestFormat),
+          },
         },
       },
 
@@ -415,6 +427,110 @@ export default class RequestsService extends moleculer.Service {
     return {
       generating: !!flow?.job?.id,
     };
+  }
+
+  @Action({
+    params: {
+      id: { type: 'number', convert: true },
+    },
+    timeout: 0,
+  })
+  async generateGdb(ctx: Context<{ id: number }>) {
+    const { id } = ctx.params;
+
+    const request: Request = await ctx.call('requests.resolve', {
+      id,
+      populate: 'createdBy,tenant,geom',
+    });
+
+    if (!request?.id) return { generating: false };
+
+    const cadastralIds = request.objects
+      ?.filter((i) => i.type === 'CADASTRAL_ID')
+      ?.map((i) => i.id)
+      ?.filter((i) => !!i);
+
+    const query: any = {};
+    if (cadastralIds?.length) query.cadastralId = { $in: cadastralIds };
+    if (request.geom && Object.keys(request.geom).length) query.geom = request.geom;
+
+    if (!query.cadastralId && !query.geom) return { generating: false };
+
+    const objects: UETKObject[] = await ctx.call('objects.find', {
+      query,
+      populate: 'geom',
+    });
+
+    // Flatten every object's geometry into Features. flatMap so multi-geometry
+    // objects (FeatureCollection.geom) emit one Feature per inner geometry.
+    const features = objects.flatMap((obj: any) => {
+      const baseProps = {
+        cadastralId: obj.cadastralId,
+        name: obj.name,
+        category: obj.category,
+        categoryTranslate: obj.categoryTranslate,
+        municipality: obj.municipality,
+        municipalityCode: obj.municipalityCode,
+        area: obj.area,
+        length: obj.length,
+      };
+      if (
+        obj.geom?.type === 'FeatureCollection' &&
+        Array.isArray(obj.geom.features)
+      ) {
+        return obj.geom.features
+          .filter((f: any) => f?.geometry?.type)
+          .map((f: any) => ({
+            type: 'Feature',
+            geometry: f.geometry,
+            properties: { ...baseProps, ...(f.properties || {}) },
+          }));
+      }
+      const geometry =
+        obj.geom?.geometry || (obj.geom?.type ? obj.geom : null);
+      if (!geometry?.type) return [];
+      return [{ type: 'Feature', geometry, properties: baseProps }];
+    });
+
+    if (!features.length) return { generating: false };
+
+    const geojson = { type: 'FeatureCollection', features };
+
+    // Delegate the actual GeoJSON → File-Geodatabase → ZIP work to the
+    // internal tools service (biip-tools /gdb endpoint). Keeps GDAL out of
+    // this image.
+    const zipBuffer: Buffer = await ctx.call('tools.makeGdb', {
+      geojson,
+      name: `israsas-${request.id}`,
+      srid: 3346,
+    });
+
+    const folder = `uploads/requests/${
+      (request.tenant as Tenant)?.id || 'private'
+    }/${(request.createdBy as any as User)?.id || 'user'}`;
+
+    const stream = Readable.from(zipBuffer);
+
+    const result: any = await ctx.call(
+      'minio.uploadFile',
+      {
+        payload: stream,
+        folder,
+        isPrivate: true,
+        types: ['application/zip', 'application/x-zip-compressed'],
+        name: `israsas-${request.id}`,
+      },
+      {
+        meta: {
+          mimetype: 'application/zip',
+          filename: `israsas-${request.id}.zip`,
+        },
+      }
+    );
+
+    await ctx.call('requests.saveGeneratedPdf', { id, url: result.url });
+
+    return { generating: true };
   }
 
   @Action({
@@ -617,7 +733,11 @@ export default class RequestsService extends moleculer.Service {
 
     if (request.generatedFile) return;
 
-    this.broker.call('requests.generatePdf', { id: request.id });
+    if (request.data?.format === RequestFormat.GDB) {
+      this.broker.call('requests.generateGdb', { id: request.id });
+    } else {
+      this.broker.call('requests.generatePdf', { id: request.id });
+    }
     return request;
   }
 

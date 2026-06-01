@@ -112,6 +112,41 @@ export default class ToolsService extends moleculer.Service {
 
   @Action({
     params: {
+      geojson: 'object',
+      name: { type: 'string', optional: true },
+      srid: { type: 'number', optional: true, convert: true },
+    },
+    timeout: 0,
+  })
+  async makeGdb(
+    ctx: Context<{ geojson: any; name?: string; srid?: number }>
+  ): Promise<Buffer> {
+    const { geojson, name, srid } = ctx.params;
+    const gdbEndpoint = `${this.toolsHost()}/gdb`;
+
+    const response = await fetch(gdbEndpoint, {
+      method: 'POST',
+      body: JSON.stringify({
+        geojson,
+        srid: srid ?? 3346,
+        ...(name ? { name } : {}),
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(
+        `tools /gdb returned ${response.status}: ${detail || '<empty body>'}`
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  }
+
+  @Action({
+    params: {
       url: 'string',
       name: 'string',
     },
