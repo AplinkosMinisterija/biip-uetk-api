@@ -140,7 +140,12 @@ export default class JobsRequestsService extends moleculer.Service {
     });
 
     const childrenJobs = data.map((item) => ({
-      params: { ...item, waitFor: '#image-canvas-0' },
+      // 1280x960 (4:3) gives the extract-PDF map ~50% of an A4-portrait page
+      // height instead of the ~29% the upstream biip-tools default (1280x720)
+      // landed on — see issue from stakeholder where the map and its labels
+      // were too small to read. Passed per-call so unrelated tools.makeScreenshot
+      // consumers keep the upstream default.
+      params: { ...item, waitFor: '#image-canvas-0', width: 1280, height: 960 },
       name: 'jobs',
       action: 'saveScreenshot',
     }));
