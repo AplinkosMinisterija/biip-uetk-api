@@ -14,6 +14,7 @@ import {
   toReadableStream,
 } from '../utils';
 import { AuthType } from './api.service';
+import { UETKObject } from './objects.service';
 import { Request } from './requests.service';
 import { Tenant } from './tenants.service';
 import { User } from './users.service';
@@ -105,6 +106,123 @@ export default class JobsRequestsService extends moleculer.Service {
     });
 
     return { job: job.id };
+  }
+
+  @Action({
+    queue: true,
+    params: {
+      id: 'number',
+    },
+    timeout: 0,
+  })
+  async generateAndSaveGdb(ctx: Context<{ id: number }>) {
+    const { id } = ctx.params;
+
+    const request: Request = await ctx.call('requests.resolve', {
+      id,
+      populate: 'createdBy,tenant,geom',
+    });
+
+    if (!request?.id) return { skipped: 'no-request' };
+
+    const cadastralIds = request.objects
+      ?.filter((i) => i.type === 'CADASTRAL_ID')
+      ?.map((i) => i.id)
+      ?.filter((i) => !!i);
+
+    const query: any = {};
+    if (cadastralIds?.length) query.cadastralId = { $in: cadastralIds };
+    if (request.geom && Object.keys(request.geom).length) query.geom = request.geom;
+
+    if (!query.cadastralId && !query.geom) return { skipped: 'no-objects' };
+
+    const objects: UETKObject[] = await ctx.call('objects.find', {
+      query,
+      populate: 'geom',
+    });
+
+    // flatMap so multi-geometry objects emit one Feature per inner geometry.
+    const features = objects.flatMap((obj: any) => {
+      const baseProps = {
+        cadastralId: obj.cadastralId,
+        name: obj.name,
+        category: obj.category,
+        categoryTranslate: obj.categoryTranslate,
+        municipality: obj.municipality,
+        municipalityCode: obj.municipalityCode,
+        area: obj.area,
+        length: obj.length,
+      };
+      if (
+        obj.geom?.type === 'FeatureCollection' &&
+        Array.isArray(obj.geom.features)
+      ) {
+        return obj.geom.features
+          .filter((f: any) => f?.geometry?.type)
+          .map((f: any) => ({
+            type: 'Feature',
+            geometry: f.geometry,
+            properties: { ...baseProps, ...(f.properties || {}) },
+          }));
+      }
+      const geometry =
+        obj.geom?.geometry || (obj.geom?.type ? obj.geom : null);
+      if (!geometry?.type) return [];
+      return [{ type: 'Feature', geometry, properties: baseProps }];
+    });
+
+    if (!features.length) return { skipped: 'no-geometries' };
+
+    const geojson = { type: 'FeatureCollection', features };
+
+    // tools.makeGdb streams the ZIP back as a Node Readable (no buffering)
+    const stream: NodeJS.ReadableStream = await ctx.call('tools.makeGdb', {
+      geojson,
+      name: `israsas-${request.id}`,
+      srid: 3346,
+    });
+
+    const folder = this.getFolderName(
+      request?.createdBy as any as User,
+      request?.tenant as Tenant
+    );
+
+    const result: any = await ctx.call(
+      'minio.uploadFile',
+      {
+        payload: stream,
+        folder,
+        isPrivate: true,
+        types: ['application/zip', 'application/x-zip-compressed'],
+        name: `israsas-${request.id}`,
+      },
+      {
+        meta: {
+          mimetype: 'application/zip',
+          filename: `israsas-${request.id}.zip`,
+        },
+      }
+    );
+
+    await ctx.call('requests.saveGeneratedPdf', { id, url: result.url });
+
+    return { generated: true };
+  }
+
+  @Action({
+    params: {
+      id: 'number',
+    },
+    timeout: 0,
+  })
+  async initiateGdbGenerate(ctx: Context<{ id: number }>) {
+    // No screenshot children needed for GDB — single queued job with
+    // BullMQ retry semantics inherited from the mixin (5 attempts, 1s
+    // backoff). Mirrors initiatePdfGenerate but without the flow() step.
+    const job = await this.localQueue(ctx, 'generateAndSaveGdb', {
+      id: ctx.params.id,
+    });
+    return { job: { id: job.id } };
   }
 
   @Action({

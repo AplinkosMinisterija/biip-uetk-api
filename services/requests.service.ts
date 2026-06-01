@@ -53,6 +53,7 @@ export interface Request extends BaseModelInterface {
   tenant: number | Tenant;
   data?: {
     extended?: boolean;
+    format?: string;
   };
 }
 
@@ -69,6 +70,11 @@ export const PurposeTypes = {
   TECHNICAL_PROJECT: 'TECHNICAL_PROJECT',
   SCIENTIFIC_INVESTIGATION: 'SCIENTIFIC_INVESTIGATION',
   OTHER: 'OTHER',
+};
+
+export const RequestFormat = {
+  PDF: 'PDF',
+  GDB: 'GDB',
 };
 
 const VISIBLE_TO_USER_SCOPE = 'visibleToUser';
@@ -259,6 +265,11 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
             required: false,
             default: false,
           },
+          format: {
+            type: 'string',
+            required: false,
+            enum: Object.values(RequestFormat),
+          },
         },
       },
 
@@ -312,10 +323,11 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
         return query;
       },
       filterRequestData(query: any) {
-        // The web filter sends data: { extended: bool }. JSONB containment lets
-        // the filter match rows whose data column carries extra keys alongside
-        // extended (e.g. legacy 'format: GEOJSON' rows from before that
-        // extract type was retired) without the brittleness of jsonb '='.
+        // The web filter sends data: { extended: bool } or { format: 'GDB' }.
+        // JSONB containment lets the filter match rows whose data column
+        // carries extra keys alongside the filter (e.g. format:'GDB' rows
+        // also match an extended:false query, and legacy 'format: GEOJSON'
+        // rows still match), without the brittleness of jsonb '='.
         if (!query.data) return query;
         let value = query.data;
         if (typeof value === 'string') {
@@ -409,6 +421,28 @@ export default class RequestsService extends moleculer.Service {
   })
   async generatePdf(ctx: Context<{ id: number }>) {
     const flow: any = await ctx.call('jobs.requests.initiatePdfGenerate', {
+      id: ctx.params.id,
+    });
+
+    return {
+      generating: !!flow?.job?.id,
+    };
+  }
+
+  @Action({
+    params: {
+      id: { type: 'number', convert: true },
+    },
+    rest: 'POST /:id/generate-gdb',
+    timeout: 0,
+  })
+  async generateGdb(ctx: Context<{ id: number }>) {
+    // Mirror generatePdf: delegate to jobs.requests so the actual GeoJSON
+    // assembly + tools.makeGdb + MinIO upload runs as a BullMQ job with
+    // automatic retry (5 attempts via bullmq settings). Without this,
+    // a transient tools-service outage would leave the request stuck in
+    // APPROVED with no generatedFile and no audit trail.
+    const flow: any = await ctx.call('jobs.requests.initiateGdbGenerate', {
       id: ctx.params.id,
     });
 
@@ -617,7 +651,11 @@ export default class RequestsService extends moleculer.Service {
 
     if (request.generatedFile) return;
 
-    this.broker.call('requests.generatePdf', { id: request.id });
+    if (request.data?.format === RequestFormat.GDB) {
+      this.broker.call('requests.generateGdb', { id: request.id });
+    } else {
+      this.broker.call('requests.generatePdf', { id: request.id });
+    }
     return request;
   }
 
