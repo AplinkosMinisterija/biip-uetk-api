@@ -112,6 +112,43 @@ export default class ToolsService extends moleculer.Service {
 
   @Action({
     params: {
+      geojson: 'object',
+      name: { type: 'string', optional: true },
+      srid: { type: 'number', optional: true, convert: true },
+    },
+    timeout: 0,
+  })
+  async makeGdb(
+    ctx: Context<{ geojson: any; name?: string; srid?: number }>
+  ): Promise<NodeJS.ReadableStream> {
+    const { geojson, name, srid } = ctx.params;
+    const gdbEndpoint = `${this.toolsHost()}/gdb`;
+
+    const response = await fetch(gdbEndpoint, {
+      method: 'POST',
+      body: JSON.stringify({
+        geojson,
+        srid: srid ?? 3346,
+        ...(name ? { name } : {}),
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(
+        `tools /gdb returned ${response.status}: ${detail || '<empty body>'}`
+      );
+    }
+
+    // Stream the response body straight to the consumer (MinIO upload) so we
+    // never buffer the entire ZIP in memory — per-request RSS otherwise
+    // spikes proportional to the GDB archive size.
+    return toReadableStream(response.body?.getReader());
+  }
+
+  @Action({
+    params: {
       url: 'string',
       name: 'string',
     },

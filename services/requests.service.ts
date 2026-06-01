@@ -9,7 +9,6 @@ import DbConnection from '../mixins/database.mixin';
 import { AuthType, UserAuthMeta } from './api.service';
 
 import moment from 'moment';
-import { Readable } from 'stream';
 import {
   BaseModelInterface,
   COMMON_DEFAULT_SCOPES,
@@ -19,7 +18,6 @@ import {
   EndpointType,
   EntityChangedParams,
   FieldHookCallback,
-  GEOJSON_TYPES,
   NOTIFY_ADMIN_EMAIL,
   TENANT_FIELD,
   throwValidationError,
@@ -76,7 +74,7 @@ export const PurposeTypes = {
 
 export const RequestFormat = {
   PDF: 'PDF',
-  GEOJSON: 'GEOJSON',
+  GDB: 'GDB',
 };
 
 const VISIBLE_TO_USER_SCOPE = 'visibleToUser';
@@ -325,10 +323,11 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
         return query;
       },
       filterRequestData(query: any) {
-        // The web filter sends data: { format: 'GEOJSON' } (or { extended: bool }),
-        // but jsonb '=' would only match rows whose data column has exactly that
-        // shape. Rewrite to a JSONB containment so partial-key filters work for
-        // rows that carry the new format key alongside extended.
+        // The web filter sends data: { extended: bool } or { format: 'GDB' }.
+        // JSONB containment lets the filter match rows whose data column
+        // carries extra keys alongside the filter (e.g. format:'GDB' rows
+        // also match an extended:false query, and legacy 'format: GEOJSON'
+        // rows still match), without the brittleness of jsonb '='.
         if (!query.data) return query;
         let value = query.data;
         if (typeof value === 'string') {
@@ -434,95 +433,22 @@ export default class RequestsService extends moleculer.Service {
     params: {
       id: { type: 'number', convert: true },
     },
+    rest: 'POST /:id/generate-gdb',
     timeout: 0,
   })
-  async generateGeoJson(ctx: Context<{ id: number }>) {
-    const { id } = ctx.params;
-
-    const request: Request = await ctx.call('requests.resolve', {
-      id,
-      populate: 'createdBy,tenant,geom',
+  async generateGdb(ctx: Context<{ id: number }>) {
+    // Mirror generatePdf: delegate to jobs.requests so the actual GeoJSON
+    // assembly + tools.makeGdb + MinIO upload runs as a BullMQ job with
+    // automatic retry (5 attempts via bullmq settings). Without this,
+    // a transient tools-service outage would leave the request stuck in
+    // APPROVED with no generatedFile and no audit trail.
+    const flow: any = await ctx.call('jobs.requests.initiateGdbGenerate', {
+      id: ctx.params.id,
     });
 
-    if (!request?.id) return { generating: false };
-
-    const cadastralIds = request.objects
-      ?.filter((i) => i.type === 'CADASTRAL_ID')
-      ?.map((i) => i.id)
-      ?.filter((i) => !!i);
-
-    const query: any = {};
-    if (cadastralIds?.length) query.cadastralId = { $in: cadastralIds };
-    if (request.geom && Object.keys(request.geom).length) query.geom = request.geom;
-
-    if (!query.cadastralId && !query.geom) return { generating: false };
-
-    const objects: UETKObject[] = await ctx.call('objects.find', {
-      query,
-      populate: 'geom',
-    });
-
-    const features = objects.flatMap((obj: any) => {
-      const baseProps = {
-        cadastralId: obj.cadastralId,
-        name: obj.name,
-        category: obj.category,
-        categoryTranslate: obj.categoryTranslate,
-        municipality: obj.municipality,
-        municipalityCode: obj.municipalityCode,
-        area: obj.area,
-        length: obj.length,
-      };
-      if (
-        obj.geom?.type === 'FeatureCollection' &&
-        Array.isArray(obj.geom.features)
-      ) {
-        return obj.geom.features
-          .filter((f: any) => f?.geometry?.type)
-          .map((f: any) => ({
-            type: 'Feature',
-            geometry: f.geometry,
-            properties: { ...baseProps, ...(f.properties || {}) },
-          }));
-      }
-      const geometry =
-        obj.geom?.geometry || (obj.geom?.type ? obj.geom : null);
-      if (!geometry?.type) return [];
-      return [{ type: 'Feature', geometry, properties: baseProps }];
-    });
-
-    const featureCollection = {
-      type: 'FeatureCollection',
-      features,
+    return {
+      generating: !!flow?.job?.id,
     };
-
-    const folder = `uploads/requests/${
-      (request.tenant as Tenant)?.id || 'private'
-    }/${(request.createdBy as any as User)?.id || 'user'}`;
-
-    const buffer = Buffer.from(JSON.stringify(featureCollection));
-    const stream = Readable.from(buffer);
-
-    const result: any = await ctx.call(
-      'minio.uploadFile',
-      {
-        payload: stream,
-        folder,
-        isPrivate: true,
-        types: GEOJSON_TYPES,
-        name: `israsas-${request.id}`,
-      },
-      {
-        meta: {
-          mimetype: 'application/geo+json',
-          filename: `israsas-${request.id}.geojson`,
-        },
-      }
-    );
-
-    await ctx.call('requests.saveGeneratedPdf', { id, url: result.url });
-
-    return { generating: true };
   }
 
   @Action({
@@ -725,8 +651,8 @@ export default class RequestsService extends moleculer.Service {
 
     if (request.generatedFile) return;
 
-    if (request.data?.format === RequestFormat.GEOJSON) {
-      this.broker.call('requests.generateGeoJson', { id: request.id });
+    if (request.data?.format === RequestFormat.GDB) {
+      this.broker.call('requests.generateGdb', { id: request.id });
     } else {
       this.broker.call('requests.generatePdf', { id: request.id });
     }

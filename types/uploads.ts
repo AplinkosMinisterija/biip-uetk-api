@@ -5,8 +5,6 @@ export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg'];
 
 export const FILE_TYPES = ['application/pdf'];
 
-export const GEOJSON_TYPES = ['application/geo+json', 'application/json'];
-
 export const ALL_FILE_TYPES = [...IMAGE_TYPES, ...FILE_TYPES];
 
 export function getExtention(mimetype: string) {
