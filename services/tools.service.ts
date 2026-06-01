@@ -90,13 +90,23 @@ export default class ToolsService extends moleculer.Service {
         type: 'string',
         optional: true,
       },
+      landscape: {
+        type: 'boolean',
+        optional: true,
+        convert: true,
+      },
     },
     timeout: 0,
   })
   async makePdf(
-    ctx: Context<{ url: string; header?: string; footer?: string }>
+    ctx: Context<{
+      url: string;
+      header?: string;
+      footer?: string;
+      landscape?: boolean;
+    }>
   ) {
-    const { url, footer, header } = ctx.params;
+    const { url, footer, header, landscape } = ctx.params;
 
     const pdfEndpoint = `${this.toolsHost()}/pdf`;
 
@@ -109,6 +119,7 @@ export default class ToolsService extends moleculer.Service {
           width: 620,
           footer,
           header,
+          ...(typeof landscape === 'boolean' ? { landscape } : {}),
           margin: {
             top: 50,
             bottom: 50,
