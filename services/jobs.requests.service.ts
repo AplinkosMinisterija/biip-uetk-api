@@ -77,6 +77,12 @@ export default class JobsRequestsService extends moleculer.Service {
     const pdf = await ctx.call('tools.makePdf', {
       url: `${process.env.SERVER_HOST}/jobs/requests/${id}/html?secret=${secret}&skey=${screenshotsHash}`,
       footer: footerHtml,
+      // Landscape A4 — the embedded map screenshot then renders at
+      // ~777x583 (~75% of content area) instead of ~520x390 in portrait,
+      // letting the QGIS scale-dependent label for the marked object
+      // (name + kadastro_id) actually render. Stakeholder OK'd this as
+      // the fallback if portrait + bigger viewport wasn't enough.
+      landscape: true,
     });
 
     const folder = this.getFolderName(
@@ -258,12 +264,11 @@ export default class JobsRequestsService extends moleculer.Service {
     });
 
     const childrenJobs = data.map((item) => ({
-      // 1280x960 (4:3) gives the extract-PDF map ~50% of an A4-portrait page
-      // height instead of the ~29% the upstream biip-tools default (1280x720)
-      // landed on — see issue from stakeholder where the map and its labels
-      // were too small to read. Passed per-call so unrelated tools.makeScreenshot
-      // consumers keep the upstream default.
-      params: { ...item, waitFor: '#image-canvas-0', width: 1280, height: 960 },
+      // 1280x800 (16:10) — fits landscape A4 content area (742x495pt at 50pt
+      // margins) at ~94% utilization (742x464pt rendered). Going taller risks
+      // overflow into the bottom margin; the previous 1280x960 was sized for
+      // portrait and overflows by ~60pt in landscape.
+      params: { ...item, waitFor: '#image-canvas-0', width: 1280, height: 800 },
       name: 'jobs',
       action: 'saveScreenshot',
     }));
