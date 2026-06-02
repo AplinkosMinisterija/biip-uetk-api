@@ -77,12 +77,15 @@ export default class JobsRequestsService extends moleculer.Service {
     const pdf = await ctx.call('tools.makePdf', {
       url: `${process.env.SERVER_HOST}/jobs/requests/${id}/html?secret=${secret}&skey=${screenshotsHash}`,
       footer: footerHtml,
-      // Landscape A4 — the embedded map screenshot then renders at
-      // ~777x583 (~75% of content area) instead of ~520x390 in portrait,
-      // letting the QGIS scale-dependent label for the marked object
-      // (name + kadastro_id) actually render. Stakeholder OK'd this as
-      // the fallback if portrait + bigger viewport wasn't enough.
-      landscape: true,
+      // Portrait A4. Stakeholder requires the map page keep its
+      // preamble (AAA header + "KADASTRO ŽEMĖLAPIO IŠTRAUKA" + numeris
+      // + suformavimo data + object name + kadastro_id), which eats
+      // ~190pt of the content area regardless of orientation. In
+      // landscape the remaining 305pt isn't enough for a tall screenshot
+      // — the 742x464pt image overflows. Portrait leaves ~552pt for
+      // the map, which a 1280x1400 viewport fills almost exactly
+      // (495x542pt rendered = the largest map area we can give without
+      // dropping the required preamble).
     });
 
     const folder = this.getFolderName(
@@ -264,11 +267,13 @@ export default class JobsRequestsService extends moleculer.Service {
     });
 
     const childrenJobs = data.map((item) => ({
-      // 1280x800 (16:10) — fits landscape A4 content area (742x495pt at 50pt
-      // margins) at ~94% utilization (742x464pt rendered). Going taller risks
-      // overflow into the bottom margin; the previous 1280x960 was sized for
-      // portrait and overflows by ~60pt in landscape.
-      params: { ...item, waitFor: '#image-canvas-0', width: 1280, height: 800 },
+      // 1280x1400 (taller-than-wide) — sized for portrait A4 below the
+      // required preamble. Scales to ~495x542pt in the PDF, which
+      // fills the available content area after the AAA header + KADASTRO
+      // ŽEMĖLAPIO IŠTRAUKA title + numeris + data + object name block
+      // (~190pt). Going taller (e.g. 1280x1600) would render under the
+      // page bottom margin.
+      params: { ...item, waitFor: '#image-canvas-0', width: 1280, height: 1400 },
       name: 'jobs',
       action: 'saveScreenshot',
     }));
