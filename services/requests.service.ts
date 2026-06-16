@@ -75,6 +75,7 @@ export const PurposeTypes = {
 export const RequestFormat = {
   PDF: 'PDF',
   GDB: 'GDB',
+  GEOJSON: 'GEOJSON',
 };
 
 const VISIBLE_TO_USER_SCOPE = 'visibleToUser';
@@ -453,6 +454,27 @@ export default class RequestsService extends moleculer.Service {
 
   @Action({
     params: {
+      id: { type: 'number', convert: true },
+    },
+    rest: 'POST /:id/generate-geojson',
+    timeout: 0,
+  })
+  async generateGeoJson(ctx: Context<{ id: number }>) {
+    // Same shape as generateGdb — delegate to a BullMQ job so the tools
+    // call (reproject 3346 → 4326) + MinIO upload can retry on transient
+    // failures and so a 5xx from tools doesn't leave the request stuck
+    // in APPROVED without a generatedFile.
+    const flow: any = await ctx.call('jobs.requests.initiateGeoJsonGenerate', {
+      id: ctx.params.id,
+    });
+
+    return {
+      generating: !!flow?.job?.id,
+    };
+  }
+
+  @Action({
+    params: {
       id: {
         type: 'number',
         convert: true,
@@ -653,6 +675,8 @@ export default class RequestsService extends moleculer.Service {
 
     if (request.data?.format === RequestFormat.GDB) {
       this.broker.call('requests.generateGdb', { id: request.id });
+    } else if (request.data?.format === RequestFormat.GEOJSON) {
+      this.broker.call('requests.generateGeoJson', { id: request.id });
     } else {
       this.broker.call('requests.generatePdf', { id: request.id });
     }
