@@ -154,11 +154,13 @@ export default class JobsRequestsService extends moleculer.Service {
     // baseProps uses the published UETK GDB column naming
     // (https://uetk.biip.lt/zemelapis/) so the file's attribute table
     // matches what QGIS/ArcGIS users see in the public bulk download.
-    // Every value comes from existing English-named UETKObject fields —
-    // five of them (registrationDate, subbasinId, centroidX, centroidY,
-    // stArea) are exposed by objects.service via explicit columnName
-    // mappings into the LT publishing.uetkMerged columns, so we only
-    // rename in this output layer, not in the model.
+    // Every value is sourced from the existing English-named UETKObject
+    // fields — registracijos_data, upiu_pabas_id, and a LKS-94 centroid
+    // are not currently exposed by publishing.uetkMerged so we drop the
+    // first two from the output and read objekto_x/objekto_y from the
+    // WGS84 lng/lat we already have. If/when GIS team confirms those
+    // columns exist on the view, expose them in objects.service and
+    // wire them in here.
     //
     // kategorija intentionally uses categoryTranslate (the LT label
     // "Upė" / "Natūralus ežeras" / ...), not the raw category enum
@@ -170,11 +172,9 @@ export default class JobsRequestsService extends moleculer.Service {
         kadastro_id: obj.cadastralId,
         pavadinimas: obj.name,
         kategorija: obj.categoryTranslate,
-        registracijos_data: obj.registrationDate,
-        upiu_pabas_id: obj.subbasinId,
-        objekto_x: obj.centroidX,
-        objekto_y: obj.centroidY,
-        st_area: obj.stArea,
+        objekto_x: obj.lng,
+        objekto_y: obj.lat,
+        st_area: obj.area,
       };
       if (
         obj.geom?.type === 'FeatureCollection' &&
@@ -321,19 +321,20 @@ export default class JobsRequestsService extends moleculer.Service {
 
     // Same feature assembly as generateAndSaveGdb so a user requesting
     // both formats gets the same attribute table either way. Kept
-    // duplicated rather than factored out because the GDB path will
-    // diverge once it switches to multi-layer / category-bucketed
-    // output (PR #91); GeoJSON stays a single FeatureCollection.
+    // duplicated rather than factored out because GDB splits into
+    // per-geometry layers while GeoJSON stays a single FeatureCollection
+    // — only the post-assembly shipping differs.
     const features = objects.flatMap((obj: any) => {
       const baseProps = {
-        cadastralId: obj.cadastralId,
-        name: obj.name,
-        category: obj.category,
-        categoryTranslate: obj.categoryTranslate,
-        municipality: obj.municipality,
-        municipalityCode: obj.municipalityCode,
-        area: obj.area,
-        length: obj.length,
+        id: obj.id,
+        kadastro_id: obj.cadastralId,
+        pavadinimas: obj.name,
+        kategorija: obj.categoryTranslate,
+        registracijos_data: obj.registrationDate,
+        upiu_pabas_id: obj.subbasinId,
+        objekto_x: obj.centroidX,
+        objekto_y: obj.centroidY,
+        st_area: obj.stArea,
       };
       if (
         obj.geom?.type === 'FeatureCollection' &&

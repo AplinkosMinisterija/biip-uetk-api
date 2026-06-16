@@ -35,16 +35,6 @@ export type UETKObject = {
   lat: number;
   lng: number;
   geom: FeatureCollection;
-  // Five extra publishing.uetkMerged columns needed by the extract GDB so
-  // its attribute table matches the public UETK GDB. We keep English
-  // property names here and pin each to its real LT column via columnName,
-  // so the rest of the app stays on cadastralId / name / category-style
-  // identifiers and only the output mapping uses the LT names.
-  registrationDate: string;
-  subbasinId: string;
-  centroidX: number;
-  centroidY: number;
-  stArea: number;
 };
 export const UETKObjectType = {
   RIVER: 'RIVER',
@@ -141,38 +131,6 @@ export const UETKObjectTypeTranslates = {
         type: 'number',
         columnName: 'lon',
         get: ({ value }: any) => Number(value),
-      },
-      // The five fields below back the extract GDB's published columns
-      // (registracijos_data, upiu_pabas_id, objekto_x, objekto_y, st_area).
-      // English camelCase property names keep the rest of the app on its
-      // existing identifier style; columnName pins each one to the real LT
-      // column on publishing.uetkMerged so knexSnakeCaseMappers' default
-      // English→snake_case translation doesn't get in the way.
-      registrationDate: {
-        type: 'string',
-        columnName: 'registracijos_data',
-      },
-      subbasinId: {
-        type: 'string',
-        columnName: 'upiu_pabas_id',
-      },
-      centroidX: {
-        type: 'number',
-        columnName: 'objekto_x',
-        get: ({ value }: any) =>
-          value === null || value === undefined ? null : Number(value),
-      },
-      centroidY: {
-        type: 'number',
-        columnName: 'objekto_y',
-        get: ({ value }: any) =>
-          value === null || value === undefined ? null : Number(value),
-      },
-      stArea: {
-        type: 'number',
-        columnName: 'st_area',
-        get: ({ value }: any) =>
-          value === null || value === undefined ? null : Number(value),
       },
       geom: {
         type: 'any',
