@@ -141,23 +141,41 @@ export default class ToolsService extends moleculer.Service {
   }
 
   @Action({
+    // Either `geojson` (single-layer, legacy) or `layers` (multi-layer —
+    // required when bundling Point + LineString + Polygon objects together,
+    // since OpenFileGDB allows only one geometry type per layer). The
+    // upstream biip-tools /gdb endpoint accepts both shapes and validates
+    // that exactly one was provided.
     params: {
-      geojson: 'object',
+      geojson: { type: 'object', optional: true },
+      layers: {
+        type: 'array',
+        optional: true,
+        items: {
+          type: 'object',
+          props: { name: 'string', geojson: 'object' },
+        },
+      },
       name: { type: 'string', optional: true },
       srid: { type: 'number', optional: true, convert: true },
     },
     timeout: 0,
   })
   async makeGdb(
-    ctx: Context<{ geojson: any; name?: string; srid?: number }>
+    ctx: Context<{
+      geojson?: any;
+      layers?: Array<{ name: string; geojson: any }>;
+      name?: string;
+      srid?: number;
+    }>
   ): Promise<NodeJS.ReadableStream> {
-    const { geojson, name, srid } = ctx.params;
+    const { geojson, layers, name, srid } = ctx.params;
     const gdbEndpoint = `${this.toolsHost()}/gdb`;
 
     const response = await fetch(gdbEndpoint, {
       method: 'POST',
       body: JSON.stringify({
-        geojson,
+        ...(layers ? { layers } : { geojson }),
         srid: srid ?? 3346,
         ...(name ? { name } : {}),
       }),
