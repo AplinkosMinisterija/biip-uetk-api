@@ -153,27 +153,28 @@ export default class JobsRequestsService extends moleculer.Service {
     // flatMap so multi-geometry objects emit one Feature per inner geometry.
     // baseProps uses the published UETK GDB column naming
     // (https://uetk.biip.lt/zemelapis/) so the file's attribute table
-    // matches what QGIS/ArcGIS users expect, but sources every value from
-    // the existing UETKObject fields — we don't add new columns to
-    // objects.service for this. Renames vs the legacy export:
-    //   cadastralId → kadastro_id,  name → pavadinimas,
-    //   category    → kategorija,   area → st_area,
-    //   lng/lat     → objekto_x/objekto_y (NB: WGS84, not LKS-94 — see
-    //                 below; switch once we can confirm a LKS-94 source).
-    // Drops categoryTranslate / municipality / municipalityCode (not in
-    // the published schema). registracijos_data and upiu_pabas_id are
-    // also in the published schema but we don't have a confirmed source
-    // column for them on publishing.uetkMerged yet — left out until GIS
-    // team confirms the column names. Reintroducing them is a property
-    // rename here once objects.service exposes the matching field.
+    // matches what QGIS/ArcGIS users see in the public bulk download.
+    // Every value comes from existing English-named UETKObject fields —
+    // five of them (registrationDate, subbasinId, centroidX, centroidY,
+    // stArea) are exposed by objects.service via explicit columnName
+    // mappings into the LT publishing.uetkMerged columns, so we only
+    // rename in this output layer, not in the model.
+    //
+    // kategorija intentionally uses categoryTranslate (the LT label
+    // "Upė" / "Natūralus ežeras" / ...), not the raw category enum
+    // ("RIVER" / "NATURAL_LAKE"), so users opening the .gdb in QGIS
+    // read human labels instead of internal codes.
     const features = objects.flatMap((obj: any) => {
       const baseProps = {
+        id: obj.id,
         kadastro_id: obj.cadastralId,
         pavadinimas: obj.name,
-        kategorija: obj.category,
-        objekto_x: obj.lng,
-        objekto_y: obj.lat,
-        st_area: obj.area,
+        kategorija: obj.categoryTranslate,
+        registracijos_data: obj.registrationDate,
+        upiu_pabas_id: obj.subbasinId,
+        objekto_x: obj.centroidX,
+        objekto_y: obj.centroidY,
+        st_area: obj.stArea,
       };
       if (
         obj.geom?.type === 'FeatureCollection' &&
