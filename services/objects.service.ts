@@ -35,18 +35,6 @@ export type UETKObject = {
   lat: number;
   lng: number;
   geom: FeatureCollection;
-  // The next 8 fields mirror publishing.uetkMerged columns that the extract
-  // GDB / GeoJSON output must carry verbatim (column names matter — they
-  // become attribute table headers in QGIS/ArcGIS). Stakeholder reference:
-  // the full UETK download at https://uetk.biip.lt/zemelapis/.
-  kadastroId: string;
-  pavadinimas: string;
-  kategorija: string;
-  registracijosData: string;
-  upiuPabasId: string;
-  objektoX: number;
-  objektoY: number;
-  stArea: number;
 };
 export const UETKObjectType = {
   RIVER: 'RIVER',
@@ -143,30 +131,6 @@ export const UETKObjectTypeTranslates = {
         type: 'number',
         columnName: 'lon',
         get: ({ value }: any) => Number(value),
-      },
-      // The next 8 fields expose publishing.uetkMerged columns the extract
-      // pipeline (GDB / GeoJSON) writes verbatim. knexSnakeCaseMappers in
-      // gisConfig converts the camelCase property name to snake_case at
-      // query time, so `kadastroId` resolves to column "kadastro_id" etc.
-      kadastroId: 'string',
-      pavadinimas: 'string',
-      kategorija: 'string',
-      registracijosData: 'string',
-      upiuPabasId: 'string',
-      objektoX: {
-        type: 'number',
-        get: ({ value }: any) =>
-          value === null || value === undefined ? null : Number(value),
-      },
-      objektoY: {
-        type: 'number',
-        get: ({ value }: any) =>
-          value === null || value === undefined ? null : Number(value),
-      },
-      stArea: {
-        type: 'number',
-        get: ({ value }: any) =>
-          value === null || value === undefined ? null : Number(value),
       },
       geom: {
         type: 'any',

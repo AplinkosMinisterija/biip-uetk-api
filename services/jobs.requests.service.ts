@@ -151,24 +151,29 @@ export default class JobsRequestsService extends moleculer.Service {
     });
 
     // flatMap so multi-geometry objects emit one Feature per inner geometry.
-    // baseProps mirrors the published UETK GDB schema (column names + LT
-    // values) so the extract file matches what users see at
-    // https://uetk.biip.lt/zemelapis/. Renames vs the legacy export:
+    // baseProps uses the published UETK GDB column naming
+    // (https://uetk.biip.lt/zemelapis/) so the file's attribute table
+    // matches what QGIS/ArcGIS users expect, but sources every value from
+    // the existing UETKObject fields — we don't add new columns to
+    // objects.service for this. Renames vs the legacy export:
     //   cadastralId → kadastro_id,  name → pavadinimas,
-    //   category    → kategorija,   area → st_area.
-    // Adds objekto_x / objekto_y (LKS-94 centroid), registracijos_data,
-    // upiu_pabas_id. Drops categoryTranslate, municipality, municipalityCode
-    // (not part of the published schema).
+    //   category    → kategorija,   area → st_area,
+    //   lng/lat     → objekto_x/objekto_y (NB: WGS84, not LKS-94 — see
+    //                 below; switch once we can confirm a LKS-94 source).
+    // Drops categoryTranslate / municipality / municipalityCode (not in
+    // the published schema). registracijos_data and upiu_pabas_id are
+    // also in the published schema but we don't have a confirmed source
+    // column for them on publishing.uetkMerged yet — left out until GIS
+    // team confirms the column names. Reintroducing them is a property
+    // rename here once objects.service exposes the matching field.
     const features = objects.flatMap((obj: any) => {
       const baseProps = {
-        kadastro_id: obj.kadastroId,
-        pavadinimas: obj.pavadinimas,
-        kategorija: obj.kategorija,
-        registracijos_data: obj.registracijosData,
-        upiu_pabas_id: obj.upiuPabasId,
-        objekto_x: obj.objektoX,
-        objekto_y: obj.objektoY,
-        st_area: obj.stArea,
+        kadastro_id: obj.cadastralId,
+        pavadinimas: obj.name,
+        kategorija: obj.category,
+        objekto_x: obj.lng,
+        objekto_y: obj.lat,
+        st_area: obj.area,
       };
       if (
         obj.geom?.type === 'FeatureCollection' &&
