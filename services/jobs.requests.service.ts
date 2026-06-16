@@ -151,16 +151,24 @@ export default class JobsRequestsService extends moleculer.Service {
     });
 
     // flatMap so multi-geometry objects emit one Feature per inner geometry.
+    // baseProps mirrors the published UETK GDB schema (column names + LT
+    // values) so the extract file matches what users see at
+    // https://uetk.biip.lt/zemelapis/. Renames vs the legacy export:
+    //   cadastralId → kadastro_id,  name → pavadinimas,
+    //   category    → kategorija,   area → st_area.
+    // Adds objekto_x / objekto_y (LKS-94 centroid), registracijos_data,
+    // upiu_pabas_id. Drops categoryTranslate, municipality, municipalityCode
+    // (not part of the published schema).
     const features = objects.flatMap((obj: any) => {
       const baseProps = {
-        cadastralId: obj.cadastralId,
-        name: obj.name,
-        category: obj.category,
-        categoryTranslate: obj.categoryTranslate,
-        municipality: obj.municipality,
-        municipalityCode: obj.municipalityCode,
-        area: obj.area,
-        length: obj.length,
+        kadastro_id: obj.kadastroId,
+        pavadinimas: obj.pavadinimas,
+        kategorija: obj.kategorija,
+        registracijos_data: obj.registracijosData,
+        upiu_pabas_id: obj.upiuPabasId,
+        objekto_x: obj.objektoX,
+        objekto_y: obj.objektoY,
+        st_area: obj.stArea,
       };
       if (
         obj.geom?.type === 'FeatureCollection' &&
@@ -182,14 +190,68 @@ export default class JobsRequestsService extends moleculer.Service {
 
     if (!features.length) return { skipped: 'no-geometries' };
 
-    const geojson = { type: 'FeatureCollection', features };
+    // OpenFileGDB requires one geometry type per layer. Bucket features by
+    // their normalized geometry family (Point / LineString / Polygon —
+    // Multi* variants fold into the same bucket as their singular form so
+    // QGIS can render them as one layer). When the request bundles more
+    // than one bucket, send the multi-layer payload — tools then writes
+    // each bucket as its own table inside a single .gdb. Single-bucket
+    // requests still go through the legacy single-layer path so we don't
+    // surprise downstream consumers (and so the legacy GDB layout is
+    // preserved when nothing has changed).
+    const buckets = {
+      taskiniai: [] as any[], // Point / MultiPoint
+      linijiniai: [] as any[], // LineString / MultiLineString
+      plotiniai: [] as any[], // Polygon / MultiPolygon
+    };
+    for (const feature of features) {
+      const t = feature.geometry?.type;
+      if (t === 'Point' || t === 'MultiPoint') buckets.taskiniai.push(feature);
+      else if (t === 'LineString' || t === 'MultiLineString')
+        buckets.linijiniai.push(feature);
+      else if (t === 'Polygon' || t === 'MultiPolygon')
+        buckets.plotiniai.push(feature);
+    }
+    const populatedLayers = Object.entries(buckets)
+      .filter(([, list]) => list.length > 0)
+      .map(([name, list]) => ({
+        name,
+        geojson: { type: 'FeatureCollection', features: list },
+      }));
+    if (!populatedLayers.length) return { skipped: 'no-geometries' };
 
-    // tools.makeGdb streams the ZIP back as a Node Readable (no buffering)
-    const stream: NodeJS.ReadableStream = await ctx.call('tools.makeGdb', {
-      geojson,
-      name: `israsas-${request.id}`,
-      srid: 3346,
-    });
+    const archiveName = `israsas-${request.id}`;
+    // tools.makeGdb streams the ZIP back as a Node Readable (no buffering).
+    // A failure here MUST surface — historically the BullMQ retry loop ate
+    // the rejection and the request stayed APPROVED with no generated file
+    // (BĮIP request Nr. 232). We rethrow so BullMQ marks the job failed
+    // *and* the request stays observably broken instead of silently green.
+    const stream: NodeJS.ReadableStream = await ctx
+      .call(
+        'tools.makeGdb',
+        populatedLayers.length === 1
+          ? {
+              geojson: populatedLayers[0].geojson,
+              name: archiveName,
+              srid: 3346,
+            }
+          : {
+              layers: populatedLayers,
+              name: archiveName,
+              srid: 3346,
+            },
+      )
+      .then((s) => s as NodeJS.ReadableStream)
+      .catch((err: any) => {
+        this.logger.error(
+          `tools.makeGdb failed for request ${request.id} ` +
+            `(${populatedLayers.length} layer(s): ${populatedLayers
+              .map((l) => `${l.name}=${l.geojson.features.length}`)
+              .join(', ')})`,
+          err,
+        );
+        throw err;
+      });
 
     const folder = this.getFolderName(
       request?.createdBy as any as User,
