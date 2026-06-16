@@ -206,17 +206,17 @@ export default class JobsRequestsService extends moleculer.Service {
     // surprise downstream consumers (and so the legacy GDB layout is
     // preserved when nothing has changed).
     const buckets = {
-      taskiniai: [] as any[], // Point / MultiPoint
-      linijiniai: [] as any[], // LineString / MultiLineString
-      plotiniai: [] as any[], // Polygon / MultiPolygon
+      points: [] as any[], // Point / MultiPoint
+      lines: [] as any[], // LineString / MultiLineString
+      polygons: [] as any[], // Polygon / MultiPolygon
     };
     for (const feature of features) {
       const t = feature.geometry?.type;
-      if (t === 'Point' || t === 'MultiPoint') buckets.taskiniai.push(feature);
+      if (t === 'Point' || t === 'MultiPoint') buckets.points.push(feature);
       else if (t === 'LineString' || t === 'MultiLineString')
-        buckets.linijiniai.push(feature);
+        buckets.lines.push(feature);
       else if (t === 'Polygon' || t === 'MultiPolygon')
-        buckets.plotiniai.push(feature);
+        buckets.polygons.push(feature);
     }
     const populatedLayers = Object.entries(buckets)
       .filter(([, list]) => list.length > 0)
