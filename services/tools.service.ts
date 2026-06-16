@@ -197,6 +197,49 @@ export default class ToolsService extends moleculer.Service {
 
   @Action({
     params: {
+      geojson: 'object',
+      sourceSrid: { type: 'number', optional: true, convert: true },
+      targetSrid: { type: 'number', optional: true, convert: true },
+    },
+    timeout: 0,
+  })
+  async reproject(
+    ctx: Context<{
+      geojson: any;
+      sourceSrid?: number;
+      targetSrid?: number;
+    }>,
+  ): Promise<NodeJS.ReadableStream> {
+    const { geojson, sourceSrid, targetSrid } = ctx.params;
+    const reprojectEndpoint = `${this.toolsHost()}/reproject`;
+
+    const response = await fetch(reprojectEndpoint, {
+      method: 'POST',
+      body: JSON.stringify({
+        geojson,
+        sourceSrid: sourceSrid ?? 3346,
+        targetSrid: targetSrid ?? 4326,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(
+        `tools /reproject returned ${response.status}: ${
+          detail || '<empty body>'
+        }`,
+      );
+    }
+
+    // Same streaming pattern as makeGdb — the reprojected GeoJSON can be
+    // multi-MB for a large request; piping straight to MinIO avoids
+    // buffering the whole payload twice.
+    return toReadableStream(response.body?.getReader());
+  }
+
+  @Action({
+    params: {
       url: 'string',
       name: 'string',
     },

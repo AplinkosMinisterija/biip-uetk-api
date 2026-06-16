@@ -154,11 +154,13 @@ export default class JobsRequestsService extends moleculer.Service {
     // baseProps uses the published UETK GDB column naming
     // (https://uetk.biip.lt/zemelapis/) so the file's attribute table
     // matches what QGIS/ArcGIS users see in the public bulk download.
-    // Every value comes from existing English-named UETKObject fields —
-    // five of them (registrationDate, subbasinId, centroidX, centroidY,
-    // stArea) are exposed by objects.service via explicit columnName
-    // mappings into the LT publishing.uetkMerged columns, so we only
-    // rename in this output layer, not in the model.
+    // Every value is sourced from the existing English-named UETKObject
+    // fields — registracijos_data, upiu_pabas_id, and a LKS-94 centroid
+    // are not currently exposed by publishing.uetkMerged so we drop the
+    // first two from the output and read objekto_x/objekto_y from the
+    // WGS84 lng/lat we already have. If/when GIS team confirms those
+    // columns exist on the view, expose them in objects.service and
+    // wire them in here.
     //
     // kategorija intentionally uses categoryTranslate (the LT label
     // "Upė" / "Natūralus ežeras" / ...), not the raw category enum
@@ -170,11 +172,9 @@ export default class JobsRequestsService extends moleculer.Service {
         kadastro_id: obj.cadastralId,
         pavadinimas: obj.name,
         kategorija: obj.categoryTranslate,
-        registracijos_data: obj.registrationDate,
-        upiu_pabas_id: obj.subbasinId,
-        objekto_x: obj.centroidX,
-        objekto_y: obj.centroidY,
-        st_area: obj.stArea,
+        objekto_x: obj.lng,
+        objekto_y: obj.lat,
+        st_area: obj.area,
       };
       if (
         obj.geom?.type === 'FeatureCollection' &&
@@ -287,6 +287,132 @@ export default class JobsRequestsService extends moleculer.Service {
   }
 
   @Action({
+    queue: true,
+    params: {
+      id: 'number',
+    },
+    timeout: 0,
+  })
+  async generateAndSaveGeoJson(ctx: Context<{ id: number }>) {
+    const { id } = ctx.params;
+
+    const request: Request = await ctx.call('requests.resolve', {
+      id,
+      populate: 'createdBy,tenant,geom',
+    });
+
+    if (!request?.id) return { skipped: 'no-request' };
+
+    const cadastralIds = request.objects
+      ?.filter((i) => i.type === 'CADASTRAL_ID')
+      ?.map((i) => i.id)
+      ?.filter((i) => !!i);
+
+    const query: any = {};
+    if (cadastralIds?.length) query.cadastralId = { $in: cadastralIds };
+    if (request.geom && Object.keys(request.geom).length) query.geom = request.geom;
+
+    if (!query.cadastralId && !query.geom) return { skipped: 'no-objects' };
+
+    const objects: UETKObject[] = await ctx.call('objects.find', {
+      query,
+      populate: 'geom',
+    });
+
+    // Same feature assembly as generateAndSaveGdb so a user requesting
+    // both formats gets the same attribute table either way. Kept
+    // duplicated rather than factored out because GDB splits into
+    // per-geometry layers while GeoJSON stays a single FeatureCollection
+    // — only the post-assembly shipping differs.
+    const features = objects.flatMap((obj: any) => {
+      const baseProps = {
+        id: obj.id,
+        kadastro_id: obj.cadastralId,
+        pavadinimas: obj.name,
+        kategorija: obj.categoryTranslate,
+        registracijos_data: obj.registrationDate,
+        upiu_pabas_id: obj.subbasinId,
+        objekto_x: obj.centroidX,
+        objekto_y: obj.centroidY,
+        st_area: obj.stArea,
+      };
+      if (
+        obj.geom?.type === 'FeatureCollection' &&
+        Array.isArray(obj.geom.features)
+      ) {
+        return obj.geom.features
+          .filter((f: any) => f?.geometry?.type)
+          .map((f: any) => ({
+            type: 'Feature',
+            geometry: f.geometry,
+            properties: { ...baseProps, ...(f.properties || {}) },
+          }));
+      }
+      const geometry =
+        obj.geom?.geometry || (obj.geom?.type ? obj.geom : null);
+      if (!geometry?.type) return [];
+      return [{ type: 'Feature', geometry, properties: baseProps }];
+    });
+
+    if (!features.length) return { skipped: 'no-geometries' };
+
+    const geojson = { type: 'FeatureCollection', features };
+
+    // Publishing.uetkMerged stores geometries in EPSG:3346 (LKS-94), but
+    // the GeoJSON spec mandates WGS84 (EPSG:4326). A raw 3346 GeoJSON
+    // does not load in QGIS or any web map tool without a manual CRS
+    // hint — which the stakeholder confirmed as the blocker that killed
+    // the previous GeoJSON output. tools.reproject pipes through
+    // ogr2ogr -s_srs 3346 -t_srs 4326 and streams the result back.
+    // A failure here MUST rethrow so BullMQ marks the job failed and
+    // the request doesn't end up APPROVED with a missing file.
+    const stream: NodeJS.ReadableStream = await ctx
+      .call('tools.reproject', {
+        geojson,
+        sourceSrid: 3346,
+        targetSrid: 4326,
+      })
+      .then((s) => s as NodeJS.ReadableStream)
+      .catch((err: any) => {
+        this.logger.error(
+          `tools.reproject failed for request ${request.id} ` +
+            `(${features.length} features)`,
+          err,
+        );
+        throw err;
+      });
+
+    const folder = this.getFolderName(
+      request?.createdBy as any as User,
+      request?.tenant as Tenant
+    );
+
+    const result: any = await ctx.call(
+      'minio.uploadFile',
+      {
+        payload: stream,
+        folder,
+        isPrivate: true,
+        // Browsers / curl uploads can present either of these for a
+        // .geojson, depending on the OS mime table. MinIO matches against
+        // this list, so accept both.
+        types: ['application/geo+json', 'application/json'],
+        name: `israsas-${request.id}`,
+      },
+      {
+        meta: {
+          mimetype: 'application/geo+json',
+          filename: `israsas-${request.id}.geojson`,
+        },
+      }
+    );
+
+    await ctx.call('requests.saveGeneratedPdf', { id, url: result.url });
+
+    return { generated: true };
+  }
+
+  @Action({
     params: {
       id: 'number',
     },
@@ -297,6 +423,22 @@ export default class JobsRequestsService extends moleculer.Service {
     // BullMQ retry semantics inherited from the mixin (5 attempts, 1s
     // backoff). Mirrors initiatePdfGenerate but without the flow() step.
     const job = await this.localQueue(ctx, 'generateAndSaveGdb', {
+      id: ctx.params.id,
+    });
+    return { job: { id: job.id } };
+  }
+
+  @Action({
+    params: {
+      id: 'number',
+    },
+    timeout: 0,
+  })
+  async initiateGeoJsonGenerate(ctx: Context<{ id: number }>) {
+    // Same shape as initiateGdbGenerate — single queued job, BullMQ
+    // retry semantics inherited from the mixin. No screenshot children
+    // since GeoJSON is a pure data extract.
+    const job = await this.localQueue(ctx, 'generateAndSaveGeoJson', {
       id: ctx.params.id,
     });
     return { job: { id: job.id } };
