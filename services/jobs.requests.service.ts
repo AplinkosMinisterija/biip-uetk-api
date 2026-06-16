@@ -330,11 +330,9 @@ export default class JobsRequestsService extends moleculer.Service {
         kadastro_id: obj.cadastralId,
         pavadinimas: obj.name,
         kategorija: obj.categoryTranslate,
-        registracijos_data: obj.registrationDate,
-        upiu_pabas_id: obj.subbasinId,
-        objekto_x: obj.centroidX,
-        objekto_y: obj.centroidY,
-        st_area: obj.stArea,
+        objekto_x: obj.lng,
+        objekto_y: obj.lat,
+        st_area: obj.area,
       };
       if (
         obj.geom?.type === 'FeatureCollection' &&
