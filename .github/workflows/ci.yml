@@ -8,7 +8,7 @@ on:
 jobs:
   eslint:
     name: ESLint
-    runs-on: ubuntu-latest
+    runs-on: am-github-runner
     timeout-minutes: 15
     permissions:
       security-events: write
@@ -44,6 +44,6 @@ jobs:
     with:
       docker-image: ghcr.io/aplinkosministerija/example
       environment: test
-      runs-on: ubuntu-latest
+      runs-on: am-github-runner
       latest-tag: true
       push: false
