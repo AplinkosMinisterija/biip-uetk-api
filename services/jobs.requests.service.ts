@@ -147,35 +147,19 @@ export default class JobsRequestsService extends moleculer.Service {
 
     const objects: UETKObject[] = await ctx.call('objects.find', {
       query,
-      populate: 'geom',
+      populate: ['geom', 'extendedData'],
     });
 
-    // flatMap so multi-geometry objects emit one Feature per inner geometry.
-    // baseProps uses the published UETK GDB column naming
-    // (https://uetk.biip.lt/zemelapis/) so the file's attribute table
-    // matches what QGIS/ArcGIS users see in the public bulk download.
-    // Every value is sourced from the existing English-named UETKObject
-    // fields — registracijos_data, upiu_pabas_id, and a LKS-94 centroid
-    // are not currently exposed by publishing.uetkMerged so we drop the
-    // first two from the output and read objekto_x/objekto_y from the
-    // WGS84 lng/lat we already have. If/when GIS team confirms those
-    // columns exist on the view, expose them in objects.service and
-    // wire them in here.
-    //
-    // kategorija intentionally uses categoryTranslate (the LT label
-    // "Upė" / "Natūralus ežeras" / ...), not the raw category enum
-    // ("RIVER" / "NATURAL_LAKE"), so users opening the .gdb in QGIS
-    // read human labels instead of internal codes.
-    const features = objects.flatMap((obj: any) => {
-      const baseProps = {
-        id: obj.id,
-        kadastro_id: obj.cadastralId,
-        pavadinimas: obj.name,
-        kategorija: obj.categoryTranslate,
-        objekto_x: obj.lng,
-        objekto_y: obj.lat,
-        st_area: obj.area,
-      };
+    // OpenFileGDB requires one geometry type per layer, AND the public
+    // UETK GDB schema differs per geometry family (lines = `upes_l`
+    // with `ziociu_x/y` + `ilgis_uetk`; polygons = `ezerai_tvenkiniai`
+    // with `objekto_x/y` + `st_area` + reg date + pabaseinis; points
+    // = hidroelektrines / zuvu_pralaidos / etc. with just
+    // `objekto_x/y` and no reg/pabaseinis). Bucket per geometry family
+    // first, then build per-family properties so each layer's
+    // attribute table matches the public uetk.gdb.
+    type Bucketed = { geometry: any; obj: any; inheritedProps: any };
+    const flat: Bucketed[] = objects.flatMap((obj: any) => {
       if (
         obj.geom?.type === 'FeatureCollection' &&
         Array.isArray(obj.geom.features)
@@ -183,46 +167,50 @@ export default class JobsRequestsService extends moleculer.Service {
         return obj.geom.features
           .filter((f: any) => f?.geometry?.type)
           .map((f: any) => ({
-            type: 'Feature',
             geometry: f.geometry,
-            properties: { ...baseProps, ...(f.properties || {}) },
+            obj,
+            inheritedProps: f.properties || {},
           }));
       }
       const geometry =
         obj.geom?.geometry || (obj.geom?.type ? obj.geom : null);
       if (!geometry?.type) return [];
-      return [{ type: 'Feature', geometry, properties: baseProps }];
+      return [{ geometry, obj, inheritedProps: {} }];
     });
 
-    if (!features.length) return { skipped: 'no-geometries' };
-
-    // OpenFileGDB requires one geometry type per layer. Bucket features by
-    // their normalized geometry family (Point / LineString / Polygon —
-    // Multi* variants fold into the same bucket as their singular form so
-    // QGIS can render them as one layer). When the request bundles more
-    // than one bucket, send the multi-layer payload — tools then writes
-    // each bucket as its own table inside a single .gdb. Single-bucket
-    // requests still go through the legacy single-layer path so we don't
-    // surprise downstream consumers (and so the legacy GDB layout is
-    // preserved when nothing has changed).
     const buckets = {
-      points: [] as any[], // Point / MultiPoint
-      lines: [] as any[], // LineString / MultiLineString
-      polygons: [] as any[], // Polygon / MultiPolygon
+      points: [] as Bucketed[],
+      lines: [] as Bucketed[],
+      polygons: [] as Bucketed[],
     };
-    for (const feature of features) {
-      const t = feature.geometry?.type;
-      if (t === 'Point' || t === 'MultiPoint') buckets.points.push(feature);
+    for (const item of flat) {
+      const t = item.geometry?.type;
+      if (t === 'Point' || t === 'MultiPoint') buckets.points.push(item);
       else if (t === 'LineString' || t === 'MultiLineString')
-        buckets.lines.push(feature);
+        buckets.lines.push(item);
       else if (t === 'Polygon' || t === 'MultiPolygon')
-        buckets.polygons.push(feature);
+        buckets.polygons.push(item);
     }
-    const populatedLayers = Object.entries(buckets)
-      .filter(([, list]) => list.length > 0)
-      .map(([name, list]) => ({
+
+    const populatedLayers = (
+      Object.entries(buckets) as Array<
+        [keyof typeof buckets, Bucketed[]]
+      >
+    )
+      .filter(([, items]) => items.length > 0)
+      .map(([name, items]) => ({
         name,
-        geojson: { type: 'FeatureCollection', features: list },
+        geojson: {
+          type: 'FeatureCollection',
+          features: items.map(({ geometry, obj, inheritedProps }) => ({
+            type: 'Feature',
+            geometry,
+            properties: {
+              ...this.basePropsForFamily(obj, name),
+              ...inheritedProps,
+            },
+          })),
+        },
       }));
     if (!populatedLayers.length) return { skipped: 'no-geometries' };
 
@@ -316,40 +304,47 @@ export default class JobsRequestsService extends moleculer.Service {
 
     const objects: UETKObject[] = await ctx.call('objects.find', {
       query,
-      populate: 'geom',
+      populate: ['geom', 'extendedData'],
     });
 
-    // Same feature assembly as generateAndSaveGdb so a user requesting
-    // both formats gets the same attribute table either way. Kept
-    // duplicated rather than factored out because GDB splits into
-    // per-geometry layers while GeoJSON stays a single FeatureCollection
-    // — only the post-assembly shipping differs.
-    const features = objects.flatMap((obj: any) => {
-      const baseProps = {
-        id: obj.id,
-        kadastro_id: obj.cadastralId,
-        pavadinimas: obj.name,
-        kategorija: obj.categoryTranslate,
-        objekto_x: obj.lng,
-        objekto_y: obj.lat,
-        st_area: obj.area,
+    // Same per-family schema as generateAndSaveGdb so a user requesting
+    // either format reads the same attribute table — only the
+    // post-assembly shipping differs (GDB → multi-layer .gdb; GeoJSON
+    // → single FeatureCollection, reprojected). See
+    // basePropsForFamily for the per-family rationale.
+    const familyOf = (
+      t?: string,
+    ): 'points' | 'lines' | 'polygons' | null => {
+      if (t === 'Point' || t === 'MultiPoint') return 'points';
+      if (t === 'LineString' || t === 'MultiLineString') return 'lines';
+      if (t === 'Polygon' || t === 'MultiPolygon') return 'polygons';
+      return null;
+    };
+    const buildFeature = (geometry: any, obj: any, inheritedProps: any) => {
+      const family = familyOf(geometry?.type);
+      if (!family) return null;
+      return {
+        type: 'Feature',
+        geometry,
+        properties: {
+          ...this.basePropsForFamily(obj, family),
+          ...inheritedProps,
+        },
       };
+    };
+    const features = objects.flatMap((obj: any) => {
       if (
         obj.geom?.type === 'FeatureCollection' &&
         Array.isArray(obj.geom.features)
       ) {
         return obj.geom.features
-          .filter((f: any) => f?.geometry?.type)
-          .map((f: any) => ({
-            type: 'Feature',
-            geometry: f.geometry,
-            properties: { ...baseProps, ...(f.properties || {}) },
-          }));
+          .map((f: any) => buildFeature(f.geometry, obj, f.properties || {}))
+          .filter(Boolean);
       }
       const geometry =
         obj.geom?.geometry || (obj.geom?.type ? obj.geom : null);
-      if (!geometry?.type) return [];
-      return [{ type: 'Feature', geometry, properties: baseProps }];
+      const built = buildFeature(geometry, obj, {});
+      return built ? [built] : [];
     });
 
     if (!features.length) return { skipped: 'no-geometries' };
@@ -613,5 +608,72 @@ export default class JobsRequestsService extends moleculer.Service {
     }));
 
     return objects;
+  }
+
+  // Build the per-feature attribute table for a given geometry family.
+  // Schema matches the public UETK GDB (https://uetk.biip.lt/zemelapis/)
+  // — three different shapes per family because the source category
+  // tables themselves differ:
+  //
+  //   lines    upes_l                 id, kadastro_id, pavadinimas,
+  //                                   kategorija, registracijos_data,
+  //                                   upiu_pabas_id, ziociu_x/y,
+  //                                   ilgis_uetk
+  //   polygons ezerai_tvenkiniai      ...same admin block...
+  //                                   objekto_x/y, st_area
+  //   points   hidroelektrines etc.   id, kadastro_id, pavadinimas,
+  //                                   kategorija, objekto_x/y
+  //                                   (no reg date, no pabaseinis)
+  //
+  // kategorija intentionally uses categoryTranslate (the LT label
+  // "Upė" / "Natūralus ežeras" / ...) instead of the raw enum so a
+  // QGIS user reads human labels, not internal codes.
+  //
+  // extendedData is populated per-category by objects.service from the
+  // uetk.israsai* tables (rivers expose ziociuX/Y, lakes expose
+  // objektoX/Y, both expose registravimoData + the pabaseinis name).
+  // We fall back to publishing.uetkMerged's WGS84 lng/lat for rows
+  // without a matching extendedData query so they still ship usable
+  // coordinates instead of nulls.
+  @Method
+  basePropsForFamily(obj: any, family: 'points' | 'lines' | 'polygons') {
+    const ext = obj.extendedData || {};
+    const common = {
+      id: obj.id,
+      kadastro_id: obj.cadastralId,
+      pavadinimas: obj.name,
+      kategorija: obj.categoryTranslate,
+    };
+    const adminBlock = {
+      registracijos_data: ext.registravimoData ?? null,
+      upiu_pabas_id:
+        ext.pabaseinioPavadinimas ?? ext.baseinoPavadinimas ?? null,
+    };
+    if (family === 'lines') {
+      return {
+        ...common,
+        ...adminBlock,
+        ziociu_x: ext.ziociuX ?? obj.lng,
+        ziociu_y: ext.ziociuY ?? obj.lat,
+        ilgis_uetk: ext.upesIlgis ?? obj.length ?? null,
+      };
+    }
+    if (family === 'polygons') {
+      return {
+        ...common,
+        ...adminBlock,
+        objekto_x: ext.objektoX ?? obj.lng,
+        objekto_y: ext.objektoY ?? obj.lat,
+        st_area: ext.vandensPavirsiausPlotasHe ?? obj.area ?? null,
+      };
+    }
+    // family === 'points' — hidro, fish, dam, culvert. The public GDB
+    // doesn't carry reg date / pabaseinis for these layers, so we
+    // omit them entirely rather than ship nulls.
+    return {
+      ...common,
+      objekto_x: ext.objektoX ?? obj.lng,
+      objekto_y: ext.objektoY ?? obj.lat,
+    };
   }
 }
