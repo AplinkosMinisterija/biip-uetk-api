@@ -19,6 +19,18 @@ import { Request } from './requests.service';
 import { Tenant } from './tenants.service';
 import { User } from './users.service';
 
+// Layer names shown to the QGIS / ArcGIS user when opening the extract
+// .gdb. Keyed by geometry family because every UETKObjectType maps
+// 1:1 to a family (rivers/canals -> lines, lakes/ponds -> polygons,
+// dams/hydro/fish/culvert -> points). OpenFileGDB launders whitespace
+// to underscores, so the LT names are written with underscores
+// upfront — the GDB file ends up with the exact name we send.
+const GDB_LAYER_NAMES = {
+  lines: 'Upės',
+  polygons: 'Ežerai_ir_tvenkiniai',
+  points: 'Hidrotechniniai_statiniai',
+} as const;
+
 @Service({
   name: 'jobs.requests',
   mixins: [BullMqMixin],
@@ -198,15 +210,15 @@ export default class JobsRequestsService extends moleculer.Service {
       >
     )
       .filter(([, items]) => items.length > 0)
-      .map(([name, items]) => ({
-        name,
+      .map(([family, items]) => ({
+        name: GDB_LAYER_NAMES[family],
         geojson: {
           type: 'FeatureCollection',
           features: items.map(({ geometry, obj, inheritedProps }) => ({
             type: 'Feature',
             geometry,
             properties: {
-              ...this.basePropsForFamily(obj, name),
+              ...this.basePropsForFamily(obj, family),
               ...inheritedProps,
             },
           })),
