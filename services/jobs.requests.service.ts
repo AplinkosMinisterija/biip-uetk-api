@@ -228,25 +228,22 @@ export default class JobsRequestsService extends moleculer.Service {
 
     const archiveName = `israsas-${request.id}`;
     // tools.makeGdb streams the ZIP back as a Node Readable (no buffering).
-    // A failure here MUST surface — historically the BullMQ retry loop ate
-    // the rejection and the request stayed APPROVED with no generated file
-    // (BĮIP request Nr. 232). We rethrow so BullMQ marks the job failed
-    // *and* the request stays observably broken instead of silently green.
+    // Always use the `layers` payload (even for single-family requests)
+    // so the layer-name inside the .gdb is the LT label from
+    // GDB_LAYER_NAMES, not the archive name. The single-geojson legacy
+    // shape would name the layer `israsas-${id}` instead.
+    //
+    // A failure here MUST surface — historically the BullMQ retry loop
+    // ate the rejection and the request stayed APPROVED with no
+    // generated file (BĮIP request Nr. 232). We rethrow so BullMQ marks
+    // the job failed *and* the request stays observably broken instead
+    // of silently green.
     const stream: NodeJS.ReadableStream = await ctx
-      .call(
-        'tools.makeGdb',
-        populatedLayers.length === 1
-          ? {
-              geojson: populatedLayers[0].geojson,
-              name: archiveName,
-              srid: 3346,
-            }
-          : {
-              layers: populatedLayers,
-              name: archiveName,
-              srid: 3346,
-            },
-      )
+      .call('tools.makeGdb', {
+        layers: populatedLayers,
+        name: archiveName,
+        srid: 3346,
+      })
       .then((s) => s as NodeJS.ReadableStream)
       .catch((err: any) => {
         this.logger.error(
