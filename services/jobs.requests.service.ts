@@ -31,6 +31,55 @@ const GDB_LAYER_NAMES = {
   points: 'Hidrotechniniai_statiniai',
 } as const;
 
+// Per-family field type + display alias the .gdb attribute table
+// should carry. biip-tools wraps these in an OGR VRT before ogr2ogr
+// reads the layer, so QGIS / ArcGIS surface the LT label as the column
+// header (matching the public uetk.gdb at https://uetk.biip.lt/zemelapis/
+// and what the biip-maps-web sidebar already shows on click).
+//
+// Only fields with an actual alias on the published GDB are listed;
+// `id`, `kategorija`, `upiu_pabas_id` get no alias (reference matches).
+// The fallback obj.lng / obj.lat path is WGS84, but we still declare
+// `ziociu_x`/`objekto_x` as `Real` so QGIS treats them numerically.
+type GdbField = { name: string; alias?: string; type: string };
+const ADMIN_ALIASES: GdbField[] = [
+  { name: 'kadastro_id', type: 'String', alias: 'Identifikavimo kodas' },
+  { name: 'pavadinimas', type: 'String', alias: 'Pavadinimas' },
+  { name: 'registracijos_data', type: 'DateTime', alias: 'Registracijos data' },
+];
+const GDB_FIELD_ALIASES: Record<'lines' | 'polygons' | 'points', GdbField[]> = {
+  lines: [
+    { name: 'id', type: 'String' },
+    ...ADMIN_ALIASES,
+    { name: 'kategorija', type: 'String' },
+    { name: 'upiu_pabas_id', type: 'String' },
+    { name: 'ziociu_x', type: 'Real', alias: 'Žiočių X koord. (LKS94)' },
+    { name: 'ziociu_y', type: 'Real', alias: 'Žiočių Y koord. (LKS94)' },
+    {
+      name: 'ilgis_uetk',
+      type: 'Real',
+      alias: 'UETK_ilgis iki vyr. vand. telkinio kranto (km)',
+    },
+  ],
+  polygons: [
+    { name: 'id', type: 'String' },
+    ...ADMIN_ALIASES,
+    { name: 'kategorija', type: 'String' },
+    { name: 'upiu_pabas_id', type: 'String' },
+    { name: 'objekto_x', type: 'Real', alias: 'Centro taško X koordinatė (LKS94)' },
+    { name: 'objekto_y', type: 'Real', alias: 'Centro taško Y koordinatė (LKS94)' },
+    { name: 'st_area', type: 'Real', alias: 'Geografinis plotas' },
+  ],
+  points: [
+    { name: 'id', type: 'String' },
+    { name: 'kadastro_id', type: 'String', alias: 'Identifikavimo kodas' },
+    { name: 'pavadinimas', type: 'String', alias: 'Pavadinimas' },
+    { name: 'kategorija', type: 'String' },
+    { name: 'objekto_x', type: 'Real', alias: 'Centro taško X koordinatė (LKS94)' },
+    { name: 'objekto_y', type: 'Real', alias: 'Centro taško Y koordinatė (LKS94)' },
+  ],
+};
+
 @Service({
   name: 'jobs.requests',
   mixins: [BullMqMixin],
@@ -223,6 +272,7 @@ export default class JobsRequestsService extends moleculer.Service {
             },
           })),
         },
+        fields: GDB_FIELD_ALIASES[family],
       }));
     if (!populatedLayers.length) return { skipped: 'no-geometries' };
 
