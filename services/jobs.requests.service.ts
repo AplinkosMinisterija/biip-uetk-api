@@ -51,7 +51,7 @@ const GDB_FIELD_ALIASES: Record<'lines' | 'polygons' | 'points', GdbField[]> = {
   lines: [
     { name: 'id', type: 'String' },
     ...ADMIN_ALIASES,
-    { name: 'kategorija', type: 'String' },
+    { name: 'kategorija', type: 'String', alias: 'Kategorija' },
     { name: 'upiu_pabas_id', type: 'String', alias: 'Upių pabaseinis' },
     { name: 'ziociu_x', type: 'Real', alias: 'Žiočių X koord. (LKS94)' },
     { name: 'ziociu_y', type: 'Real', alias: 'Žiočių Y koord. (LKS94)' },
@@ -64,7 +64,7 @@ const GDB_FIELD_ALIASES: Record<'lines' | 'polygons' | 'points', GdbField[]> = {
   polygons: [
     { name: 'id', type: 'String' },
     ...ADMIN_ALIASES,
-    { name: 'kategorija', type: 'String' },
+    { name: 'kategorija', type: 'String', alias: 'Kategorija' },
     { name: 'upiu_pabas_id', type: 'String', alias: 'Upių pabaseinis' },
     { name: 'objekto_x', type: 'Real', alias: 'Centro taško X koordinatė (LKS94)' },
     { name: 'objekto_y', type: 'Real', alias: 'Centro taško Y koordinatė (LKS94)' },
@@ -74,7 +74,7 @@ const GDB_FIELD_ALIASES: Record<'lines' | 'polygons' | 'points', GdbField[]> = {
     { name: 'id', type: 'String' },
     { name: 'kadastro_id', type: 'String', alias: 'Identifikavimo kodas' },
     { name: 'pavadinimas', type: 'String', alias: 'Pavadinimas' },
-    { name: 'kategorija', type: 'String' },
+    { name: 'kategorija', type: 'String', alias: 'Kategorija' },
     { name: 'objekto_x', type: 'Real', alias: 'Centro taško X koordinatė (LKS94)' },
     { name: 'objekto_y', type: 'Real', alias: 'Centro taško Y koordinatė (LKS94)' },
   ],
