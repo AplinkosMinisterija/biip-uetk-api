@@ -14,7 +14,7 @@ import {
   toReadableStream,
 } from '../utils';
 import { AuthType } from './api.service';
-import { UETKObject } from './objects.service';
+import { UETKObject, UETKObjectType } from './objects.service';
 import { Request } from './requests.service';
 import { Tenant } from './tenants.service';
 import { User } from './users.service';
@@ -150,14 +150,16 @@ export default class JobsRequestsService extends moleculer.Service {
       populate: ['geom', 'extendedData'],
     });
 
-    // OpenFileGDB requires one geometry type per layer, AND the public
-    // UETK GDB schema differs per geometry family (lines = `upes_l`
-    // with `ziociu_x/y` + `ilgis_uetk`; polygons = `ezerai_tvenkiniai`
-    // with `objekto_x/y` + `st_area` + reg date + pabaseinis; points
-    // = hidroelektrines / zuvu_pralaidos / etc. with just
-    // `objekto_x/y` and no reg/pabaseinis). Bucket per geometry family
-    // first, then build per-family properties so each layer's
-    // attribute table matches the public uetk.gdb.
+    // Mirror the public uetk.gdb layout: one layer per UETK category
+    // (upes_l, ezerai_tvenkiniai, hidroelektrines, zuvu_pralaidos,
+    // zemiu_uztvankos, vandens_pertekliaus_pralaidos). Bucket each
+    // object by its category, then attach the per-layer attribute
+    // shape via basePropsForLayer. OpenFileGDB still requires one
+    // geometry type per layer — that constraint is satisfied
+    // automatically here because every UETKObjectType has exactly one
+    // geometry type (rivers always MultiLineString, lakes always
+    // MultiPolygon, etc.), so a category bucket never holds mixed
+    // geometries.
     type Bucketed = { geometry: any; obj: any; inheritedProps: any };
     const flat: Bucketed[] = objects.flatMap((obj: any) => {
       if (
@@ -178,27 +180,25 @@ export default class JobsRequestsService extends moleculer.Service {
       return [{ geometry, obj, inheritedProps: {} }];
     });
 
-    const buckets = {
-      points: [] as Bucketed[],
-      lines: [] as Bucketed[],
-      polygons: [] as Bucketed[],
-    };
+    const buckets = new Map<string, Bucketed[]>();
+    let droppedUnknownCategory = 0;
     for (const item of flat) {
-      const t = item.geometry?.type;
-      if (t === 'Point' || t === 'MultiPoint') buckets.points.push(item);
-      else if (t === 'LineString' || t === 'MultiLineString')
-        buckets.lines.push(item);
-      else if (t === 'Polygon' || t === 'MultiPolygon')
-        buckets.polygons.push(item);
+      const layer = this.layerNameForCategory(item.obj.category);
+      if (!layer) {
+        droppedUnknownCategory += 1;
+        continue;
+      }
+      if (!buckets.has(layer)) buckets.set(layer, []);
+      buckets.get(layer)!.push(item);
+    }
+    if (droppedUnknownCategory > 0) {
+      this.logger.warn(
+        `extract GDB for request ${request.id}: dropped ${droppedUnknownCategory} feature(s) with no public-GDB layer mapping`,
+      );
     }
 
-    const populatedLayers = (
-      Object.entries(buckets) as Array<
-        [keyof typeof buckets, Bucketed[]]
-      >
-    )
-      .filter(([, items]) => items.length > 0)
-      .map(([name, items]) => ({
+    const populatedLayers = Array.from(buckets.entries()).map(
+      ([name, items]) => ({
         name,
         geojson: {
           type: 'FeatureCollection',
@@ -206,12 +206,13 @@ export default class JobsRequestsService extends moleculer.Service {
             type: 'Feature',
             geometry,
             properties: {
-              ...this.basePropsForFamily(obj, name),
+              ...this.basePropsForLayer(obj, name),
               ...inheritedProps,
             },
           })),
         },
-      }));
+      }),
+    );
     if (!populatedLayers.length) return { skipped: 'no-geometries' };
 
     const archiveName = `israsas-${request.id}`;
@@ -307,27 +308,24 @@ export default class JobsRequestsService extends moleculer.Service {
       populate: ['geom', 'extendedData'],
     });
 
-    // Same per-family schema as generateAndSaveGdb so a user requesting
-    // either format reads the same attribute table — only the
+    // Same per-category attribute schema as generateAndSaveGdb so a
+    // user requesting either format reads the same fields — only the
     // post-assembly shipping differs (GDB → multi-layer .gdb; GeoJSON
-    // → single FeatureCollection, reprojected). See
-    // basePropsForFamily for the per-family rationale.
-    const familyOf = (
-      t?: string,
-    ): 'points' | 'lines' | 'polygons' | null => {
-      if (t === 'Point' || t === 'MultiPoint') return 'points';
-      if (t === 'LineString' || t === 'MultiLineString') return 'lines';
-      if (t === 'Polygon' || t === 'MultiPolygon') return 'polygons';
-      return null;
-    };
-    const buildFeature = (geometry: any, obj: any, inheritedProps: any) => {
-      const family = familyOf(geometry?.type);
-      if (!family) return null;
+    // → single FeatureCollection, reprojected to WGS84). See
+    // basePropsForLayer + layerNameForCategory for the per-layer
+    // rationale.
+    const buildFeature = (
+      geometry: any,
+      obj: any,
+      inheritedProps: any,
+    ) => {
+      const layer = this.layerNameForCategory(obj.category);
+      if (!layer || !geometry?.type) return null;
       return {
         type: 'Feature',
         geometry,
         properties: {
-          ...this.basePropsForFamily(obj, family),
+          ...this.basePropsForLayer(obj, layer),
           ...inheritedProps,
         },
       };
@@ -610,20 +608,22 @@ export default class JobsRequestsService extends moleculer.Service {
     return objects;
   }
 
-  // Build the per-feature attribute table for a given geometry family.
-  // Schema matches the public UETK GDB (https://uetk.biip.lt/zemelapis/)
-  // — three different shapes per family because the source category
-  // tables themselves differ:
+  // Build the per-feature attribute table for a given category-keyed
+  // GDB layer. Schemas mirror the public UETK GDB
+  // (https://uetk.biip.lt/zemelapis/) — each layer's column set is
+  // shaped by what its upstream uetk.israsai* table actually carries.
   //
-  //   lines    upes_l                 id, kadastro_id, pavadinimas,
+  //   upes_l                          id, kadastro_id, pavadinimas,
   //                                   kategorija, registracijos_data,
   //                                   upiu_pabas_id, ziociu_x/y,
   //                                   ilgis_uetk
-  //   polygons ezerai_tvenkiniai      ...same admin block...
+  //   ezerai_tvenkiniai               ...same admin block...
   //                                   objekto_x/y, st_area
-  //   points   hidroelektrines etc.   id, kadastro_id, pavadinimas,
-  //                                   kategorija, objekto_x/y
-  //                                   (no reg date, no pabaseinis)
+  //   hidroelektrines, zuvu_pralaidos, id, kadastro_id, pavadinimas,
+  //   zemiu_uztvankos,                 objekto_x/y
+  //   vandens_pertekliaus_pralaidos    (no reg date, no pabaseinis —
+  //                                   public GDB doesn't carry them
+  //                                   for these point layers either)
   //
   // kategorija intentionally uses categoryTranslate (the LT label
   // "Upė" / "Natūralus ežeras" / ...) instead of the raw enum so a
@@ -636,20 +636,20 @@ export default class JobsRequestsService extends moleculer.Service {
   // without a matching extendedData query so they still ship usable
   // coordinates instead of nulls.
   @Method
-  basePropsForFamily(obj: any, family: 'points' | 'lines' | 'polygons') {
+  basePropsForLayer(obj: any, layerName: string) {
     const ext = obj.extendedData || {};
     const common = {
       id: obj.id,
       kadastro_id: obj.cadastralId,
       pavadinimas: obj.name,
-      kategorija: obj.categoryTranslate,
     };
     const adminBlock = {
+      kategorija: obj.categoryTranslate,
       registracijos_data: ext.registravimoData ?? null,
       upiu_pabas_id:
         ext.pabaseinioPavadinimas ?? ext.baseinoPavadinimas ?? null,
     };
-    if (family === 'lines') {
+    if (layerName === 'upes_l') {
       return {
         ...common,
         ...adminBlock,
@@ -658,7 +658,7 @@ export default class JobsRequestsService extends moleculer.Service {
         ilgis_uetk: ext.upesIlgis ?? obj.length ?? null,
       };
     }
-    if (family === 'polygons') {
+    if (layerName === 'ezerai_tvenkiniai') {
       return {
         ...common,
         ...adminBlock,
@@ -667,13 +667,47 @@ export default class JobsRequestsService extends moleculer.Service {
         st_area: ext.vandensPavirsiausPlotasHe ?? obj.area ?? null,
       };
     }
-    // family === 'points' — hidro, fish, dam, culvert. The public GDB
-    // doesn't carry reg date / pabaseinis for these layers, so we
-    // omit them entirely rather than ship nulls.
+    // The remaining point layers in the public GDB (hidroelektrines,
+    // zuvu_pralaidos, zemiu_uztvankos, vandens_pertekliaus_pralaidos)
+    // ship only the minimal id/kadastro_id/pavadinimas + objekto_x/y.
+    // Their respective uetk.israsai* tables don't carry the admin
+    // block, so we omit it rather than fabricate nulls.
     return {
       ...common,
       objekto_x: ext.objektoX ?? obj.lng,
       objekto_y: ext.objektoY ?? obj.lat,
     };
+  }
+
+  // UETKObjectType -> public uetk.gdb layer name. RIVER and CANAL
+  // share `upes_l`; the six lake/pond/water-body sub-categories all
+  // share `ezerai_tvenkiniai` (the public GDB merges them too).
+  // Objects whose category we don't recognize fall outside the public
+  // schema and get dropped — log a count instead of silently shipping
+  // an unlabeled bucket.
+  @Method
+  layerNameForCategory(category: string): string | null {
+    switch (category) {
+      case UETKObjectType.RIVER:
+      case UETKObjectType.CANAL:
+        return 'upes_l';
+      case UETKObjectType.INTERMEDIATE_WATER_BODY:
+      case UETKObjectType.TERRITORIAL_WATER_BODY:
+      case UETKObjectType.NATURAL_LAKE:
+      case UETKObjectType.PONDED_LAKE:
+      case UETKObjectType.POND:
+      case UETKObjectType.ISOLATED_WATER_BODY:
+        return 'ezerai_tvenkiniai';
+      case UETKObjectType.HYDRO_POWER_PLANT:
+        return 'hidroelektrines';
+      case UETKObjectType.FISH_PASS:
+        return 'zuvu_pralaidos';
+      case UETKObjectType.EARTH_DAM:
+        return 'zemiu_uztvankos';
+      case UETKObjectType.WATER_EXCESS_CULVERT:
+        return 'vandens_pertekliaus_pralaidos';
+      default:
+        return null;
+    }
   }
 }
