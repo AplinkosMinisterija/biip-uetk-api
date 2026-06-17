@@ -55,11 +55,8 @@ const GDB_FIELD_ALIASES: Record<'lines' | 'polygons' | 'points', GdbField[]> = {
     { name: 'upiu_pabas_id', type: 'String', alias: 'Upių pabaseinis' },
     { name: 'ziociu_x', type: 'Real', alias: 'Žiočių X koord. (LKS94)' },
     { name: 'ziociu_y', type: 'Real', alias: 'Žiočių Y koord. (LKS94)' },
-    {
-      name: 'ilgis_uetk',
-      type: 'Real',
-      alias: 'UETK_ilgis iki vyr. vand. telkinio kranto (km)',
-    },
+    { name: 'ilgis_uetk', type: 'Real', alias: 'Ilgis, km' },
+    { name: 'kita_informacija', type: 'String', alias: 'Kita informacija' },
   ],
   polygons: [
     { name: 'id', type: 'String' },
@@ -68,7 +65,8 @@ const GDB_FIELD_ALIASES: Record<'lines' | 'polygons' | 'points', GdbField[]> = {
     { name: 'upiu_pabas_id', type: 'String', alias: 'Upių pabaseinis' },
     { name: 'objekto_x', type: 'Real', alias: 'Centro taško X koordinatė (LKS94)' },
     { name: 'objekto_y', type: 'Real', alias: 'Centro taško Y koordinatė (LKS94)' },
-    { name: 'st_area', type: 'Real', alias: 'Geografinis plotas' },
+    { name: 'st_area', type: 'Real', alias: 'Plotas, ha' },
+    { name: 'kita_informacija', type: 'String', alias: 'Kita informacija' },
   ],
   points: [
     { name: 'id', type: 'String' },
@@ -77,6 +75,7 @@ const GDB_FIELD_ALIASES: Record<'lines' | 'polygons' | 'points', GdbField[]> = {
     { name: 'kategorija', type: 'String', alias: 'Kategorija' },
     { name: 'objekto_x', type: 'Real', alias: 'Centro taško X koordinatė (LKS94)' },
     { name: 'objekto_y', type: 'Real', alias: 'Centro taško Y koordinatė (LKS94)' },
+    { name: 'kita_informacija', type: 'String', alias: 'Kita informacija' },
   ],
 };
 
@@ -708,6 +707,12 @@ export default class JobsRequestsService extends moleculer.Service {
       upiu_pabas_id:
         ext.pabaseinioPavadinimas ?? ext.baseinoPavadinimas ?? null,
     };
+    // Free-text "Kita informacija" — public-facing notes about the
+    // object. PDF templates already render item.kitiDuomenys for the
+    // river / canal / lake / pond subtypes; we surface the same value
+    // in the GDB extract for every family so QGIS users see what the
+    // identifier sidebar at https://uetk.biip.lt shows.
+    const kitaInformacija = ext.kitiDuomenys ?? null;
     if (family === 'lines') {
       return {
         ...common,
@@ -715,6 +720,7 @@ export default class JobsRequestsService extends moleculer.Service {
         ziociu_x: ext.ziociuX ?? obj.lng,
         ziociu_y: ext.ziociuY ?? obj.lat,
         ilgis_uetk: ext.upesIlgis ?? obj.length ?? null,
+        kita_informacija: kitaInformacija,
       };
     }
     if (family === 'polygons') {
@@ -724,6 +730,7 @@ export default class JobsRequestsService extends moleculer.Service {
         objekto_x: ext.objektoX ?? obj.lng,
         objekto_y: ext.objektoY ?? obj.lat,
         st_area: ext.vandensPavirsiausPlotasHe ?? obj.area ?? null,
+        kita_informacija: kitaInformacija,
       };
     }
     // family === 'points' — hidro, fish, dam, culvert. The public GDB
@@ -733,6 +740,7 @@ export default class JobsRequestsService extends moleculer.Service {
       ...common,
       objekto_x: ext.objektoX ?? obj.lng,
       objekto_y: ext.objektoY ?? obj.lat,
+      kita_informacija: kitaInformacija,
     };
   }
 }
