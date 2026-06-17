@@ -52,7 +52,7 @@ const GDB_FIELD_ALIASES: Record<'lines' | 'polygons' | 'points', GdbField[]> = {
     { name: 'id', type: 'String' },
     ...ADMIN_ALIASES,
     { name: 'kategorija', type: 'String' },
-    { name: 'upiu_pabas_id', type: 'String' },
+    { name: 'upiu_pabas_id', type: 'String', alias: 'Upių pabaseinis' },
     { name: 'ziociu_x', type: 'Real', alias: 'Žiočių X koord. (LKS94)' },
     { name: 'ziociu_y', type: 'Real', alias: 'Žiočių Y koord. (LKS94)' },
     {
@@ -65,7 +65,7 @@ const GDB_FIELD_ALIASES: Record<'lines' | 'polygons' | 'points', GdbField[]> = {
     { name: 'id', type: 'String' },
     ...ADMIN_ALIASES,
     { name: 'kategorija', type: 'String' },
-    { name: 'upiu_pabas_id', type: 'String' },
+    { name: 'upiu_pabas_id', type: 'String', alias: 'Upių pabaseinis' },
     { name: 'objekto_x', type: 'Real', alias: 'Centro taško X koordinatė (LKS94)' },
     { name: 'objekto_y', type: 'Real', alias: 'Centro taško Y koordinatė (LKS94)' },
     { name: 'st_area', type: 'Real', alias: 'Geografinis plotas' },
