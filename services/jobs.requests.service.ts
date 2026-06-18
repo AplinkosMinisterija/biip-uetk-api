@@ -534,19 +534,7 @@ export default class JobsRequestsService extends moleculer.Service {
       // ŽEMĖLAPIO IŠTRAUKA title + numeris + data + object name block
       // (~190pt). Going taller (e.g. 1280x1600) would render under the
       // page bottom margin.
-      // Wait for the legend ready flag, not just the map canvas: biip-maps-web
-      // mounts <UiMapLegend> after the map fit completes and sets
-      // body[data-legend-ready="true"] when the async GetLegendGraphic fetch
-      // resolves (success OR failure). The previous '#image-canvas-0' selector
-      // matched as soon as OpenLayers attached its canvas, well before the
-      // legend HTTP round-trip, so the screenshot captured a half-rendered
-      // "Sutartiniai ženklai" section with no symbols.
-      params: {
-        ...item,
-        waitFor: 'body[data-legend-ready="true"]',
-        width: 1280,
-        height: 1400,
-      },
+      params: { ...item, waitFor: '#image-canvas-0', width: 1280, height: 1400 },
       name: 'jobs',
       action: 'saveScreenshot',
     }));

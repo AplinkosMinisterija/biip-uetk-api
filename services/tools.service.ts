@@ -49,16 +49,15 @@ export default class ToolsService extends moleculer.Service {
     }>
   ) {
     const { url, stream, encoding, waitFor, width, height } = ctx.params;
-    // PNG (lossless) instead of JPEG q=75: the extract-PDF map page
-    // was showing JPEG compression artifacts on label text and basin
-    // outlines, which a 1280x1400 screenshot downscaled into ~495x542pt
-    // of the PDF only amplified. PNG roughly doubles the screenshot
-    // payload size but the PDF embedder still re-compresses on the
-    // final page, so the on-disk PDF grows modestly while the rendered
-    // map reads as crisp as the live screenshot in the browser.
+    // High-quality JPEG (q=100): PNG was tried to avoid q=75 compression
+    // artifacts on label text and basin outlines but broke extract
+    // generation downstream. q=100 keeps the file shape JPEG (what the
+    // PDF pipeline expects) while removing nearly all visible
+    // compression noise at the source resolution we ship.
     const searchParams = new URLSearchParams({
       url: url,
-      type: 'png',
+      type: 'jpeg',
+      quality: '100',
       encoding,
     });
 
