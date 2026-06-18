@@ -158,16 +158,9 @@
           <hr />
           <% if (['RIVER', 'CANAL'].includes(item.category)) { %>
             <div class="flex flex-col items-center my-4">
-              <p class="font-bold text-xl"><%= item.extendedData?.pavadinimas || item.name || '' %></p>
+              <p>Kadastro objekto pavadinimas: <b><%= item.extendedData?.pavadinimas || item.name || '' %></b></p>
               <% if (item.extendedData?.kadastroId || item.cadastralId) { %>
                 <p>Identifikavimo kodas: <b><%= item.extendedData?.kadastroId || item.cadastralId %></b></p>
-              <% } %>
-              <% var downstream = [
-                   ...(item.extendedData?.vyrUpes || []),
-                   ...(item.extendedData?.vyrEzeraiTvenkiniai || [])
-                 ].find(function(r) { return r && (r.pavadinimas || r.kodas); }); %>
-              <% if (downstream) { %>
-                <p class="mt-2">Vandens telkinys, į kurį įteka: <b><%= downstream.pavadinimas || '-' %></b><% if (downstream.kategorija) { %> (<%= downstream.kategorija.toLowerCase() %>)<% } %><% if (downstream.kodas) { %>, kodas <b><%= downstream.kodas %></b><% } %></p>
               <% } %>
             </div>
           <% } %>
