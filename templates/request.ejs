@@ -158,7 +158,7 @@
           <hr />
           <% if (['RIVER', 'CANAL'].includes(item.category)) { %>
             <div class="flex flex-col items-center my-4">
-              <p>Kadastro objekto pavadinimas: <b><%= item.extendedData?.pavadinimas || item.name || '' %></b></p>
+              <p class="text-xl">Kadastro objekto pavadinimas: <b><%= item.extendedData?.pavadinimas || item.name || '' %></b></p>
               <% if (item.extendedData?.kadastroId || item.cadastralId) { %>
                 <p>Identifikavimo kodas: <b><%= item.extendedData?.kadastroId || item.cadastralId %></b></p>
               <% } %>
