@@ -11,7 +11,15 @@ import moment from 'moment';
   mixins: [BullMqMixin],
   settings: {
     bullmq: {
-      worker: { concurrency: 5 },
+      // Serialize screenshot jobs (1, not 5) because multi-object request
+      // extracts were rendering duplicated map labels — same WMS basin /
+      // cadastral labels appearing twice, slightly offset. Upstream
+      // biip-tools /screenshot is a thin proxy to the Chrome API
+      // (CHROME_API_ENDPOINT), and parallel calls into that service
+      // bleed OpenLayers ImageWMS tile state across pooled puppeteer
+      // pages. Sequential screenshots eliminate the overlap. Bump back
+      // up once the Chrome service is fixed to isolate page contexts.
+      worker: { concurrency: 1 },
       job: {
         attempts: 10,
         backoff: 1000,
