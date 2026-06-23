@@ -121,6 +121,7 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
     }),
     PostgisMixin({
       srid: 3346,
+      geojson: { maxDecimalDigits: 2 },
     }),
   ],
 

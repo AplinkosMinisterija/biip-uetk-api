@@ -4525,20 +4525,10 @@ moleculer-decorators@^1.3.0:
     ramda "0.27.1"
     ramda-adjunct "^2.35.0"
 
-moleculer-postgis@^0.2.7:
-  version "0.2.7"
-  resolved "https://registry.yarnpkg.com/moleculer-postgis/-/moleculer-postgis-0.2.7.tgz#a3b1087e33bade1c54e18ded43facd5505b07940"
-  integrity sha512-JO/OPiyIfsV5u7KKBgozSA57CGAJEmuOBRTESiadjiJGDkuDWiu30h4aQ4/nzAEjVSc2aHOiDI2iU9QEQlMy+Q==
-  dependencies:
-    geojsonjs "^0.1.2"
-    lodash "^4.17.21"
-    moleculer "^0.14.31"
-    typescript "^4.5.5"
-
-moleculer-postgis@^0.3.3:
-  version "0.3.3"
-  resolved "https://registry.yarnpkg.com/moleculer-postgis/-/moleculer-postgis-0.3.3.tgz#ee82573d74f3a671ccb7d9383dd63e3a4d6a97b5"
-  integrity sha512-XTLHtgCOZaFAFQzcXILe2dKxBnUiaBr+5torts8StoBHyAca0J1pHI7Nhd7zdybDtYWb88bZLjfm4HYLv1wgsQ==
+moleculer-postgis@^0.3.3, "moleculer-postgis@github:AplinkosMinisterija/moleculer-postgis#v0.4.0":
+  version "0.4.0"
+  uid "62323a28da9add69a2ddd6018cbd17c2b343f668"
+  resolved "https://codeload.github.com/AplinkosMinisterija/moleculer-postgis/tar.gz/62323a28da9add69a2ddd6018cbd17c2b343f668"
   dependencies:
     geojsonjs "^0.1.2"
     lodash "^4.17.21"
