@@ -160,7 +160,7 @@
           <% var isWaterBody = ['RIVER', 'CANAL', 'NATURAL_LAKE', 'PONDED_LAKE', 'POND', 'ISOLATED_WATER_BODY', 'INTERMEDIATE_WATER_BODY', 'TERRITORIAL_WATER_BODY'].includes(item.category); %>
           <% if (isWaterBody || isHydroStructure) { %>
             <div class="flex flex-col items-center my-4">
-              <p class="text-xl">Pavadinimas: <b><%= item.extendedData?.pavadinimas || item.name || '' %></b></p>
+              <p>Pavadinimas: <b><%= item.extendedData?.pavadinimas || item.name || '' %></b></p>
               <% if (isHydroStructure && item.extendedData?.hidrostatinioKodas) { %>
                 <p>Hidrotechninio statinio kodas: <b><%= item.extendedData.hidrostatinioKodas %></b></p>
               <% } else if (item.extendedData?.kadastroId || item.cadastralId) { %>
