@@ -626,24 +626,33 @@ export default class RequestsService extends moleculer.Service {
 
   @Method
   async sendNotificationOnStatusChange(request: Request) {
-    if (
-      !emailCanBeSent() ||
-      [RequestStatus.APPROVED].includes(request.status)
-    ) {
-      // Do not send when approved - when file will be generated email will be sent
-      return;
-    }
+    if (!emailCanBeSent()) return;
+
+    // Postmark marks hard-bounced addresses inactive and then throws on
+    // every send to them. Keep the two recipients independent so one bad
+    // address cannot suppress the other's notification.
+    const send = async (email: string, isAdmin: boolean) => {
+      try {
+        await notifyOnRequestUpdate(email, request.status, request.id, isAdmin);
+      } catch (err) {
+        this.logger.error(
+          `Failed to notify ${email} about request ${request.id} ` +
+            `(${request.status})`,
+          err
+        );
+      }
+    };
+
+    // The admin mailbox only cares about incoming work — approving or
+    // rejecting is their own action, so they are not notified about it.
+    const adminNotified = [
+      RequestStatus.CREATED,
+      RequestStatus.SUBMITTED,
+    ].includes(request.status);
 
     // TODO: send email for admins using settings.
-    if (
-      [RequestStatus.CREATED, RequestStatus.SUBMITTED].includes(request.status)
-    ) {
-      return notifyOnRequestUpdate(
-        NOTIFY_ADMIN_EMAIL,
-        request.status,
-        request.id,
-        true
-      );
+    if (adminNotified) {
+      await send(NOTIFY_ADMIN_EMAIL, true);
     }
 
     const user: User = await this.broker.call('users.resolve', {
@@ -655,12 +664,22 @@ export default class RequestsService extends moleculer.Service {
 
     if (!notifyEmail) return;
 
-    notifyOnRequestUpdate(
-      request.notifyEmail || user.email,
-      request.status,
-      request.id,
-      user?.type === UserType.ADMIN
-    );
+    // Don't mail the same person twice when the requester IS the admin
+    // mailbox (NOTIFY_ADMIN_EMAIL is a real person's address).
+    if (
+      adminNotified &&
+      notifyEmail.toLowerCase() === NOTIFY_ADMIN_EMAIL.toLowerCase()
+    ) {
+      return;
+    }
+
+    // Notify the requester on EVERY status, APPROVED included. APPROVED
+    // used to return early on the assumption the "file generated" mail
+    // would follow it — so when an extract job failed the requester got
+    // no mail about the submission *or* the approval (BĮIP request
+    // Nr. 855: production biip-tools had no /gdb endpoint, so the job
+    // 404'd on every attempt and generatedFile was never set).
+    await send(notifyEmail, user?.type === UserType.ADMIN);
   }
 
   @Method
@@ -725,11 +744,20 @@ export default class RequestsService extends moleculer.Service {
           scope: USERS_DEFAULT_SCOPES,
         });
 
-        notifyOnFileGenerated(
-          user.email,
-          request.id,
-          user.type === UserType.ADMIN
-        );
+        // Honour notifyEmail like sendNotificationOnStatusChange does — a
+        // requester who pointed notifications at another address still got
+        // the "file is ready" mail at their account address, and an
+        // unresolvable createdBy threw a TypeError on user.email inside
+        // the event handler.
+        const notifyEmail = request.notifyEmail || user?.email;
+
+        if (notifyEmail) {
+          await notifyOnFileGenerated(
+            notifyEmail,
+            request.id,
+            user?.type === UserType.ADMIN
+          );
+        }
       }
     }
   }
