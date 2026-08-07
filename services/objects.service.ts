@@ -95,6 +95,7 @@ export const UETKObjectTypeTranslates = {
     }),
     PostgisMixin({
       srid: 3346,
+      geojson: { maxDecimalDigits: 2 },
     }),
   ],
 
