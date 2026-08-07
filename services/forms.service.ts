@@ -18,7 +18,11 @@ import {
   NOTIFY_ADMIN_EMAIL,
   TENANT_FIELD,
 } from '../types';
-import { emailCanBeSent, notifyOnFormUpdate } from '../utils/mails';
+import {
+  emailCanBeSent,
+  notifyOnFileGeneratedForForm,
+  notifyOnFormUpdate,
+} from '../utils/mails';
 import { UserAuthMeta } from './api.service';
 import { FormHistoryTypes } from './forms.histories.service';
 import { UETKObject, UETKObjectType } from './objects.service';
@@ -34,6 +38,8 @@ export interface Form extends BaseModelInterface {
   cadastralId: string | number;
   type: string;
   objectType: string;
+  generatedFile?: string;
+  tenant?: number | Tenant;
 }
 
 export const FormStatus = {
@@ -193,6 +199,8 @@ const populatePermissions = (field: string) => {
         populate: populatePermissions('validate'),
       },
 
+      generatedFile: 'string',
+
       ...TENANT_FIELD,
 
       ...COMMON_FIELDS,
@@ -289,6 +297,52 @@ export default class FormsService extends moleculer.Service {
       types: ALL_FILE_TYPES,
       folder,
     });
+  }
+
+  @Action({
+    params: {
+      id: 'number',
+      url: 'string',
+    },
+  })
+  saveGeneratedPdf(ctx: Context<{ id: number; url: string }>) {
+    const { id, url: generatedFile } = ctx.params;
+
+    return this.updateEntity(ctx, {
+      id,
+      generatedFile,
+    });
+  }
+
+  @Action({
+    params: {
+      id: {
+        type: 'number',
+        convert: true,
+      },
+    },
+    rest: 'POST /:id/generate',
+    timeout: 0,
+  })
+  async generatePdf(ctx: Context<{ id: number }>) {
+    const flow: any = await ctx.call('jobs.forms.initiatePdfGenerate', {
+      id: ctx.params.id,
+    });
+
+    return {
+      generating: !!flow?.job?.id,
+    };
+  }
+
+  @Method
+  async generatePdfIfNeeded(form: Form) {
+    if (!form?.id) return;
+    if (form.status !== FormStatus.APPROVED) return;
+    if (form.generatedFile) return;
+    if (!form.cadastralId) return;
+
+    this.broker.call('forms.generatePdf', { id: form.id });
+    return form;
   }
 
   @Method
@@ -466,7 +520,37 @@ export default class FormsService extends moleculer.Service {
         type: typesByStatus[form.status],
       });
 
+      await this.generatePdfIfNeeded(form);
       await this.sendNotificationOnStatusChange(form);
+    }
+
+    if (
+      prevForm?.generatedFile !== form.generatedFile &&
+      !!form.generatedFile
+    ) {
+      await ctx.call(
+        'forms.histories.create',
+        {
+          form: form.id,
+          type: FormHistoryTypes.FILE_GENERATED,
+        },
+        { meta: null }
+      );
+
+      if (emailCanBeSent()) {
+        const user: User = await ctx.call('users.resolve', {
+          id: form.createdBy,
+          scope: USERS_DEFAULT_SCOPES,
+        });
+
+        if (user?.email) {
+          notifyOnFileGeneratedForForm(
+            user.email,
+            form.id,
+            user.type === UserType.ADMIN
+          );
+        }
+      }
     }
   }
 

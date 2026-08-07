@@ -16,6 +16,7 @@ export const FormHistoryTypes = {
   REJECTED: 'REJECTED',
   RETURNED: 'RETURNED',
   APPROVED: 'APPROVED',
+  FILE_GENERATED: 'FILE_GENERATED',
 };
 
 @Service({
