@@ -51,6 +51,7 @@ export interface Request extends BaseModelInterface {
   generatedFile: string;
   notifyEmail: string;
   tenant: number | Tenant;
+  assignee?: number | User;
   data?: {
     extended?: boolean;
     format?: string;
@@ -250,6 +251,13 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
 
       generatedFile: 'string',
 
+      assignee: {
+        type: 'number',
+        columnType: 'integer',
+        columnName: 'assigneeId',
+        populate: 'users.resolve',
+      },
+
       notifyEmail: {
         type: 'string',
         onCreate: ({ ctx, value }: FieldHookCallback) => {
@@ -293,7 +301,10 @@ async function validatePurposeValue({ params, value }: FieldHookCallback) {
         if (profile?.id) {
           return { ...query, tenant: profile.id };
         } else if (user.type === UserType.USER) {
-          return { ...query, ...createdByUserQuery };
+          return {
+            ...query,
+            $or: [createdByUserQuery, { assignee: user.id }],
+          };
         }
 
         if (query.createdBy === user.id) {
@@ -428,6 +439,61 @@ export default class RequestsService extends moleculer.Service {
     return {
       generating: !!flow?.job?.id,
     };
+  }
+
+  @Action({
+    rest: 'POST /:id/assignee/:assignee?',
+    params: {
+      id: { type: 'number', convert: true },
+      assignee: { type: 'number', convert: true, optional: true },
+    },
+    types: [EndpointType.ADMIN],
+  })
+  async setAssignee(
+    ctx: Context<{ id: number; assignee?: number }, UserAuthMeta>
+  ) {
+    const { id, assignee } = ctx.params;
+
+    const request: Request = await ctx.call('requests.resolve', {
+      id,
+      throwIfNotExist: true,
+    });
+
+    const previousAssignee = request.assignee
+      ? Number(request.assignee)
+      : null;
+    const nextAssignee = assignee ?? null;
+
+    if (previousAssignee === nextAssignee) return request;
+
+    const updated: Request = await this.updateEntity(ctx, {
+      id,
+      assignee: nextAssignee,
+    });
+
+    if (emailCanBeSent() && nextAssignee) {
+      const assigneeUser: User = await ctx.call('users.resolve', {
+        id: nextAssignee,
+        scope: USERS_DEFAULT_SCOPES,
+      });
+      if (assigneeUser?.email) {
+        notifyOnRequestUpdate(
+          assigneeUser.email,
+          updated.status,
+          updated.id,
+          true
+        );
+      }
+    } else if (emailCanBeSent() && !nextAssignee && previousAssignee) {
+      notifyOnRequestUpdate(
+        NOTIFY_ADMIN_EMAIL,
+        updated.status,
+        updated.id,
+        true
+      );
+    }
+
+    return updated;
   }
 
   @Action({
@@ -600,6 +666,16 @@ export default class RequestsService extends moleculer.Service {
           request.status
         ),
       };
+    } else if (
+      request.assignee &&
+      Number(request.assignee) === Number(user.id)
+    ) {
+      return {
+        edit: false,
+        validate: [RequestStatus.CREATED, RequestStatus.SUBMITTED].includes(
+          request.status
+        ),
+      };
     }
 
     return invalid;
@@ -638,8 +714,20 @@ export default class RequestsService extends moleculer.Service {
     if (
       [RequestStatus.CREATED, RequestStatus.SUBMITTED].includes(request.status)
     ) {
+      let recipientEmail = NOTIFY_ADMIN_EMAIL;
+
+      if (request.assignee) {
+        const assigneeUser: User = await this.broker.call('users.resolve', {
+          id: request.assignee,
+          scope: USERS_DEFAULT_SCOPES,
+        });
+        if (assigneeUser?.email) {
+          recipientEmail = assigneeUser.email;
+        }
+      }
+
       return notifyOnRequestUpdate(
-        NOTIFY_ADMIN_EMAIL,
+        recipientEmail,
         request.status,
         request.id,
         true
