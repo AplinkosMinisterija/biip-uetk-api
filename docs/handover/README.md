@@ -7,7 +7,12 @@ most of what follows is not derivable from this repository alone.
 | File | What it is |
 | --- | --- |
 | [`uetk-gis-structure.md`](./uetk-gis-structure.md) | `uetk_gis` structure reconstructed from the QGIS project files — a stopgap until a real schema dump exists |
-| [`diagnostics.sql`](./diagnostics.sql) | Read-only script that answers everything the reconstruction could not |
+| [`diagnostics-report.sql`](./diagnostics-report.sql) | **Start here.** Same checks as below, but returned as one text column so the output can be copied in a single selection |
+| [`diagnostics.sql`](./diagnostics.sql) | The same checks as separate queries — easier to read and to run one at a time, but produces ~25 result tabs |
+
+Both are read-only, take no locks, and are safe to run on production. Run them
+against **both** `uetk` and `uetk_gis`; the `pg_cron` section only applies to
+`uetk_gis` and is deliberately last so it cannot cut the rest short.
 
 ## Why this exists
 
