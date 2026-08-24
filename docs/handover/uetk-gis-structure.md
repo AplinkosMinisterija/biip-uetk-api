@@ -1,38 +1,139 @@
-# UETK GIS database structure (reconstructed)
+# UETK GIS database structure
 
-> **This is not authoritative DDL.** The `uetk_gis` database has no schema
-> migrations anywhere in version control — the structure lives only inside the
-> running database. This document is reverse-engineered from the QGIS server
-> project files so that *some* written record exists until a real
-> `pg_dump --schema-only` is committed. Replace it with the real dump as soon as
-> someone with database access runs [`diagnostics.sql`](./diagnostics.sql).
+> **Still not a substitute for `pg_dump --schema-only`.** Column types,
+> constraints and indexes are not recorded here. But the layer, column and
+> filter inventory below is extracted from the QGIS project files, and the
+> schema inventory is now confirmed against the production database.
 
-**Source:** `AplinkosMinisterija/biip-qgis-server` → `projects/uetk_*.qgs`  
-**Generated:** 2026-08-24 from the project files listed below.  
-**Coordinate system:** EPSG:3346 (LKS-94 / Lithuania TM) throughout.  
-**Postgres service name:** all projects connect via `pg_service` entry `uetk`.
+**Sources:** `AplinkosMinisterija/biip-qgis-server` → `projects/uetk_*.qgs`,
+plus a [`diagnostics-report.sql`](./diagnostics-report.sql) run against
+production `uetk_gis` on 2026-08-24 (PostgreSQL 17.5, PostGIS 3.5.2, pg_cron 1.6).
 
-## What this document does and does not contain
+**Coordinate system:** EPSG:3346 (LKS-94 / Lithuania TM).
+**Postgres service name:** the QGIS projects connect via `pg_service` entry `uetk`.
 
-| Captured | Missing — needs database access |
-| --- | --- |
-| Schemas, table names, geometry columns | Column data types, lengths, nullability |
-| Column names and their user-facing labels | Primary key and foreign key constraints |
-| Layer filters (the `sql=` clause per layer) | Indexes |
-| Which key column QGIS treats as unique | Views vs materialized views vs tables |
-| Published WMS layer and group names | Stored functions (`uetk_grpk_source_update()`) |
-| Which project reads which table | `pg_cron` job definitions |
+## What is still missing
+
+Column data types and lengths, nullability, primary and foreign key
+definitions, index definitions, and the bodies of the 42 stored functions.
+All of it comes out of one `pg_dump --schema-only`, which has not been run yet
+because it needs a Postgres 17 client.
 
 ## Schema overview
 
-| Schema | Contents | Origin | Recoverable if lost |
-| --- | --- | --- | --- |
-| `uetk` | Cadastre objects — rivers, lakes, ponds, dams, culverts, fish passes, hydro plants, basins | Edited directly by AAA staff through QGIS Desktop | **No** |
-| `administration` | Seven classifier tables referenced by the cadastre layers | Edited directly | **No** |
-| `szns_publishing` | Water body protection zones and shoreline strips, plus three generalised extent layers | To be confirmed — edited or derived | **Unknown** |
-| `import` | Registrų centras parcels and addresses, GRPK hydrography, forest cadastre | `ogr2ogr` with `OGR_TRUNCATE YES`, see `biip-infra/periodic-jobs/` | **Yes** — re-run the sync jobs |
-| `publishing` | `uetkMerged` (read by biip-uetk-api), `uetk_zuvinimas`, `uetk_alis` | Presumed views over `uetk.*` | **Yes, if views** |
-| `sources` | `savivaldybes` | To be confirmed | **Unknown** |
+Database total **7 427 MB**, of which roughly **1.2 GB is irreplaceable** — the
+rest is either derived from external sources or a materialized view that can be
+rebuilt with `REFRESH`.
+
+| Schema | Size | Contents | Must be migrated |
+| --- | ---: | --- | --- |
+| `import` | 4 824 MB | Registrų centras parcels, GRPK hydrography, forest cadastre — **plus** a one-off 2023 import of the legacy UETK data | **Partly.** ~4 700 MB re-syncs from source; ~122 MB is the 2023 legacy import and has no upstream |
+| `szns` | 1 582 MB | `uetk_szns` (811 MB, 101 470 rows) is the **authoritative** protection-zone table; `uetk_szns_old` (772 MB) is a superseded copy | **Yes** for `uetk_szns`; `uetk_szns_old` is a candidate for dropping |
+| `szns_publishing` | 712 MB | 4 materialized views over `szns.uetk_szns` — this is what the WMS reads | No — `REFRESH` |
+| `uetk` | 156 MB | Cadastre objects, edited directly through QGIS Desktop. 14 tables, 7 views, 4 materialized views | **Yes**, ~145 MB of tables |
+| `archive` | 92 MB | `edit_history_*` per cadastre layer, written by the audit trigger | **Yes** — audit trail |
+| `publishing` | 25 MB | 3 materialized views: `uetk_merged`, `uetk_alis`, `uetk_zuvinimas` | No — `REFRESH` |
+| `sources` | 11 MB | Municipalities, counties, grid squares, runoff modulus | **Yes** |
+| `public` | 7 MB | PostGIS plus **42 PL/pgSQL functions that hold the business logic** | **Yes** — the functions |
+| `szns_sources` | 3 MB | Country border, loop restrictions, clipping lines | **Yes** |
+| `administration` | 456 kB | 12 classifier and bookkeeping tables | **Yes** |
+| `szns_processing` | 96 kB | Intermediate tables for zone generation | Working state |
+| `szns_administration` | 48 kB | Zone creation and parcel-stat bookkeeping | **Yes** |
+| `cron` | 40 kB | pg_cron catalogue | Job definitions must be recreated |
+
+## Confirmed against production
+
+### `publishing.*` and `szns_publishing.*` are materialized views
+
+This closes the biggest open question. Nothing in either schema needs to be
+copied — only the view definitions and a refresh schedule.
+
+| Materialized view | Size | Rows | Read by |
+| --- | ---: | ---: | --- |
+| `publishing.uetk_merged` | 21 MB | 11 972 | `biip-uetk-api` `objects.service.ts`, vector tiles |
+| `publishing.uetk_alis` | 2 184 kB | 9 343 | ALIS |
+| `publishing.uetk_zuvinimas` | 1 584 kB | 9 342 | žuvinimas, žvejyba |
+| `szns_publishing.uetk_szns_map` | 630 MB | 101 551 | `uetk_szns` WMS |
+| `szns_publishing.uetk_szns_map_border_250k` | 33 MB | 51 525 | extent layer |
+| `szns_publishing.uetk_szns_map_border_1mln` | 25 MB | 51 525 | extent layer |
+| `szns_publishing.uetk_szns_map_border_3mln` | 23 MB | 51 525 | extent layer |
+
+`uetk.upiu_baseinai`, `uetk.upiu_baseinu_rajonai`,
+`uetk.naujinimas_grpk_upes_nesutapimai` and
+`uetk.naujinimas_grpk_ezerai_tvenkiniai_nesutapimai` are materialized views too.
+
+Refreshes are driven by `public.uetk_cron_refresh_materialized_view()` under
+pg_cron. That schedule is part of the handover.
+
+### The protection-zone source table is `szns.uetk_szns`, not `szns_publishing`
+
+The QGIS project reads `szns_publishing.uetk_szns_map`, so the reconstruction
+from the project files stopped there. The table actually being edited is
+`szns.uetk_szns` — 811 MB, 101 470 rows, 101 551 inserts and 203 102 updates
+since the counters were last reset, with an `uetk_szns_track_changes` trigger on
+it. `szns_publishing.uetk_szns_map` is the published projection of it.
+
+### The business logic lives in the database, not in `biip-uetk-api`
+
+42 PL/pgSQL functions in `public`, wired up by 42 triggers. This is the single
+most important thing the reconstruction missed: `biip-uetk-api` is a thin read
+and workflow layer, while the cadastre rules run inside Postgres.
+
+**Cadastre object logic**
+
+- `uetk_generate_cadastral_id(layer_name, category, related_obj_id)` — issues cadastre identifiers
+- `uetk_generate_guid()`
+- `uetk_calc_upes_l_attr()`, `uetk_calc_ezerai_tvenkiniai_attr()`, and six more `uetk_calc_*_attr()` — derive attributes on every edit
+- `uetk_get_parent_river_by_geom()`, `uetk_get_lake_by_geom()`, `uetk_get_municipality_by_geom()`, `uetk_get_distance_to_parent_river_end()`, `uetk_calc_river_length_from_lake()` — spatial resolution of relationships
+- `uetk_update_parent_objects()`, `uetk_update_itekancios_istekancios()`, `uetk_update_savivaldybes()`, `uetk_update_baseinai_rajonai_geom()`
+- `uetk_update_st_area()`, `uetk_update_st_length()`, `uetk_update_st_perimeter()`
+- `uetk_auditing_edits()`, `uetk_update_editing_info()` — write `archive.edit_history_*`
+- `uetk_grpk_source_update()`, `uetk_update_layer_geom_from_grpk()`, `uetk_update_object_geom_from_grpk()` — GRPK reconciliation
+- `uetk_cron_refresh_materialized_view()`
+
+**Protection-zone generation (SŽNS)**
+
+- `szns_create_by_uetk_id()`, `szns_update_territory_by_id()`, `szns_manage_change_status()`
+- `szns_process_generate_river_zones()` / `_river_bands()`, `_lake_zones()` / `_lake_bands()`, `_curonian_zones()` / `_curonian_bands()` — the actual zone and shoreline-strip geometry generation, per water body type
+- `szns_process_grpk_hidro_p()`, `szns_process_grpk_hidro_p_km_segments()`, `szns_process_grpk_lines_km_segments()`
+- `szns_prepare_for_publishing()` — builds the `szns_publishing` projection
+- `szns_update_stats_for_parcels()` — writes zone and strip areas back into `import.rc_sklypai`
+- `import.szns_track_last_editing()`
+
+### `import.rc_sklypai` is derived *and* enriched
+
+2 569 589 inserts but 5 139 181 updates. The sync job loads the parcels, then
+`szns_update_stats_for_parcels()` writes the protection-zone and shoreline-strip
+areas back onto each parcel row — those are the columns the SŽNS map shows when
+a parcel is clicked. Re-running the sync alone does not restore them; the stats
+function has to run afterwards over 2.5 million parcels.
+
+### Primary keys are fine
+
+Only `public.basin_code` and `public.v_count_new_in_basin` lack a primary key,
+and neither is part of the cadastre. Logical replication is viable for
+everything that matters.
+
+### SRID anomalies worth checking
+
+Everything is EPSG:3346 except:
+
+| Relation | Reported SRID | Likely reason |
+| --- | --- | --- |
+| `import.upes_l` | 0 | A **table** with no SRID constraint — from the 2023 legacy import. Worth fixing |
+| `publishing.uetk_merged` (`geom`, `geom_centroid`) | 0 | Materialized view — PostGIS loses the type modifier |
+| `szns_publishing.uetk_szns_map_border_*` | 0 | Same |
+| `uetk.upiu_baseinai`, `uetk.upiu_baseinu_rajonai` | 0 | Same |
+
+Only the first one is a real defect; the rest is normal for materialized views,
+though it does mean WMS clients get no SRID declaration from the metadata.
+
+### QGIS projects are also stored in the database
+
+`uetk.qgis_projects` holds one row, 344 kB. At least one QGIS project is loaded
+from the database rather than from `biip-qgis-server/projects/`. Which one, and
+whether it is still in use, needs checking before the QGIS projects are handed
+over.
 
 ## QGIS projects
 

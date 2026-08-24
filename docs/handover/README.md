@@ -76,7 +76,20 @@ open sessions is a mandatory cutover step, not a nicety.
 
 - **`uetk_gis` has no DDL in version control.** No migrations, no function
   bodies, no `pg_cron` definitions. Fixing this is a prerequisite for the
-  handover and is worth doing regardless of it.
+  handover and is worth doing regardless of it. The production run on
+  2026-08-24 showed the scale of what is unrecorded: **42 PL/pgSQL functions
+  wired up by 42 triggers**, holding the cadastre identifier generation,
+  attribute derivation, parent-object resolution and the entire SŽNS zone and
+  shoreline-strip generation pipeline. `biip-uetk-api` is a thin read layer over
+  logic that lives in Postgres.
+- **Everyone connects as `postgres`.** The production `uetk_gis` database has
+  five login roles: `postgres`, `postgres_exporter`, `spinta`, `medziokle_ro`
+  and one named developer account. The per-user `uetk_*` roles listed in
+  `biip-infra/postgres/.../20_cron.sh` do not exist. QGIS Server, QGIS Desktop
+  editors and the API all authenticate as the superuser, so cutover cannot
+  block individual editors through `pg_hba.conf` — the connection has to be cut
+  another way, and there is no audit trail of who changed what at the database
+  level (only the application-level `archive.edit_history_*` tables).
 - **No WAL archiving or point-in-time recovery.** The only backup is a nightly
   `pg_dumpall`, so the recovery point objective is 24 hours for a register that
   six people edit daily.
@@ -93,21 +106,36 @@ open sessions is a mandatory cutover step, not a nicety.
 
 ## Open questions
 
-Answered by running [`diagnostics.sql`](./diagnostics.sql):
+Answered by the 2026-08-24 production run — see
+[`uetk-gis-structure.md`](./uetk-gis-structure.md):
 
-1. Are `publishing.*` and `szns_publishing.*` tables, views or materialized views?
-2. Which `pg_cron` jobs run in `uetk_gis`?
-3. Do all tables have a real primary key?
-4. How large are the two databases, and how long will a dump and restore take?
-5. Which roles are actually writing, and from where?
+1. ~~Are `publishing.*` and `szns_publishing.*` tables or views?~~ All
+   materialized views. Nothing to migrate, only definitions and a refresh schedule.
+2. ~~Do all tables have a real primary key?~~ Yes, apart from two irrelevant
+   `public` tables. Logical replication is viable.
+3. ~~How large is `uetk_gis`?~~ 7 427 MB, of which roughly 1.2 GB is
+   irreplaceable; the rest re-syncs or refreshes.
+4. ~~Is `szns_publishing` hand-edited or derived?~~ Derived. The edited table is
+   `szns.uetk_szns`.
+
+Still open, and now more urgent:
+
+5. **Which `pg_cron` jobs run in `uetk_gis`?** Statement 3 of the report has not
+   been captured yet. These drive the materialized-view refreshes and the SŽNS
+   pipeline, and exist nowhere else.
+6. **What do the 42 functions actually do?** Their bodies need to be dumped and
+   committed before anything is handed over.
+7. **Can `szns.uetk_szns_old` (772 MB) be dropped?** It looks superseded, and
+   dropping it removes 40% of the real migration payload.
+8. **Which QGIS project is stored in `uetk.qgis_projects`, and is it live?**
+9. **Does `import.rc_sklypai` need a full `szns_update_stats_for_parcels()` run
+   after a re-sync,** and how long does that take over 2.5 million parcels?
 
 Needing a decision or a conversation instead:
 
-6. Is the whole of UETK transferring, or only the protection-zone (SŽNS) part?
-7. Does the administration UI become a standalone application, or move into
-   `biip-uetk-web`?
-8. Is `szns_publishing` hand-edited, or derived from something upstream?
-9. Does the production `pg_service` entry `uetk` point at `uetk_gis` or at `uetk`?
+10. Is the whole of UETK transferring, or only the protection-zone (SŽNS) part?
+11. Does the administration UI become a standalone application, or move into
+    `biip-uetk-web`?
 
 ## Next steps
 
