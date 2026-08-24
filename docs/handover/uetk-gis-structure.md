@@ -114,19 +114,91 @@ Only `public.basin_code` and `public.v_count_new_in_basin` lack a primary key,
 and neither is part of the cadastre. Logical replication is viable for
 everything that matters.
 
-### SRID anomalies worth checking
+### SRID: metadata gap, not a data problem
 
-Everything is EPSG:3346 except:
+`geometry_columns` reports SRID 0 for `import.upes_l`, `publishing.uetk_merged`,
+`szns_publishing.uetk_szns_map_border_*`, `uetk.upiu_baseinai` and
+`uetk.upiu_baseinu_rajonai`. Checking `ST_SRID()` on the actual rows returns
+**3346 for all of them**. The geometry columns simply carry no type modifier, so
+nothing constrains future inserts and clients get no SRID from the metadata.
+Worth tightening on `import.upes_l` (a real table); on the materialized views it
+is normal PostGIS behaviour.
 
-| Relation | Reported SRID | Likely reason |
-| --- | --- | --- |
-| `import.upes_l` | 0 | A **table** with no SRID constraint — from the 2023 legacy import. Worth fixing |
-| `publishing.uetk_merged` (`geom`, `geom_centroid`) | 0 | Materialized view — PostGIS loses the type modifier |
-| `szns_publishing.uetk_szns_map_border_*` | 0 | Same |
-| `uetk.upiu_baseinai`, `uetk.upiu_baseinu_rajonai` | 0 | Same |
+### No pg_cron jobs are configured
 
-Only the first one is a real defect; the rest is normal for materialized views,
-though it does mean WMS clients get no SRID declaration from the metadata.
+`cron.job` and `cron.job_run_details` are both empty, even though pg_cron 1.6 is
+installed and `cron.database_name` is set to `uetk_gis`.
+
+So the materialized-view refreshes — including the 630 MB
+`szns_publishing.uetk_szns_map` that the public WMS reads — are **not scheduled
+inside the database**. `public.uetk_cron_refresh_materialized_view()` exists but
+nothing in the database calls it. Whatever drives it is external and undocumented.
+
+Three small bookkeeping tables look like they record those runs and are worth
+reading: `administration.scheduled_tasks_info` (2 rows),
+`administration.grpk_source_update` (9 rows),
+`szns_administration.szns_parcels_stat_update_info` (1 row).
+
+### The SŽNS generation pipeline has no caller in any repository
+
+`szns.uetk_szns` carries exactly one trigger, `szns_track_last_editing()`, which
+only stamps the editor and timestamp. The functions that actually generate the
+protection zones and shoreline strips —
+
+    szns_create_by_uetk_id()          szns_process_generate_river_zones()
+    szns_update_territory_by_id()     szns_process_generate_river_bands()
+    szns_manage_change_status()       szns_process_generate_lake_zones()
+    szns_prepare_for_publishing()     szns_process_generate_lake_bands()
+    szns_update_stats_for_parcels()   szns_process_generate_curonian_zones()
+                                      szns_process_generate_curonian_bands()
+
+— are not called by any trigger, not by `biip-uetk-api` (which contains no
+reference to any database function), and not by the QGIS server projects in
+`biip-qgis-server`.
+
+The most likely caller is a **QGIS Desktop project with attribute actions or
+forms**, which is not in any repository — quite possibly the one stored in
+`uetk.qgis_projects`. Until that is identified, the protection-zone workflow
+cannot be handed over, because nobody would know how to run it.
+
+### A QGIS project is stored in the database
+
+`uetk.qgis_projects` is QGIS's database project storage, keyed on `name`, holding
+one project of 344 kB. It is not in `biip-qgis-server/projects/`. Identify it and
+export it before the handover.
+
+### `szns.uetk_szns_old` is a pre-refactor snapshot
+
+Its schema genuinely differs from the live table, so it is not a stale duplicate
+of the current data:
+
+| Column | Difference |
+| --- | --- |
+| `TER_GLOBID` | only in the current table — and it is the primary key |
+| `SPEC_VER` | only in the current table |
+| `tvirtinimo_statusas`, `teritorijos_statusas` | only in the current table — the approval-state model that the WMS layers filter on |
+| `ID` | only in the old table — it was the primary key |
+| `OB_DATA` | only in the old table |
+| `MASTELIS` | `bigint` now, `double precision` before |
+
+At 772 MB it is 40% of the real migration payload. Whether it is a legally
+required record of the previously published state, or simply a backup taken
+during the refactor, is a question for AAA — not a technical one.
+
+### Referential integrity is real
+
+31 foreign keys, so the cadastre is genuinely relational rather than a set of
+loose GIS layers. Notable shapes:
+
+- `uetk.upes_l.vyr_upes_id` → `uetk.upes_l(id)` — rivers reference their parent
+  river, so the initial replication copy has to tolerate a self-reference.
+- Hydro plants, dams, culverts, fish passes and measurement stations reference
+  `upes_l(kadastro_id)` and `ezerai_tvenkiniai(kadastro_id)` — the **cadastre
+  code**, not the surrogate key. That is the same identifier `biip-zvejyba-api`
+  stores in `fishings.uetkCadastralId`, which is why that column is effectively a
+  cross-system foreign key with no constraint behind it.
+- `szns.uetk_szns` references the two SŽNS status classifiers, so
+  `administration` has to be migrated before `szns`.
 
 ### QGIS projects are also stored in the database
 
