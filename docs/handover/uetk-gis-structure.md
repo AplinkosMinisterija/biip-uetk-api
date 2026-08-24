@@ -163,9 +163,45 @@ cannot be handed over, because nobody would know how to run it.
 
 ### A QGIS project is stored in the database
 
-`uetk.qgis_projects` is QGIS's database project storage, keyed on `name`, holding
-one project of 344 kB. It is not in `biip-qgis-server/projects/`. Identify it and
-export it before the handover.
+`uetk.qgis_projects` is QGIS's database project storage, keyed on `name`. It
+holds exactly one project, 344 kB:
+
+| name | last modified | by |
+| --- | --- | --- |
+| `uetk_duomenu_administravimo_zemelapis` | 2023-10-11 17:24 | `postgres` |
+
+"UETK data administration map" — by its name, the QGIS Desktop project the AAA
+specialists use to edit the cadastre. It is in no repository, and it is the prime
+candidate for the missing caller of the SŽNS generation functions, since QGIS
+attribute actions and form widgets can invoke stored procedures directly.
+
+Two readings of the 2023-10-11 timestamp, and they lead to different work:
+
+- **It is current, just stable.** A project that works does not need re-saving.
+  Then it is the editing environment and must be exported, version-controlled and
+  handed over as part of the system.
+- **It predates the SŽNS refactor.** `szns.uetk_szns_old` shows there was one:
+  `tvirtinimo_statusas` and `teritorijos_statusas` are new columns, and the
+  generation functions take `p_approval_status` and `p_territory_status`
+  arguments to match. If the refactor came after October 2023, this stored
+  project cannot be the current caller, and the real editing project lives as a
+  file on individual staff machines — which would be considerably worse, because
+  nothing would be backed up at all.
+
+Telling them apart takes one look inside: if the project references
+`tvirtinimo_statusas` or calls any `szns_*` function, it is current.
+
+Export it with:
+
+```bash
+psql "$UETK_GIS_CONNECTION" -At \
+  -c "SELECT encode(content,'base64') FROM uetk.qgis_projects
+      WHERE name='uetk_duomenu_administravimo_zemelapis'" \
+  | base64 -d > uetk_duomenu_administravimo_zemelapis.qgz
+```
+
+The result is a zip archive containing the project XML. QGIS Desktop can also
+open it directly through Project → Open From → PostgreSQL.
 
 ### `szns.uetk_szns_old` is a pre-refactor snapshot
 

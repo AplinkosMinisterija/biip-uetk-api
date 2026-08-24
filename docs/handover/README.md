@@ -123,10 +123,14 @@ Still open, and now more urgent:
 5. **What runs the SŽNS pipeline and the materialized-view refreshes?**
    `cron.job` is empty, no trigger calls the generation functions, and neither
    `biip-uetk-api` nor the QGIS server projects reference any of them. The most
-   likely answer is a QGIS Desktop project — possibly the one stored in
-   `uetk.qgis_projects` — which is in no repository. **This is now the single
-   biggest gap in the handover:** without it, the receiving institution cannot
-   produce or publish protection zones at all.
+   likely answer is a QGIS Desktop project. `uetk.qgis_projects` holds exactly
+   one, `uetk_duomenu_administravimo_zemelapis` ("UETK data administration
+   map"), last modified 2023-10-11 — in no repository, and not backed up
+   anywhere outside the database. **This is now the single biggest gap in the
+   handover:** without it, the receiving institution cannot produce or publish
+   protection zones at all. Export it and check whether it references
+   `tvirtinimo_statusas`; if not, the live editing project is a file on someone's
+   laptop.
 6. **What do the 42 functions actually do?** Their bodies need to be dumped and
    committed before anything is handed over.
 7. **Can `szns.uetk_szns_old` (772 MB) be dropped?** It looks superseded, and
