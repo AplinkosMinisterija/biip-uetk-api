@@ -6,6 +6,7 @@ most of what follows is not derivable from this repository alone.
 
 | File | What it is |
 | --- | --- |
+| [`migration.md`](./migration.md) | How the data moves — strategy, load order, and what a dump does not carry. Reconciled with the assessment from the specialist who built the system |
 | [`uetk-gis-structure.md`](./uetk-gis-structure.md) | `uetk_gis` structure reconstructed from the QGIS project files — a stopgap until a real schema dump exists |
 | [`diagnostics-report.sql`](./diagnostics-report.sql) | **Start here.** Same checks as below, but returned as one text column so the output can be copied in a single selection |
 | [`diagnostics.sql`](./diagnostics.sql) | The same checks as separate queries — easier to read and to run one at a time, but produces ~25 result tabs |
@@ -59,18 +60,20 @@ written service-level agreement.
 
 ## Data migration in one paragraph
 
-`pg_dump` does not lose data — it takes a consistent snapshot. Data is lost in
-the gap between the dump and the cutover, when people keep writing to the old
-database. The recommended approach is logical replication (the cluster runs
-Postgres 17) with a short read-only window at the end. Note that `import.*` is
-fully derived from the Registrų centras, GRPK and forest cadastre sync jobs and
-should be re-created rather than migrated, and that `wal_level = logical`
-requires a restart of the whole shared cluster.
+A single full `pg_dump -Fc` and restore, with a weekend read-only window. That
+carries the data, the 42 functions, the 42 triggers, the sequences and the
+materialized view definitions in one operation, and avoids needing
+`wal_level = logical` — which would mean restarting the whole shared BĮIP
+cluster. Logical replication stays in reserve for the case where the measured
+window proves too long. Details, load order and the gaps a dump leaves are in
+[`migration.md`](./migration.md).
 
-The single largest risk is not the dump. It is a QGIS Desktop editor with an
-open project saving into the old database *after* cutover — silently, and
-unnoticed for weeks. Blocking those connections in `pg_hba.conf` and terminating
-open sessions is a mandatory cutover step, not a nicety.
+The largest risk is not the dump. It is a QGIS Desktop editor with an open
+project saving into the old database *after* cutover — silently, and unnoticed
+for weeks. And it cannot be prevented with `pg_hba.conf`, because every client
+connects as `postgres`: the only levers are putting the database into
+`default_transaction_read_only`, terminating the sessions, and telling the
+specialists directly.
 
 ## Known issues found while writing this up
 
