@@ -92,11 +92,13 @@ enough". Each needs its own step.
 
 ## Access, and why not to copy it as-is
 
-Production `uetk_gis` has five login roles. QGIS Server, the QGIS Desktop
-editors and the API all authenticate as `postgres`. The per-user `uetk_*` roles
-listed in `biip-infra/postgres/.../20_cron.sh` do not exist.
+In **development**, `uetk_gis` has five login roles, QGIS Server and the API both
+authenticate as `postgres`, and none of the per-user `uetk_*` roles listed in
+`biip-infra/postgres/.../20_cron.sh` exist. Production has not been checked yet,
+and roles are exactly the kind of thing that differs between environments — so
+confirm before acting on this section.
 
-Two consequences for the migration:
+If production looks the same, two consequences for the migration:
 
 - **Cutover cannot block individual editors through `pg_hba.conf`,** because
   they are indistinguishable. The only lever is putting the whole database into

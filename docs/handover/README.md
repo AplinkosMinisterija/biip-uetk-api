@@ -9,6 +9,7 @@ most of what follows is not derivable from this repository alone.
 | [`migration.md`](./migration.md) | How the data moves — strategy, load order, and what a dump does not carry. Reconciled with the assessment from the specialist who built the system |
 | [`uetk-gis-structure.md`](./uetk-gis-structure.md) | `uetk_gis` structure reconstructed from the QGIS project files — a stopgap until a real schema dump exists |
 | [`diagnostics-report.sql`](./diagnostics-report.sql) | **Start here.** Same checks as below, but returned as one text column so the output can be copied in a single selection |
+| [`diagnostics-prod.sql`](./diagnostics-prod.sql) | The environment-specific subset — scheduled jobs, roles, connections, write counters, server settings. Only meaningful on **production** |
 | [`diagnostics.sql`](./diagnostics.sql) | The same checks as separate queries — easier to read and to run one at a time, but produces ~25 result tabs |
 
 Both are read-only, take no locks, and are safe to run on production. Run them
@@ -85,14 +86,15 @@ specialists directly.
   attribute derivation, parent-object resolution and the entire SŽNS zone and
   shoreline-strip generation pipeline. `biip-uetk-api` is a thin read layer over
   logic that lives in Postgres.
-- **Everyone connects as `postgres`.** The production `uetk_gis` database has
-  five login roles: `postgres`, `postgres_exporter`, `spinta`, `medziokle_ro`
-  and one named developer account. The per-user `uetk_*` roles listed in
-  `biip-infra/postgres/.../20_cron.sh` do not exist. QGIS Server, QGIS Desktop
-  editors and the API all authenticate as the superuser, so cutover cannot
-  block individual editors through `pg_hba.conf` — the connection has to be cut
-  another way, and there is no audit trail of who changed what at the database
-  level (only the application-level `archive.edit_history_*` tables).
+- **In development, everyone connects as `postgres`.** That environment has five
+  login roles — `postgres`, `postgres_exporter`, `spinta`, `medziokle_ro` and one
+  named developer account — and none of the per-user `uetk_*` roles listed in
+  `biip-infra/postgres/.../20_cron.sh`. **Not yet checked on production**, where
+  those roles may well exist. It matters for the cutover plan: if production also
+  has every client authenticating as the superuser, individual QGIS Desktop
+  editors cannot be blocked through `pg_hba.conf` and there is no database-level
+  audit of who changed what, only the application-level `archive.edit_history_*`
+  tables.
 - **No WAL archiving or point-in-time recovery.** The only backup is a nightly
   `pg_dumpall`, so the recovery point objective is 24 hours for a register that
   six people edit daily.
@@ -109,8 +111,9 @@ specialists directly.
 
 ## Open questions
 
-Answered by the 2026-08-24 production run — see
-[`uetk-gis-structure.md`](./uetk-gis-structure.md):
+Answered by the 2026-08-24 run against **development** — see
+[`uetk-gis-structure.md`](./uetk-gis-structure.md). These are schema facts,
+deployed identically across environments, so they hold:
 
 1. ~~Are `publishing.*` and `szns_publishing.*` tables or views?~~ All
    materialized views. Nothing to migrate, only definitions and a refresh schedule.
@@ -120,6 +123,11 @@ Answered by the 2026-08-24 production run — see
    irreplaceable; the rest re-syncs or refreshes.
 4. ~~Is `szns_publishing` hand-edited or derived?~~ Derived. The edited table is
    `szns.uetk_szns`.
+
+Environment-specific and **not** answered, because the run was against
+development — scheduled jobs, login roles, connected clients, write-activity
+counters and server settings all differ per environment. A production run of
+[`diagnostics-report.sql`](./diagnostics-report.sql) is still needed.
 
 Still open, and now more urgent:
 

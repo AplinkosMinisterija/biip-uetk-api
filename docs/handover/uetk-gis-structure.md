@@ -3,11 +3,19 @@
 > **Still not a substitute for `pg_dump --schema-only`.** Column types,
 > constraints and indexes are not recorded here. But the layer, column and
 > filter inventory below is extracted from the QGIS project files, and the
-> schema inventory is now confirmed against the production database.
+> schema inventory is confirmed against a live database.
+>
+> **Which database matters.** The diagnostics were run against **development**,
+> not production. Schema facts — what is a table, what is a materialized view,
+> which functions and triggers exist, primary and foreign keys — are deployed
+> identically and carry over. Anything environment-specific does **not**:
+> scheduled jobs, login roles, connected clients, write-activity counters and
+> server settings. Those are marked below and still need a production run.
 
 **Sources:** `AplinkosMinisterija/biip-qgis-server` → `projects/uetk_*.qgs`,
-plus a [`diagnostics-report.sql`](./diagnostics-report.sql) run against
-production `uetk_gis` on 2026-08-24 (PostgreSQL 17.5, PostGIS 3.5.2, pg_cron 1.6).
+plus a [`diagnostics-report.sql`](./diagnostics-report.sql) run against the
+**development** `uetk_gis` on 2026-08-24 (PostgreSQL 17.5, PostGIS 3.5.2,
+pg_cron 1.6). Production run still outstanding.
 
 **Coordinate system:** EPSG:3346 (LKS-94 / Lithuania TM).
 **Postgres service name:** the QGIS projects connect via `pg_service` entry `uetk`.
@@ -41,7 +49,7 @@ rebuilt with `REFRESH`.
 | `szns_administration` | 48 kB | Zone creation and parcel-stat bookkeeping | **Yes** |
 | `cron` | 40 kB | pg_cron catalogue | Job definitions must be recreated |
 
-## Confirmed against production
+## Confirmed against the development database
 
 ### `publishing.*` and `szns_publishing.*` are materialized views
 
@@ -102,11 +110,16 @@ and workflow layer, while the cadastre rules run inside Postgres.
 
 ### `import.rc_sklypai` is derived *and* enriched
 
-2 569 589 inserts but 5 139 181 updates. The sync job loads the parcels, then
+The sync job loads the parcels from Registrų centras open data, and then
 `szns_update_stats_for_parcels()` writes the protection-zone and shoreline-strip
-areas back onto each parcel row — those are the columns the SŽNS map shows when
-a parcel is clicked. Re-running the sync alone does not restore them; the stats
-function has to run afterwards over 2.5 million parcels.
+areas back onto each parcel row. Those are the columns the SŽNS map shows when a
+parcel is clicked — `uetk_szns_parcels.qgs` lists them among the parcel layer's
+fields. Re-running the sync alone does not restore them; the stats function has
+to run afterwards over roughly 2.5 million parcels.
+
+(The development write counters showed 2.6 M inserts against 5.1 M updates, which
+is consistent with this, but counters are per-environment and prove nothing on
+their own.)
 
 ### Primary keys are fine
 
@@ -124,20 +137,23 @@ nothing constrains future inserts and clients get no SRID from the metadata.
 Worth tightening on `import.upes_l` (a real table); on the materialized views it
 is normal PostGIS behaviour.
 
-### No pg_cron jobs are configured
+### pg_cron jobs — unknown, development is empty
 
-`cron.job` and `cron.job_run_details` are both empty, even though pg_cron 1.6 is
-installed and `cron.database_name` is set to `uetk_gis`.
+`cron.job` and `cron.job_run_details` are both empty in **development**, even
+though pg_cron 1.6 is installed and `cron.database_name` is set to `uetk_gis`.
 
-So the materialized-view refreshes — including the 630 MB
-`szns_publishing.uetk_szns_map` that the public WMS reads — are **not scheduled
-inside the database**. `public.uetk_cron_refresh_materialized_view()` exists but
-nothing in the database calls it. Whatever drives it is external and undocumented.
+An empty job table in a development environment proves nothing about production —
+scheduled jobs are exactly the sort of thing that only exists on the live system.
+**This needs a production run before any conclusion is drawn.** The specialist who
+built the system describes "the logic for maintaining it, processing it and the
+cron jobs" as living in the database, which suggests production does have them.
 
-Three small bookkeeping tables look like they record those runs and are worth
-reading: `administration.scheduled_tasks_info` (2 rows),
-`administration.grpk_source_update` (9 rows),
-`szns_administration.szns_parcels_stat_update_info` (1 row).
+What is certain either way: `public.uetk_cron_refresh_materialized_view()` exists,
+and the 630 MB `szns_publishing.uetk_szns_map` that the public WMS reads has to be
+refreshed by something. Three bookkeeping tables should record those runs and are
+worth reading on production: `administration.scheduled_tasks_info`,
+`administration.grpk_source_update`,
+`szns_administration.szns_parcels_stat_update_info`.
 
 ### The SŽNS generation pipeline has no caller in any repository
 
