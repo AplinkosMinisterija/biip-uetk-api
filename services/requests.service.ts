@@ -384,6 +384,13 @@ export default class RequestsService extends moleculer.Service {
       pageSize?: number;
     }>
   ) {
+    // The history is only as visible as its request: resolve it with the
+    // caller's default scopes (`visibleToUser`) first, so others get 404.
+    await ctx.call('requests.resolve', {
+      id: ctx.params.id,
+      throwIfNotExist: true,
+    });
+
     return ctx.call(`requests.histories.list`, {
       sort: '-createdAt',
       query: {
