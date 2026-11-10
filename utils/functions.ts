@@ -60,6 +60,21 @@ export function addLeadingZeros(num: number, totalLength: number = 7) {
   return String(num).padStart(totalLength, '0');
 }
 
+/**
+ * Builds a case-insensitive "contains" condition over several columns as a
+ * parameterized `$raw` for `@moleculer/database`. Column names go in as
+ * identifier bindings (`??`) and the search text as a value binding (`?`), so
+ * nothing from the client is written into the SQL text. LIKE wildcards in the
+ * search text are escaped, so it matches literally.
+ */
+export function buildSearchCondition(columns: string[], search: string) {
+  const pattern = `%${search.replace(/[\\%_]/g, '\\$&')}%`;
+  return {
+    condition: `(${columns.map(() => '?? ILIKE ?').join(' OR ')})`,
+    bindings: columns.flatMap((column) => [column, pattern]),
+  };
+}
+
 const RAW_KEY = '$raw';
 
 /**
