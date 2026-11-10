@@ -3,6 +3,7 @@
 import moleculer, { Context } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
 import moment from 'moment';
+import { randomUUID } from 'crypto';
 import BullMqMixin from '../mixins/bullmq.mixin';
 import { FILE_TYPES, throwNotFoundError } from '../types';
 import {
@@ -626,7 +627,11 @@ export default class JobsRequestsService extends moleculer.Service {
     const tenantPath = tenant?.id || 'private';
     const userPath = user?.id || 'user';
 
-    return `uploads/requests/${tenantPath}/${userPath}`;
+    // Generated files are served by URL without authentication (they are
+    // opened directly in the browser), so their path must not be guessable:
+    // ZIP and GeoJSON keep a readable name (`israsas-<id>`), the random folder
+    // makes the URL unguessable.
+    return `uploads/requests/${tenantPath}/${userPath}/${randomUUID()}`;
   }
 
   @Method
