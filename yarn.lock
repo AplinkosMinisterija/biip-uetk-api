@@ -4651,10 +4651,10 @@ moment@^2.29.4:
   resolved "https://registry.yarnpkg.com/moment/-/moment-2.29.4.tgz#3dbe052889fe7c1b2ed966fcb3a77328964ef108"
   integrity sha512-5LC9SOxjSc2HF6vO2CyuTDNivEdoz2IvyJJGj6X8DJ0eFyfszE0QiEd+iXmBvUP3WHxSjFH/vIsA0EN00cgr8w==
 
-mongo-query-to-postgres-jsonb@^0.2.17:
-  version "0.2.17"
-  resolved "https://registry.yarnpkg.com/mongo-query-to-postgres-jsonb/-/mongo-query-to-postgres-jsonb-0.2.17.tgz#e4b61bd97abd172293444fd1c1d63ae642607358"
-  integrity sha512-LZXG9l9oikhZmnoexCzwlg2fmVKzV2478gt5SMS6nDJKwz5X7dmg7JXzO1RQ5ffuJ026dZIAwREk44NcXB2dDw==
+mongo-query-to-postgres-jsonb@^0.2.17, mongo-query-to-postgres-jsonb@^0.2.19:
+  version "0.2.19"
+  resolved "https://registry.yarnpkg.com/mongo-query-to-postgres-jsonb/-/mongo-query-to-postgres-jsonb-0.2.19.tgz#e31370f8d8f474e29678ec109ec4b3af1c0f8426"
+  integrity sha512-3Mojh9n6+0Rj/fCE6rVJNMgFj4af78M97m2Dq6aa0MmVfhqQmn03Ce9vGqLd+MEm5e4Nk/8ckJFVg9/qnF7qwA==
 
 mri@1.1.4:
   version "1.1.4"
