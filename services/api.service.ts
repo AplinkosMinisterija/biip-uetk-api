@@ -154,6 +154,8 @@ export const AuthType = {
           'GET /tenants/:id/users': 'tenantUsers.findByTenant',
           'GET /tenants/:id/users/:userId': 'tenantUsers.getByTenant',
           'GET /ping': 'api.ping',
+          // Healthchecks may probe with HEAD (`wget --spider`).
+          'HEAD /ping': 'api.ping',
         },
         /**
 			* Before call hook. You can check the request.

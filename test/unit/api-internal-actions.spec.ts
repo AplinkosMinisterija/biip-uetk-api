@@ -2,14 +2,15 @@ import { ServiceBroker } from 'moleculer';
 import http from 'http';
 import { AddressInfo } from 'net';
 
-function get(url: string): Promise<number> {
+function get(url: string, method = 'GET'): Promise<number> {
   return new Promise((resolve, reject) => {
     http
-      .get(url, (res) => {
+      .request(url, { method }, (res) => {
         res.resume();
         res.on('end', () => resolve(res.statusCode || 0));
       })
-      .on('error', reject);
+      .on('error', reject)
+      .end();
   });
 }
 
@@ -68,6 +69,10 @@ describe('api gateway blocks internal actions reached by automatic mapping', () 
 
   it('keeps explicit aliases of actions without rest (GET /ping -> api.ping)', async () => {
     expect(await get(`${base}/ping`)).toBe(200);
+  });
+
+  it('answers HEAD /ping for healthchecks', async () => {
+    expect(await get(`${base}/ping`, 'HEAD')).toBe(200);
   });
 
   it('blocks $node actions', async () => {
