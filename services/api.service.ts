@@ -236,7 +236,9 @@ export default class ApiService extends moleculer.Service {
       path: '/cache/clean',
       basePath: '/public',
     },
-    auth: AuthType.PUBLIC,
+    // Flushing the whole cache forces every token to be re-validated against
+    // auth at once; was PUBLIC. Same restriction as biip-auth-api.
+    types: [EndpointType.ADMIN],
   })
   cleanCache() {
     this.broker.cacher.clean();
