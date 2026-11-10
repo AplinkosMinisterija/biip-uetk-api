@@ -237,6 +237,9 @@ export default class UsersService extends moleculer.Service {
         role?: TenantUserRole;
         email: string;
         tenantId?: number;
+        firstName: string;
+        lastName: string;
+        phone: string;
       },
       UserAuthMeta
     >
@@ -276,9 +279,15 @@ export default class UsersService extends moleculer.Service {
 
     const authUser: any = await ctx.call('auth.users.invite', data);
 
+    // Pass only the declared fields: spreading ctx.params let a client add
+    // `update: true` and overwrite the contact details of an existing user
+    // (possibly of another tenant) found by personal code.
     const user: User = await ctx.call('users.findOrCreate', {
       authUser: authUser,
-      ...ctx.params,
+      firstName: ctx.params.firstName,
+      lastName: ctx.params.lastName,
+      email: ctx.params.email,
+      phone: ctx.params.phone,
     });
 
     if (authGroupId) {
