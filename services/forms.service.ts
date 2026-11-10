@@ -258,6 +258,13 @@ export default class FormsService extends moleculer.Service {
       pageSize?: number;
     }>
   ) {
+    // The history is only as visible as its form: resolve it with the caller's
+    // default scopes (`visibleToUser`) first, so others get 404.
+    await ctx.call('forms.resolve', {
+      id: ctx.params.id,
+      throwIfNotExist: true,
+    });
+
     return ctx.call(`forms.histories.list`, {
       sort: '-createdAt',
       query: {
