@@ -18,6 +18,7 @@ import {
   getLakesAndPondsQuery,
   getRiversQuery,
   parseToJsonIfNeeded,
+  buildSearchCondition,
 } from '../utils';
 import { AuthType } from './api.service';
 const tableName = 'publishing.uetkMerged';
@@ -238,21 +239,18 @@ export default class ObjectsService extends moleculer.Service {
     delete ctx.params.search;
     delete ctx.params.searchFields;
 
-    const searchValueFixed = search?.replace(
-      /([-[\]{}()*+?.,%\\^$|#\s;])/gi,
-      '\\$&'
-    );
-
     if (/[;%]/gi.test(search)) {
       throwBadRequestError('Invalid search', { search });
     }
 
-    const textQuery = searchFields
-      .map((field) => {
-        field = this.settings.fields?.[field]?.columnName || field;
-        return `"${snakeCase(field)}" ilike '%${searchValueFixed}%'`;
-      })
-      .join(' OR ');
+    const textQuery =
+      search &&
+      buildSearchCondition(
+        searchFields.map((field) =>
+          snakeCase(this.settings.fields?.[field]?.columnName || field)
+        ),
+        search
+      );
 
     return ctx.call('objects.list', {
       ...ctx.params,
