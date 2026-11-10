@@ -2,7 +2,13 @@
 
 import moleculer, { Context } from 'moleculer';
 import { Action, Method, Service } from 'moleculer-decorators';
-import { toReadableStream } from '../utils';
+import {
+  attachmentHeader,
+  safeFileName,
+  toOwnFileUrl,
+  toReadableStream,
+} from '../utils';
+import { throwBadRequestError } from '../types';
 import { AuthType } from './api.service';
 
 @Service({
@@ -258,7 +264,16 @@ export default class ToolsService extends moleculer.Service {
       { $responseType: string; $statusCode: number; $responseHeaders: any }
     >
   ) {
-    const { url, name } = ctx.params;
+    const name = safeFileName(ctx.params.name);
+
+    // Public on purpose: the admin app opens this URL with window.open, so no
+    // Authorization header is sent. It may only proxy this API's own files
+    // (`requests.generatedFile`): the host is always SERVER_HOST and only the
+    // object path after `/minio/` is taken from the client.
+    const url = toOwnFileUrl(ctx.params.url, process.env.SERVER_HOST);
+    if (!url) {
+      throwBadRequestError('Invalid url');
+    }
 
     const downloadEndpoint = `${this.toolsHost()}/download`;
 
@@ -269,7 +284,7 @@ export default class ToolsService extends moleculer.Service {
           ctx.meta.$responseType = response.headers.get('Content-Type');
           ctx.meta.$statusCode = response.status;
           ctx.meta.$responseHeaders = {
-            'Content-Disposition': `attachment; filename="${name}"`,
+            'Content-Disposition': attachmentHeader(ctx.params.name),
           };
           return response;
         })

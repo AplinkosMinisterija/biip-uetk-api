@@ -61,6 +61,68 @@ export function addLeadingZeros(num: number, totalLength: number = 7) {
 }
 
 /**
+ * Maps a stored file URL (e.g. `requests.generatedFile`, saved as
+ * `<SERVER_HOST>/minio/<bucket>/<object>` - older rows may carry another host
+ * of this API) to this API's own file proxy: only the part after `/minio/` is
+ * kept and the host is always `serverHost`. Returns undefined when there is no
+ * `/minio/` part or the object path tries to leave it. The public download
+ * endpoint therefore can never be pointed at another address.
+ */
+export function toOwnFileUrl(
+  url: string,
+  serverHost?: string
+): string | undefined {
+  if (!url || !serverHost) return undefined;
+  let source: URL;
+  let base: URL;
+  try {
+    source = new URL(url);
+    base = new URL(serverHost);
+  } catch (err) {
+    return undefined;
+  }
+  if (!['http:', 'https:'].includes(source.protocol)) return undefined;
+
+  const marker = '/minio/';
+  const at = source.pathname.indexOf(marker);
+  if (at < 0) return undefined;
+  const objectPath = source.pathname.slice(at + marker.length);
+  if (!objectPath) return undefined;
+
+  const prefix = `${base.pathname.replace(/\/+$/, '')}${marker}`;
+  const target = new URL(`${prefix}${objectPath}`, base.origin);
+  // URL parsing resolves `..` and `%2e%2e`; the result must stay under /minio/.
+  if (target.origin !== base.origin || !target.pathname.startsWith(prefix)) {
+    return undefined;
+  }
+  target.search = source.search;
+  return target.toString();
+}
+
+/**
+ * ASCII file name safe for a quoted `Content-Disposition` value: Node rejects
+ * header values with non-Latin-1 characters, and `"`, `\\`, CR and LF would
+ * break the header.
+ */
+export function safeFileName(name: string): string {
+  return (name || 'file').replace(/[^\x20-\x7e]|["\\]/g, '_');
+}
+
+/**
+ * `Content-Disposition: attachment` with an ASCII fallback and the original
+ * (UTF-8) name in `filename*`, so names like `Išrašas.pdf` keep their letters.
+ */
+export function attachmentHeader(name: string): string {
+  const original = name || 'file';
+  return `attachment; filename="${safeFileName(
+    original
+  )}"; filename*=UTF-8''${encodeURIComponent(original).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+  )}`;
+}
+
+/**
  * Builds a case-insensitive "contains" condition over several columns as a
  * parameterized `$raw` for `@moleculer/database`. Column names go in as
  * identifier bindings (`??`) and the search text as a value binding (`?`), so
