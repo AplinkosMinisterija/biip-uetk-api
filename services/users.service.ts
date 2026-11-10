@@ -469,6 +469,33 @@ export default class UsersService extends moleculer.Service {
     const { profile, user } = ctx.meta;
     const { id, email, phone, role, tenantId } = ctx.params;
 
+    // System admins may update anyone. Everyone else may only change their own
+    // contact details, unless they act as an admin of a tenant (X-Profile with
+    // role ADMIN): then they may also update members of that tenant and their
+    // role in it – never in another tenant.
+    const isAdmin = user?.type === UserType.ADMIN;
+    const isTenantAdmin =
+      !!profile?.id && profile?.role === TenantUserRole.ADMIN;
+    const isSelf = Number(id) === Number(user?.id);
+
+    if (!isAdmin) {
+      if ((role || tenantId) && !isTenantAdmin) {
+        return throwUnauthorizedError('Cannot change tenant role.');
+      }
+      if (!isSelf) {
+        if (!isTenantAdmin) {
+          return throwUnauthorizedError('Cannot update this user.');
+        }
+        const isMember: boolean = await ctx.call(
+          'tenantUsers.userExistsInTenant',
+          { userId: Number(id), tenantId: Number(profile.id) }
+        );
+        if (!isMember) {
+          return throwNotFoundError('User not found.');
+        }
+      }
+    }
+
     const userToUpdate: User = await ctx.call('users.get', { id });
 
     if (!userToUpdate) {
@@ -478,7 +505,7 @@ export default class UsersService extends moleculer.Service {
     if (role) {
       await ctx.call('tenantUsers.updateUser', {
         userId: id,
-        tenantId: profile?.id || tenantId,
+        tenantId: isAdmin ? profile?.id || tenantId : profile.id,
         role,
       });
     }
