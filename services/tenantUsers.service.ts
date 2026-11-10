@@ -519,19 +519,8 @@ export default class TenantUsersService extends moleculer.Service {
       UserAuthMeta
     >
   ) {
-    const { profile } = ctx.meta;
     const { userId, tenantId, role } = ctx.params;
-    if (
-      profile?.id &&
-      (Number(profile?.id) !== tenantId ||
-        profile?.role !== TenantUserRole.ADMIN)
-    ) {
-      throw new moleculer.Errors.MoleculerClientError(
-        'Tenant is not accessable.',
-        401,
-        'UNAUTHORIZED'
-      );
-    }
+    this.assertCanManageTenant(ctx, tenantId);
 
     const user: User = await ctx.call('users.get', { id: userId });
     const tenant: Tenant = await ctx.call('tenants.get', { id: tenantId });
@@ -588,15 +577,8 @@ export default class TenantUsersService extends moleculer.Service {
       UserAuthMeta
     >
   ) {
-    const { profile } = ctx.meta;
     const { userId, tenantId, role } = ctx.params;
-    if (
-      profile?.id &&
-      (Number(profile?.id) !== tenantId ||
-        profile?.role !== TenantUserRole.ADMIN)
-    ) {
-      return throwUnauthorizedError('Tenant is not accessable.');
-    }
+    this.assertCanManageTenant(ctx, tenantId);
 
     const user: User = await ctx.call('users.get', { id: userId });
     const tenant: Tenant = await ctx.call('tenants.get', { id: tenantId });
@@ -699,5 +681,24 @@ export default class TenantUsersService extends moleculer.Service {
   async 'tenantUsers.**'() {
     await this.broker.cacher?.clean(`${this.fullName}.**`);
     this.broker.emit('clean.cache.auth');
+  }
+
+  /**
+   * Changing tenant membership or roles is allowed to system admins and to the
+   * admin of that tenant (X-Profile with role ADMIN). Gateway `types` are not
+   * applied to internal calls (e.g. from `users.updateUser`), so the check must
+   * hold without a profile too: then only a system admin passes.
+   */
+  @Method
+  assertCanManageTenant(ctx: Context<any, UserAuthMeta>, tenantId: number) {
+    const { profile, user } = ctx.meta;
+    if (!profile?.id && user?.type === UserType.ADMIN) return;
+    if (
+      !profile?.id ||
+      Number(profile.id) !== Number(tenantId) ||
+      profile.role !== TenantUserRole.ADMIN
+    ) {
+      throwUnauthorizedError('Tenant is not accessable.');
+    }
   }
 }
