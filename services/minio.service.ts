@@ -185,6 +185,12 @@ export default class MinioService extends Moleculer.Service {
   ) {
     const { bucket, name } = ctx.params;
 
+    // This public file proxy serves this app's files only, never other buckets
+    // the MinIO credentials could read.
+    if (bucket !== BUCKET_NAME()) {
+      return throwNotFoundError('File not found.');
+    }
+
     try {
       const reader: NodeJS.ReadableStream = await ctx.call('minio.getObject', {
         bucketName: bucket,
