@@ -7,6 +7,14 @@ import { Tenant } from './tenants.service';
 import { User } from './users.service';
 import { throwUnauthorizedError } from '../types';
 import { Handlers } from '@sentry/node';
+import { sanitizeClientParams } from '../utils/functions';
+
+// Runs after body parsing and right before the action call: `req.$params` is
+// exactly what the action receives. Client-supplied `$raw` would otherwise reach
+// knex `whereRaw` through `@moleculer/database` queries.
+function stripClientRaw(_ctx: Context, _route: any, req: any) {
+  if (req.$params) req.$params = sanitizeClientParams(req.$params);
+}
 export interface UserAuthMeta {
   user: User;
   profile?: Tenant;
@@ -73,6 +81,7 @@ export const AuthType = {
         path: '/auth',
         authorization: false,
         authentication: false,
+        onBeforeCall: stripClientRaw,
         whitelist: [
           'auth.login',
           'auth.evartai.sign',
@@ -98,6 +107,9 @@ export const AuthType = {
 
         // Enable/disable parameter merging method. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Disable-merging
         mergeParams: true,
+
+        // Removes client-supplied `$raw` from params before any action call.
+        onBeforeCall: stripClientRaw,
 
         // Enable authentication. Implement the logic into `authenticate` method. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Authentication
         authentication: true,
