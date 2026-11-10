@@ -75,6 +75,10 @@ describe('api gateway blocks internal actions reached by automatic mapping', () 
     expect(await get(`${base}/ping`, 'HEAD')).toBe(200);
   });
 
+  it('requires authentication for cache clean', async () => {
+    expect(await get(`${base}/public/cache/clean`, 'POST')).toBe(401);
+  });
+
   it('blocks $node actions', async () => {
     expect(await get(`${base}/~node/health`)).toBe(404);
   });
