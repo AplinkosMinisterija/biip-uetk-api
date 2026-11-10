@@ -15,6 +15,28 @@ import { sanitizeClientParams } from '../utils/functions';
 function stripClientRaw(_ctx: Context, _route: any, req: any) {
   if (req.$params) req.$params = sanitizeClientParams(req.$params);
 }
+
+// With `mappingPolicy: 'all'` any `/<service>/<action>` URL reaches its action.
+// Only actions meant for HTTP (those with a `rest` definition) may be reached
+// that way; internal ones (minio.*, seed.*, users.update, ...) have no `rest`.
+// Declared aliases (autoAliases from `rest` and the `aliases` below) are not
+// affected, so every documented endpoint keeps working.
+export function blockInternalActions(
+  _ctx: Context,
+  _route: any,
+  req: any,
+  _res: any,
+  alias: any
+) {
+  if (alias?._notDefined && !req.$action?.rest) {
+    throw new Errors.MoleculerClientError('Not found', 404, 'NOT_FOUND');
+  }
+}
+
+function beforeCall(ctx: Context, route: any, req: any, res: any, alias: any) {
+  blockInternalActions(ctx, route, req, res, alias);
+  stripClientRaw(ctx, route, req);
+}
 export interface UserAuthMeta {
   user: User;
   profile?: Tenant;
@@ -81,7 +103,7 @@ export const AuthType = {
         path: '/auth',
         authorization: false,
         authentication: false,
-        onBeforeCall: stripClientRaw,
+        onBeforeCall: beforeCall,
         whitelist: [
           'auth.login',
           'auth.evartai.sign',
@@ -108,8 +130,9 @@ export const AuthType = {
         // Enable/disable parameter merging method. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Disable-merging
         mergeParams: true,
 
-        // Removes client-supplied `$raw` from params before any action call.
-        onBeforeCall: stripClientRaw,
+        // Blocks internal actions reached by automatic mapping and removes
+        // client-supplied `$raw` from params before any action call.
+        onBeforeCall: beforeCall,
 
         // Enable authentication. Implement the logic into `authenticate` method. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Authentication
         authentication: true,
@@ -131,6 +154,8 @@ export const AuthType = {
           'GET /tenants/:id/users': 'tenantUsers.findByTenant',
           'GET /tenants/:id/users/:userId': 'tenantUsers.getByTenant',
           'GET /ping': 'api.ping',
+          // Healthchecks may probe with HEAD (`wget --spider`).
+          'HEAD /ping': 'api.ping',
         },
         /**
 			* Before call hook. You can check the request.
